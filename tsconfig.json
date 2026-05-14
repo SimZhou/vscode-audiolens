@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": [
+      "node",
+      "vscode"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "WebWorker"
+    ],
+    "outDir": "dist"
+  },
+  "include": [
+    "src/**/*.ts",
+    "scripts/**/*.mjs"
+  ]
+}

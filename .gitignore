@@ -1,0 +1,40 @@
+node_modules/
+dist/*
+!dist/
+!dist/*.js
+dist/*.map
+src/
+*.vsix
+.DS_Store
+.vscode-test/
+coverage/
+npm-debug.log*
+.tmp/
+
+# Agent / AI coding local context
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.agents/
+.claude/
+.codex/
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.aider*
+.roo/
+.kilocode/
+
+# Internal planning docs
+docs/
+docs/roadmap.md
+
+# Local audio fixtures
+tests/audios/
+
+# Local tests
+tests/
+
+# Local design assets
+AudioLens_logo.v1.png

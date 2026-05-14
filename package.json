@@ -1,0 +1,158 @@
+{
+  "name": "audiolens",
+  "displayName": "AudioLens",
+  "description": "Audio preview, waveform inspection, and spectrogram analysis for VS Code.",
+  "version": "0.2.8",
+  "publisher": "simzhou",
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "logo/icon.png",
+  "galleryBanner": {
+    "color": "#111827",
+    "theme": "dark"
+  },
+  "qna": "marketplace",
+  "extensionKind": [
+    "workspace"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SimZhou/vscode-audiolens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SimZhou/vscode-audiolens/issues"
+  },
+  "homepage": "https://github.com/SimZhou/vscode-audiolens#readme",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "audio",
+    "audio-analysis",
+    "waveform",
+    "spectrum",
+    "spectrogram",
+    "speech",
+    "rms",
+    "dbfs",
+    "fft",
+    "stft",
+    "wav",
+    "mp3",
+    "flac",
+    "ogg",
+    "remote-ssh"
+  ],
+  "activationEvents": [
+    "onCustomEditor:audiolens.audioPreview"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "audiolens.audioPreview",
+        "displayName": "AudioLens",
+        "selector": [
+          {
+            "filenamePattern": "*.wav"
+          },
+          {
+            "filenamePattern": "*.mp3"
+          },
+          {
+            "filenamePattern": "*.flac"
+          },
+          {
+            "filenamePattern": "*.ogg"
+          },
+          {
+            "filenamePattern": "*.opus"
+          },
+          {
+            "filenamePattern": "*.m4a"
+          },
+          {
+            "filenamePattern": "*.aac"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "configuration": {
+      "title": "AudioLens",
+      "properties": {
+        "audiolens.autoAnalyze": {
+          "type": "boolean",
+          "default": true,
+          "description": "打开音频后自动计算频谱。"
+        },
+        "audiolens.analysis.windowFunction": {
+          "type": "string",
+          "enum": [
+            "rectangular",
+            "bartlett",
+            "hamming",
+            "hann",
+            "blackman",
+            "blackmanHarris",
+            "welch",
+            "gaussian25",
+            "gaussian35",
+            "gaussian45"
+          ],
+          "default": "hann",
+          "description": "默认频谱窗函数。"
+        },
+        "audiolens.analysis.fftSize": {
+          "type": "number",
+          "enum": [
+            8,
+            16,
+            32,
+            64,
+            128,
+            256,
+            512,
+            1024,
+            2048,
+            4096,
+            8192,
+            16384,
+            32768
+          ],
+          "default": 2048,
+          "description": "默认 FFT 长度。"
+        },
+        "audiolens.maxFileSizeMB": {
+          "type": "number",
+          "default": 512,
+          "minimum": 16,
+          "description": "Webview 解码前允许加载的最大音频文件大小。"
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "AudioLens 在不受信任工作区中只显示文件信息，不传输音频内容到 Webview。"
+    }
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-0.2.8.vsix",
+    "vscode:prepublish": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/vscode": "^1.95.0",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}
