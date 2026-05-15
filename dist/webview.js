@@ -430,7 +430,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens-Initialisierung fehlgeschlagen"
+    initializationFailed: "AudioLens-Initialisierung fehlgeschlagen",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/en.ts
@@ -508,7 +509,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens initialization failed"
+    initializationFailed: "AudioLens initialization failed",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/es.ts
@@ -586,7 +588,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "Error al inicializar AudioLens"
+    initializationFailed: "Error al inicializar AudioLens",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/fr.ts
@@ -664,7 +667,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "\xC9chec d'initialisation d'AudioLens"
+    initializationFailed: "\xC9chec d'initialisation d'AudioLens",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/id.ts
@@ -742,7 +746,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "Inisialisasi AudioLens gagal"
+    initializationFailed: "Inisialisasi AudioLens gagal",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/it.ts
@@ -820,7 +825,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "Inizializzazione di AudioLens non riuscita"
+    initializationFailed: "Inizializzazione di AudioLens non riuscita",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/ja.ts
@@ -898,7 +904,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens \u306E\u521D\u671F\u5316\u306B\u5931\u6557\u3057\u307E\u3057\u305F"
+    initializationFailed: "AudioLens \u306E\u521D\u671F\u5316\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/ko.ts
@@ -976,7 +983,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens \uCD08\uAE30\uD654 \uC2E4\uD328"
+    initializationFailed: "AudioLens \uCD08\uAE30\uD654 \uC2E4\uD328",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/nl.ts
@@ -1054,7 +1062,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens-initialisatie mislukt"
+    initializationFailed: "AudioLens-initialisatie mislukt",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/no.ts
@@ -1132,7 +1141,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens-initialisering mislyktes"
+    initializationFailed: "AudioLens-initialisering mislyktes",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/pl.ts
@@ -1210,7 +1220,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "Inicjalizacja AudioLens nie powiod\u0142a si\u0119"
+    initializationFailed: "Inicjalizacja AudioLens nie powiod\u0142a si\u0119",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/pt.ts
@@ -1288,7 +1299,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "Falha ao inicializar AudioLens"
+    initializationFailed: "Falha ao inicializar AudioLens",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/ru.ts
@@ -1366,7 +1378,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "\u0421\u0431\u043E\u0439 \u0438\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438 AudioLens"
+    initializationFailed: "\u0421\u0431\u043E\u0439 \u0438\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438 AudioLens",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/tr.ts
@@ -1444,7 +1457,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens baslatilamadi"
+    initializationFailed: "AudioLens baslatilamadi",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/vi.ts
@@ -1522,7 +1536,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "Kh\u1EDFi t\u1EA1o AudioLens th\u1EA5t b\u1EA1i"
+    initializationFailed: "Kh\u1EDFi t\u1EA1o AudioLens th\u1EA5t b\u1EA1i",
+    playbackGain: "Playback Gain (Double-click to reset)"
   };
 
   // src/webview/i18n/locales/zh-CN.ts
@@ -1600,7 +1615,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u8D25"
+    initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u8D25",
+    playbackGain: "\u64AD\u653E\u589E\u76CA (\u53CC\u51FB\u91CD\u7F6E\u4E3A 0)"
   };
 
   // src/webview/i18n/locales/zh-TW.ts
@@ -1678,7 +1694,8 @@
     frequencyBand8kPlus: "8k+",
     pad: "pad",
     hop: "hop",
-    initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u6557"
+    initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u6557",
+    playbackGain: "\u64AD\u653E\u589E\u76CA (\u96D9\u64CA\u91CD\u8A2D\u70BA 0)"
   };
 
   // src/webview/i18n/index.ts
@@ -1746,6 +1763,10 @@
           <span id="fileMeta" class="muted" data-i18n="waitingAudioFile">Waiting for audio file</span>
         </div>
         <div id="status" class="status" data-i18n="initializing" hidden>Initializing</div>
+        <div class="gainControl" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
+          <span id="gainLabel" class="gainLabel">0 dB</span>
+          <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" />
+        </div>
         <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="spectrogramSettings" data-i18n-aria="spectrogramSettings" title="Spectrogram settings" aria-label="Spectrogram settings">\u2699</button>
       </header>
 
@@ -1926,6 +1947,8 @@
       algorithm: query("#algorithm", HTMLSelectElement),
       zeroPaddingFactor: query("#zeroPaddingFactor", HTMLSelectElement),
       settingsToggle: query("#settingsToggle", HTMLButtonElement),
+      gainLabel: query("#gainLabel", HTMLSpanElement),
+      playbackGain: query("#playbackGain", HTMLInputElement),
       settingsPanel: query("#settingsPanel", HTMLElement),
       settingsClose: query("#settingsClose", HTMLButtonElement),
       windowFunction: query("#windowFunction", HTMLSelectElement),
@@ -2018,6 +2041,9 @@
     playbackFrameId;
     preferencesSaveTimer;
     analysisTimer;
+    playbackAudioContext;
+    playbackGainNode;
+    playbackSourceNode;
     pendingChunks = /* @__PURE__ */ new Map();
     spectrogramCache = /* @__PURE__ */ new Map();
     waveformCache = /* @__PURE__ */ new Map();
@@ -2036,7 +2062,8 @@
       timeZoom: 1,
       timeOffset: 0,
       frequencyScale: "linear",
-      palette: "rose"
+      palette: "rose",
+      playbackGain: 0
     };
     async handleMessage(message) {
       switch (message.type) {
@@ -2150,6 +2177,19 @@
         this.updateClock();
         this.setStatus(this.messages.audioLoaded);
       });
+      this.elements.playbackGain.addEventListener("input", () => {
+        this.settings.playbackGain = Number(this.elements.playbackGain.value);
+        this.elements.gainLabel.textContent = `${this.settings.playbackGain > 0 ? "+" : ""}${this.settings.playbackGain} dB`;
+        this.updateGainNode();
+        this.savePreferencesSoon();
+      });
+      this.elements.playbackGain.addEventListener("dblclick", () => {
+        this.settings.playbackGain = 0;
+        this.elements.playbackGain.value = "0";
+        this.elements.gainLabel.textContent = "0 dB";
+        this.updateGainNode();
+        this.savePreferencesSoon();
+      });
       this.elements.audio.addEventListener("error", () => {
         const detail = this.elements.audio.error?.message || this.messages.audioCannotPlay;
         this.reportPlaybackError(detail);
@@ -2241,6 +2281,9 @@
       try {
         if (this.elements.audio.paused) {
           this.preparePlaybackStart();
+          if (this.playbackAudioContext?.state === "suspended") {
+            await this.playbackAudioContext.resume();
+          }
           await this.elements.audio.play();
         } else {
           this.selectionPlaybackEnd = void 0;
@@ -2455,6 +2498,7 @@
         maxDb: this.settings.maxDb,
         autoBrightness: this.settings.autoBrightness,
         amplitudeZoom: this.settings.amplitudeZoom,
+        playbackGain: this.settings.playbackGain,
         waveformHeight: this.getPlotHeight(this.elements.waveformPane),
         spectrogramHeight: this.getPlotHeight(this.elements.spectrogramPane)
       };
@@ -2754,6 +2798,19 @@
     updateResetViewButtonState() {
       const isDirty = Math.abs(this.settings.timeZoom - 1) > 1e-6 || Math.abs(this.settings.timeOffset) > 1e-6 || Math.abs(this.settings.amplitudeZoom - 1) > 1e-6 || Boolean(this.selection);
       this.elements.resetView.classList.toggle("isProminent", isDirty);
+    }
+    updateGainNode() {
+      if (!this.playbackAudioContext) {
+        this.playbackAudioContext = new AudioContext();
+        this.playbackSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
+        this.playbackGainNode = this.playbackAudioContext.createGain();
+        this.playbackSourceNode.connect(this.playbackGainNode);
+        this.playbackGainNode.connect(this.playbackAudioContext.destination);
+      }
+      if (this.playbackGainNode) {
+        const multiplier = Math.pow(10, this.settings.playbackGain / 20);
+        this.playbackGainNode.gain.value = multiplier;
+      }
     }
     getWaveformPeaks(startSample, endSample, width) {
       const cacheKey = `${this.settings.channel}:${startSample}:${endSample}:${width}`;
@@ -3432,6 +3489,22 @@
       align-items: baseline;
       gap: 10px;
       flex: 1;
+    }
+    .gainControl {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 8px;
+    }
+    .gainLabel {
+      font-variant-numeric: tabular-nums;
+      min-width: 4ch;
+      text-align: right;
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+    }
+    .gainSlider {
+      width: 80px;
     }
     .brand {
       letter-spacing: 0;

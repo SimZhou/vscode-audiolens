@@ -7,6 +7,9 @@ Marketplace search and UI polish update.
 - Improved Marketplace search metadata with more direct preview and viewer keywords.
 - Shortened selection analysis labels for RMS and peak levels across localized Webview UI.
 - Updated the macOS amplitude zoom hint to show the `Option` symbol instead of the `Alt` label.
+- Hid the top-right status text when there is no actionable progress or error to show.
+- Swapped the positions of `Reset view` and `Refresh spectrogram` in the left control pane.
+- Made `Reset view` adopt the primary button style whenever the current view differs from the default state.
 
 ## 0.2.13
 

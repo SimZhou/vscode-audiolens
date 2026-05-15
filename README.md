@@ -32,7 +32,8 @@ Open an audio file and AudioLens gives you playback, waveform inspection, spectr
 | Time zoom on macOS | `Command` + mouse wheel |
 | Time zoom on Windows/Linux | `Ctrl` + mouse wheel |
 | Pan visible time range | `Shift` + mouse wheel |
-| Zoom waveform amplitude scale | `Alt` + mouse wheel |
+| Zoom waveform amplitude on macOS | `Option` + mouse wheel |
+| Zoom waveform amplitude on Windows/Linux | `Alt` + mouse wheel |
 
 ## Spectrogram Analysis
 
@@ -82,7 +83,7 @@ code --install-extension simzhou.audiolens
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-0.2.13.vsix
+code --install-extension dist/audiolens-0.2.14.vsix
 ```
 
 ## Development
