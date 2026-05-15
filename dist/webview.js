@@ -355,19 +355,1623 @@
     return "audio/wav";
   }
 
+  // src/webview/i18n/locales/de.ts
+  var messages = {
+    waitingAudioFile: "Warte auf Audiodatei",
+    initializing: "Initialisierung",
+    spectrogramSettings: "Spectrogram-Einstellungen",
+    playPause: "Wiedergabe / Pause",
+    playbackPosition: "Wiedergabeposition",
+    closeSettings: "Einstellungen schliessen",
+    spectrogramDisplay: "Spectrogram-Anzeige",
+    algorithm: "Algorithmus",
+    algorithmFrequency: "Frequenz",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Fenstergroesse",
+    windowType: "Fenstertyp",
+    windowRectangular: "Rechteck",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gauss (\u03B1=2.5)",
+    windowGaussian35: "Gauss (\u03B1=3.5)",
+    windowGaussian45: "Gauss (\u03B1=4.5)",
+    zeroPaddingFactor: "Null-Padding-Faktor",
+    frequencyScale: "Frequenzskala",
+    palette: "Palette",
+    paletteRose: "Rose",
+    paletteClassic: "Klassisch",
+    paletteGrayscale: "Graustufen",
+    paletteInverseGrayscale: "Inverse Graustufen",
+    minDb: "Min. dB",
+    maxDb: "Max. dB",
+    channel: "Kanal",
+    timeZoom: "Zeitzoom",
+    timePosition: "Zeitposition",
+    amplitudeZoom: "Amplitudenzoom",
+    mouseWheel: "Mausrad",
+    refreshSpectrogram: "Spectrogram aktualisieren",
+    resetView: "Ansicht zuruecksetzen",
+    selectionAnalysis: "Auswahlanalyse",
+    selectionStart: "Start",
+    selectionEnd: "Ende",
+    selectionDuration: "Dauer",
+    rmsLevel: "RMS-Pegel",
+    peakLevel: "Peak-Pegel",
+    dominant: "Dominant",
+    frequencyAnalysis: "Frequenzanalyse",
+    bands: "Baender",
+    waveform: "Wellenform",
+    spectrogram: "Spectrogram",
+    adjustWaveformHeight: "Wellenformhoehe anpassen",
+    adjustSpectrogramHeight: "Spectrogram-Hoehe anpassen",
+    ready: "Bereit",
+    workspaceNotTrusted: "Arbeitsbereich nicht vertrauenswuerdig; Audioinhalte werden nicht uebertragen",
+    fileTooLarge: "Datei ueberschreitet Limit",
+    readingAudio: "Audio wird gelesen",
+    readingAudioProgress: "Audio wird gelesen",
+    decodingAudio: "Audio wird decodiert",
+    audioLoaded: "Audio geladen",
+    audioNotReady: "Audio ist nicht bereit",
+    audioCannotPlay: "Dieses Audio kann im Webview nicht abgespielt werden",
+    playbackFailed: "Wiedergabe fehlgeschlagen",
+    analyzingSpectrogram: "Spectrogram wird analysiert",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens-Initialisierung fehlgeschlagen"
+  };
+
+  // src/webview/i18n/locales/en.ts
+  var messages2 = {
+    waitingAudioFile: "Waiting for audio file",
+    initializing: "Initializing",
+    spectrogramSettings: "Spectrogram settings",
+    playPause: "Play / pause",
+    playbackPosition: "Playback position",
+    closeSettings: "Close settings",
+    spectrogramDisplay: "Spectrogram display",
+    algorithm: "Algorithm",
+    algorithmFrequency: "Frequency",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Window size",
+    windowType: "Window type",
+    windowRectangular: "Rectangular",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "Zero padding factor",
+    frequencyScale: "Frequency scale",
+    palette: "Palette",
+    paletteRose: "Rose",
+    paletteClassic: "Classic",
+    paletteGrayscale: "Grayscale",
+    paletteInverseGrayscale: "Inverse grayscale",
+    minDb: "Min dB",
+    maxDb: "Max dB",
+    channel: "Channel",
+    timeZoom: "Time zoom",
+    timePosition: "Time position",
+    amplitudeZoom: "Amplitude zoom",
+    mouseWheel: "Mouse wheel",
+    refreshSpectrogram: "Refresh spectrogram",
+    resetView: "Reset view",
+    selectionAnalysis: "Selection analysis",
+    selectionStart: "Start",
+    selectionEnd: "End",
+    selectionDuration: "Duration",
+    rmsLevel: "RMS level",
+    peakLevel: "Peak level",
+    dominant: "Dominant",
+    frequencyAnalysis: "Frequency analysis",
+    bands: "Bands",
+    waveform: "Waveform",
+    spectrogram: "Spectrogram",
+    adjustWaveformHeight: "Adjust waveform height",
+    adjustSpectrogramHeight: "Adjust spectrogram height",
+    ready: "Ready",
+    workspaceNotTrusted: "Workspace not trusted; audio content is not transferred",
+    fileTooLarge: "File exceeds limit",
+    readingAudio: "Reading audio",
+    readingAudioProgress: "Reading audio",
+    decodingAudio: "Decoding audio",
+    audioLoaded: "Audio loaded",
+    audioNotReady: "Audio is not ready",
+    audioCannotPlay: "This audio cannot be played in the webview",
+    playbackFailed: "Playback failed",
+    analyzingSpectrogram: "Analyzing spectrogram",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens initialization failed"
+  };
+
+  // src/webview/i18n/locales/es.ts
+  var messages3 = {
+    waitingAudioFile: "Esperando archivo de audio",
+    initializing: "Inicializando",
+    spectrogramSettings: "Ajustes del espectrograma",
+    playPause: "Reproducir / pausar",
+    playbackPosition: "Posici\xF3n de reproducci\xF3n",
+    closeSettings: "Cerrar ajustes",
+    spectrogramDisplay: "Vista del espectrograma",
+    algorithm: "Algoritmo",
+    algorithmFrequency: "Frecuencia",
+    algorithmReassignment: "Reasignaci\xF3n",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Tama\xF1o de ventana",
+    windowType: "Tipo de ventana",
+    windowRectangular: "Rectangular",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussiana (\u03B1=2.5)",
+    windowGaussian35: "Gaussiana (\u03B1=3.5)",
+    windowGaussian45: "Gaussiana (\u03B1=4.5)",
+    zeroPaddingFactor: "Factor de relleno cero",
+    frequencyScale: "Escala de frecuencia",
+    palette: "Paleta",
+    paletteRose: "Rosa",
+    paletteClassic: "Cl\xE1sica",
+    paletteGrayscale: "Escala de grises",
+    paletteInverseGrayscale: "Grises invertidos",
+    minDb: "dB m\xEDn.",
+    maxDb: "dB m\xE1x.",
+    channel: "Canal",
+    timeZoom: "Zoom de tiempo",
+    timePosition: "Posici\xF3n temporal",
+    amplitudeZoom: "Zoom de amplitud",
+    mouseWheel: "Rueda del rat\xF3n",
+    refreshSpectrogram: "Actualizar espectrograma",
+    resetView: "Restablecer vista",
+    selectionAnalysis: "An\xE1lisis de selecci\xF3n",
+    selectionStart: "Inicio",
+    selectionEnd: "Fin",
+    selectionDuration: "Duraci\xF3n",
+    rmsLevel: "Nivel RMS",
+    peakLevel: "Nivel Peak",
+    dominant: "Dominante",
+    frequencyAnalysis: "An\xE1lisis de frecuencia",
+    bands: "Bandas",
+    waveform: "Forma de onda",
+    spectrogram: "Espectrograma",
+    adjustWaveformHeight: "Ajustar altura de forma de onda",
+    adjustSpectrogramHeight: "Ajustar altura del espectrograma",
+    ready: "Listo",
+    workspaceNotTrusted: "\xC1rea no confiable; no se transfiere audio",
+    fileTooLarge: "El archivo supera el l\xEDmite",
+    readingAudio: "Leyendo audio",
+    readingAudioProgress: "Leyendo audio",
+    decodingAudio: "Decodificando audio",
+    audioLoaded: "Audio cargado",
+    audioNotReady: "El audio no est\xE1 listo",
+    audioCannotPlay: "Este audio no se puede reproducir en el webview",
+    playbackFailed: "Error de reproducci\xF3n",
+    analyzingSpectrogram: "Analizando espectrograma",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "Error al inicializar AudioLens"
+  };
+
+  // src/webview/i18n/locales/fr.ts
+  var messages4 = {
+    waitingAudioFile: "En attente d'un fichier audio",
+    initializing: "Initialisation",
+    spectrogramSettings: "R\xE9glages du spectrogramme",
+    playPause: "Lire / pause",
+    playbackPosition: "Position de lecture",
+    closeSettings: "Fermer les r\xE9glages",
+    spectrogramDisplay: "Affichage du spectrogramme",
+    algorithm: "Algorithme",
+    algorithmFrequency: "Fr\xE9quence",
+    algorithmReassignment: "R\xE9assignation",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Taille de fen\xEAtre",
+    windowType: "Type de fen\xEAtre",
+    windowRectangular: "Rectangulaire",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussienne (\u03B1=2.5)",
+    windowGaussian35: "Gaussienne (\u03B1=3.5)",
+    windowGaussian45: "Gaussienne (\u03B1=4.5)",
+    zeroPaddingFactor: "Facteur de z\xE9ro-padding",
+    frequencyScale: "\xC9chelle de fr\xE9quence",
+    palette: "Palette",
+    paletteRose: "Couleur (rose)",
+    paletteClassic: "Couleur (classique)",
+    paletteGrayscale: "Niveaux de gris",
+    paletteInverseGrayscale: "Gris invers\xE9s",
+    minDb: "dB min",
+    maxDb: "dB max",
+    channel: "Canal",
+    timeZoom: "Zoom temporel",
+    timePosition: "Position temporelle",
+    amplitudeZoom: "Zoom d'amplitude",
+    mouseWheel: "molette",
+    refreshSpectrogram: "Actualiser le spectrogramme",
+    resetView: "R\xE9initialiser la vue",
+    selectionAnalysis: "Analyse de la s\xE9lection",
+    selectionStart: "D\xE9but",
+    selectionEnd: "Fin",
+    selectionDuration: "Dur\xE9e",
+    rmsLevel: "Niveau RMS dB",
+    peakLevel: "Niveau Peak dB",
+    dominant: "Dominante",
+    frequencyAnalysis: "Analyse fr\xE9quentielle",
+    bands: "Bandes",
+    waveform: "Forme d'onde",
+    spectrogram: "Spectrogramme",
+    adjustWaveformHeight: "Ajuster la hauteur de la forme d'onde",
+    adjustSpectrogramHeight: "Ajuster la hauteur du spectrogramme",
+    ready: "Pr\xEAt",
+    workspaceNotTrusted: "Espace non fiable",
+    fileTooLarge: "Fichier au-del\xE0 de la limite",
+    readingAudio: "Lecture de l'audio",
+    readingAudioProgress: "Lecture de l'audio",
+    decodingAudio: "D\xE9codage de l'audio",
+    audioLoaded: "Audio charg\xE9",
+    audioNotReady: "L'audio n'est pas pr\xEAt",
+    audioCannotPlay: "Cet audio ne peut pas \xEAtre lu dans le Webview",
+    playbackFailed: "\xC9chec de lecture",
+    analyzingSpectrogram: "Analyse du spectrogramme",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "\xC9chec d'initialisation d'AudioLens"
+  };
+
+  // src/webview/i18n/locales/id.ts
+  var messages5 = {
+    waitingAudioFile: "Menunggu file audio",
+    initializing: "Menginisialisasi",
+    spectrogramSettings: "Pengaturan spectrogram",
+    playPause: "Putar / jeda",
+    playbackPosition: "Posisi putar",
+    closeSettings: "Tutup pengaturan",
+    spectrogramDisplay: "Tampilan spectrogram",
+    algorithm: "Algoritma",
+    algorithmFrequency: "Frekuensi",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Ukuran window",
+    windowType: "Jenis window",
+    windowRectangular: "Rectangular",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "Faktor zero padding",
+    frequencyScale: "Skala frekuensi",
+    palette: "Palet",
+    paletteRose: "Rose",
+    paletteClassic: "Klasik",
+    paletteGrayscale: "Grayscale",
+    paletteInverseGrayscale: "Grayscale terbalik",
+    minDb: "Min dB",
+    maxDb: "Maks dB",
+    channel: "Kanal",
+    timeZoom: "Zoom waktu",
+    timePosition: "Posisi waktu",
+    amplitudeZoom: "Zoom amplitudo",
+    mouseWheel: "Roda mouse",
+    refreshSpectrogram: "Segarkan spectrogram",
+    resetView: "Reset tampilan",
+    selectionAnalysis: "Analisis pilihan",
+    selectionStart: "Mulai",
+    selectionEnd: "Akhir",
+    selectionDuration: "Durasi",
+    rmsLevel: "Level RMS",
+    peakLevel: "Level Peak",
+    dominant: "Dominan",
+    frequencyAnalysis: "Analisis frekuensi",
+    bands: "Band",
+    waveform: "Waveform",
+    spectrogram: "Spectrogram",
+    adjustWaveformHeight: "Atur tinggi waveform",
+    adjustSpectrogramHeight: "Atur tinggi spectrogram",
+    ready: "Siap",
+    workspaceNotTrusted: "Workspace tidak tepercaya; konten audio tidak ditransfer",
+    fileTooLarge: "File melebihi batas",
+    readingAudio: "Membaca audio",
+    readingAudioProgress: "Membaca audio",
+    decodingAudio: "Mendekode audio",
+    audioLoaded: "Audio dimuat",
+    audioNotReady: "Audio belum siap",
+    audioCannotPlay: "Audio ini tidak dapat diputar di webview",
+    playbackFailed: "Pemutaran gagal",
+    analyzingSpectrogram: "Menganalisis spectrogram",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "Inisialisasi AudioLens gagal"
+  };
+
+  // src/webview/i18n/locales/it.ts
+  var messages6 = {
+    waitingAudioFile: "In attesa del file audio",
+    initializing: "Inizializzazione",
+    spectrogramSettings: "Impostazioni spettrogramma",
+    playPause: "Riproduci / pausa",
+    playbackPosition: "Posizione di riproduzione",
+    closeSettings: "Chiudi impostazioni",
+    spectrogramDisplay: "Visualizzazione spettrogramma",
+    algorithm: "Algoritmo",
+    algorithmFrequency: "Frequenza",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Dimensione finestra",
+    windowType: "Tipo finestra",
+    windowRectangular: "Rettangolare",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussiana (\u03B1=2.5)",
+    windowGaussian35: "Gaussiana (\u03B1=3.5)",
+    windowGaussian45: "Gaussiana (\u03B1=4.5)",
+    zeroPaddingFactor: "Fattore zero padding",
+    frequencyScale: "Scala frequenza",
+    palette: "Palette",
+    paletteRose: "Rosa",
+    paletteClassic: "Classica",
+    paletteGrayscale: "Scala di grigi",
+    paletteInverseGrayscale: "Grigi invertiti",
+    minDb: "dB min",
+    maxDb: "dB max",
+    channel: "Canale",
+    timeZoom: "Zoom tempo",
+    timePosition: "Posizione tempo",
+    amplitudeZoom: "Zoom ampiezza",
+    mouseWheel: "Rotella mouse",
+    refreshSpectrogram: "Aggiorna spettrogramma",
+    resetView: "Reimposta vista",
+    selectionAnalysis: "Analisi selezione",
+    selectionStart: "Inizio",
+    selectionEnd: "Fine",
+    selectionDuration: "Durata",
+    rmsLevel: "Livello RMS",
+    peakLevel: "Livello Peak",
+    dominant: "Dominante",
+    frequencyAnalysis: "Analisi frequenze",
+    bands: "Bande",
+    waveform: "Forma d'onda",
+    spectrogram: "Spettrogramma",
+    adjustWaveformHeight: "Regola altezza forma d'onda",
+    adjustSpectrogramHeight: "Regola altezza spettrogramma",
+    ready: "Pronto",
+    workspaceNotTrusted: "Workspace non attendibile; il contenuto audio non viene trasferito",
+    fileTooLarge: "Il file supera il limite",
+    readingAudio: "Lettura audio",
+    readingAudioProgress: "Lettura audio",
+    decodingAudio: "Decodifica audio",
+    audioLoaded: "Audio caricato",
+    audioNotReady: "Audio non pronto",
+    audioCannotPlay: "Questo audio non puo essere riprodotto nella webview",
+    playbackFailed: "Riproduzione non riuscita",
+    analyzingSpectrogram: "Analisi spettrogramma",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "Inizializzazione di AudioLens non riuscita"
+  };
+
+  // src/webview/i18n/locales/ja.ts
+  var messages7 = {
+    waitingAudioFile: "\u97F3\u58F0\u30D5\u30A1\u30A4\u30EB\u5F85\u6A5F\u4E2D",
+    initializing: "\u521D\u671F\u5316\u4E2D",
+    spectrogramSettings: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u8A2D\u5B9A",
+    playPause: "\u518D\u751F / \u4E00\u6642\u505C\u6B62",
+    playbackPosition: "\u518D\u751F\u4F4D\u7F6E",
+    closeSettings: "\u8A2D\u5B9A\u3092\u9589\u3058\u308B",
+    spectrogramDisplay: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u8868\u793A",
+    algorithm: "\u30A2\u30EB\u30B4\u30EA\u30BA\u30E0",
+    algorithmFrequency: "\u5468\u6CE2\u6570",
+    algorithmReassignment: "\u518D\u914D\u7F6E",
+    algorithmPitchEac: "\u30D4\u30C3\u30C1 (EAC)",
+    windowSize: "\u7A93\u30B5\u30A4\u30BA",
+    windowType: "\u7A93\u30BF\u30A4\u30D7",
+    windowRectangular: "\u77E9\u5F62",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "\u30BC\u30ED\u57CB\u3081\u4FC2\u6570",
+    frequencyScale: "\u5468\u6CE2\u6570\u30B9\u30B1\u30FC\u30EB",
+    palette: "\u30D1\u30EC\u30C3\u30C8",
+    paletteRose: "\u30AB\u30E9\u30FC (rose)",
+    paletteClassic: "\u30AB\u30E9\u30FC (classic)",
+    paletteGrayscale: "\u30B0\u30EC\u30FC\u30B9\u30B1\u30FC\u30EB",
+    paletteInverseGrayscale: "\u53CD\u8EE2\u30B0\u30EC\u30FC",
+    minDb: "\u6700\u5C0F dB",
+    maxDb: "\u6700\u5927 dB",
+    channel: "\u30C1\u30E3\u30F3\u30CD\u30EB",
+    timeZoom: "\u6642\u9593\u30BA\u30FC\u30E0",
+    timePosition: "\u6642\u9593\u4F4D\u7F6E",
+    amplitudeZoom: "\u632F\u5E45\u30BA\u30FC\u30E0",
+    mouseWheel: "\u30DE\u30A6\u30B9\u30DB\u30A4\u30FC\u30EB",
+    refreshSpectrogram: "\u518D\u5206\u6790",
+    resetView: "\u8868\u793A\u3092\u30EA\u30BB\u30C3\u30C8",
+    selectionAnalysis: "\u9078\u629E\u7BC4\u56F2\u5206\u6790",
+    selectionStart: "\u958B\u59CB",
+    selectionEnd: "\u7D42\u4E86",
+    selectionDuration: "\u9577\u3055",
+    rmsLevel: "RMS Lev DB",
+    peakLevel: "Peak Lev DB",
+    dominant: "\u512A\u52E2",
+    frequencyAnalysis: "\u5468\u6CE2\u6570\u5206\u6790",
+    bands: "\u5E2F\u57DF",
+    waveform: "\u6CE2\u5F62",
+    spectrogram: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0",
+    adjustWaveformHeight: "\u6CE2\u5F62\u306E\u9AD8\u3055\u3092\u8ABF\u6574",
+    adjustSpectrogramHeight: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u306E\u9AD8\u3055\u3092\u8ABF\u6574",
+    ready: "\u6E96\u5099\u5B8C\u4E86",
+    workspaceNotTrusted: "\u4FE1\u983C\u3055\u308C\u3066\u3044\u306A\u3044\u30EF\u30FC\u30AF\u30B9\u30DA\u30FC\u30B9",
+    fileTooLarge: "\u30D5\u30A1\u30A4\u30EB\u304C\u4E0A\u9650\u3092\u8D85\u3048\u3066\u3044\u307E\u3059",
+    readingAudio: "\u97F3\u58F0\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D",
+    readingAudioProgress: "\u97F3\u58F0\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D",
+    decodingAudio: "\u97F3\u58F0\u3092\u30C7\u30B3\u30FC\u30C9\u4E2D",
+    audioLoaded: "\u97F3\u58F0\u3092\u8AAD\u307F\u8FBC\u307F\u307E\u3057\u305F",
+    audioNotReady: "\u97F3\u58F0\u306E\u6E96\u5099\u304C\u3067\u304D\u3066\u3044\u307E\u305B\u3093",
+    audioCannotPlay: "\u3053\u306E\u97F3\u58F0\u306F Webview \u3067\u518D\u751F\u3067\u304D\u307E\u305B\u3093",
+    playbackFailed: "\u518D\u751F\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    analyzingSpectrogram: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u89E3\u6790\u4E2D",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens \u306E\u521D\u671F\u5316\u306B\u5931\u6557\u3057\u307E\u3057\u305F"
+  };
+
+  // src/webview/i18n/locales/ko.ts
+  var messages8 = {
+    waitingAudioFile: "\uC624\uB514\uC624 \uD30C\uC77C \uB300\uAE30 \uC911",
+    initializing: "\uCD08\uAE30\uD654 \uC911",
+    spectrogramSettings: "Spectrogram \uC124\uC815",
+    playPause: "\uC7AC\uC0DD / \uC77C\uC2DC\uC815\uC9C0",
+    playbackPosition: "\uC7AC\uC0DD \uC704\uCE58",
+    closeSettings: "\uC124\uC815 \uB2EB\uAE30",
+    spectrogramDisplay: "Spectrogram \uD45C\uC2DC",
+    algorithm: "\uC54C\uACE0\uB9AC\uC998",
+    algorithmFrequency: "\uC8FC\uD30C\uC218",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "\uC708\uB3C4\uC6B0 \uD06C\uAE30",
+    windowType: "\uC708\uB3C4\uC6B0 \uC720\uD615",
+    windowRectangular: "Rectangular",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "\uC81C\uB85C \uD328\uB529 \uACC4\uC218",
+    frequencyScale: "\uC8FC\uD30C\uC218 \uC2A4\uCF00\uC77C",
+    palette: "\uD314\uB808\uD2B8",
+    paletteRose: "\uC0C9\uC0C1 (rose)",
+    paletteClassic: "\uC0C9\uC0C1 (classic)",
+    paletteGrayscale: "\uADF8\uB808\uC774\uC2A4\uCF00\uC77C",
+    paletteInverseGrayscale: "\uBC18\uC804 \uADF8\uB808\uC774\uC2A4\uCF00\uC77C",
+    minDb: "\uCD5C\uC18C dB",
+    maxDb: "\uCD5C\uB300 dB",
+    channel: "\uCC44\uB110",
+    timeZoom: "\uC2DC\uAC04 \uD655\uB300",
+    timePosition: "\uC2DC\uAC04 \uC704\uCE58",
+    amplitudeZoom: "\uC9C4\uD3ED \uD655\uB300",
+    mouseWheel: "\uB9C8\uC6B0\uC2A4 \uD720",
+    refreshSpectrogram: "Spectrogram \uC0C8\uB85C\uACE0\uCE68",
+    resetView: "\uBCF4\uAE30 \uCD08\uAE30\uD654",
+    selectionAnalysis: "\uC120\uD0DD \uBD84\uC11D",
+    selectionStart: "\uC2DC\uC791",
+    selectionEnd: "\uB05D",
+    selectionDuration: "\uAE38\uC774",
+    rmsLevel: "RMS \uB808\uBCA8 DB",
+    peakLevel: "Peak \uB808\uBCA8 DB",
+    dominant: "\uC8FC\uC694",
+    frequencyAnalysis: "\uC8FC\uD30C\uC218 \uBD84\uC11D",
+    bands: "\uB300\uC5ED",
+    waveform: "\uD30C\uD615",
+    spectrogram: "Spectrogram",
+    adjustWaveformHeight: "\uD30C\uD615 \uB192\uC774 \uC870\uC815",
+    adjustSpectrogramHeight: "Spectrogram \uB192\uC774 \uC870\uC815",
+    ready: "\uC900\uBE44\uB428",
+    workspaceNotTrusted: "\uC2E0\uB8B0\uB418\uC9C0 \uC54A\uC740 \uC791\uC5C5 \uC601\uC5ED",
+    fileTooLarge: "\uD30C\uC77C \uD55C\uB3C4 \uCD08\uACFC",
+    readingAudio: "\uC624\uB514\uC624 \uC77D\uB294 \uC911",
+    readingAudioProgress: "\uC624\uB514\uC624 \uC77D\uB294 \uC911",
+    decodingAudio: "\uC624\uB514\uC624 \uB514\uCF54\uB529 \uC911",
+    audioLoaded: "\uC624\uB514\uC624 \uB85C\uB4DC\uB428",
+    audioNotReady: "\uC624\uB514\uC624\uAC00 \uC900\uBE44\uB418\uC9C0 \uC54A\uC74C",
+    audioCannotPlay: "\uC774 \uC624\uB514\uC624\uB294 Webview\uC5D0\uC11C \uC7AC\uC0DD\uD560 \uC218 \uC5C6\uC74C",
+    playbackFailed: "\uC7AC\uC0DD \uC2E4\uD328",
+    analyzingSpectrogram: "Spectrogram \uBD84\uC11D \uC911",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens \uCD08\uAE30\uD654 \uC2E4\uD328"
+  };
+
+  // src/webview/i18n/locales/nl.ts
+  var messages9 = {
+    waitingAudioFile: "Wacht op audiobestand",
+    initializing: "Initialiseren",
+    spectrogramSettings: "Spectrograminstellingen",
+    playPause: "Afspelen / pauze",
+    playbackPosition: "Afspeelpositie",
+    closeSettings: "Instellingen sluiten",
+    spectrogramDisplay: "Spectrogramweergave",
+    algorithm: "Algoritme",
+    algorithmFrequency: "Frequentie",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Toonhoogte (EAC)",
+    windowSize: "Venstergrootte",
+    windowType: "Venstertype",
+    windowRectangular: "Rechthoekig",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "Zero-paddingfactor",
+    frequencyScale: "Frequentieschaal",
+    palette: "Palet",
+    paletteRose: "Roos",
+    paletteClassic: "Klassiek",
+    paletteGrayscale: "Grijswaarden",
+    paletteInverseGrayscale: "Omgekeerde grijswaarden",
+    minDb: "Min dB",
+    maxDb: "Max dB",
+    channel: "Kanaal",
+    timeZoom: "Tijdzoom",
+    timePosition: "Tijdpositie",
+    amplitudeZoom: "Amplitudezoom",
+    mouseWheel: "Muiswiel",
+    refreshSpectrogram: "Spectrogram verversen",
+    resetView: "Weergave resetten",
+    selectionAnalysis: "Selectieanalyse",
+    selectionStart: "Start",
+    selectionEnd: "Einde",
+    selectionDuration: "Duur",
+    rmsLevel: "RMS-niveau",
+    peakLevel: "Peak-niveau",
+    dominant: "Dominant",
+    frequencyAnalysis: "Frequentieanalyse",
+    bands: "Banden",
+    waveform: "Golfvorm",
+    spectrogram: "Spectrogram",
+    adjustWaveformHeight: "Golfvormhoogte aanpassen",
+    adjustSpectrogramHeight: "Spectrogramhoogte aanpassen",
+    ready: "Klaar",
+    workspaceNotTrusted: "Werkruimte niet vertrouwd; audio-inhoud wordt niet overgedragen",
+    fileTooLarge: "Bestand overschrijdt limiet",
+    readingAudio: "Audio lezen",
+    readingAudioProgress: "Audio lezen",
+    decodingAudio: "Audio decoderen",
+    audioLoaded: "Audio geladen",
+    audioNotReady: "Audio is niet klaar",
+    audioCannotPlay: "Deze audio kan niet in de webview worden afgespeeld",
+    playbackFailed: "Afspelen mislukt",
+    analyzingSpectrogram: "Spectrogram analyseren",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens-initialisatie mislukt"
+  };
+
+  // src/webview/i18n/locales/no.ts
+  var messages10 = {
+    waitingAudioFile: "Venter p\xE5 lydfil",
+    initializing: "Initialiserer",
+    spectrogramSettings: "Spectrogram-innstillinger",
+    playPause: "Spill av / pause",
+    playbackPosition: "Avspillingsposisjon",
+    closeSettings: "Lukk innstillinger",
+    spectrogramDisplay: "Spectrogram-visning",
+    algorithm: "Algoritme",
+    algorithmFrequency: "Frekvens",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Toneh\xF8yde (EAC)",
+    windowSize: "Vindust\xF8rrelse",
+    windowType: "Vindustype",
+    windowRectangular: "Rektangul\xE6r",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "Nullutfyllingsfaktor",
+    frequencyScale: "Frekvensskala",
+    palette: "Palett",
+    paletteRose: "Rose",
+    paletteClassic: "Klassisk",
+    paletteGrayscale: "Gr\xE5toner",
+    paletteInverseGrayscale: "Inverterte gr\xE5toner",
+    minDb: "Min dB",
+    maxDb: "Maks dB",
+    channel: "Kanal",
+    timeZoom: "Tidszoom",
+    timePosition: "Tidsposisjon",
+    amplitudeZoom: "Amplitudezoom",
+    mouseWheel: "Musehjul",
+    refreshSpectrogram: "Oppdater spectrogram",
+    resetView: "Tilbakestill visning",
+    selectionAnalysis: "Utvalgsanalyse",
+    selectionStart: "Start",
+    selectionEnd: "Slutt",
+    selectionDuration: "Varighet",
+    rmsLevel: "RMS-niv\xE5",
+    peakLevel: "Peak-niv\xE5",
+    dominant: "Dominant",
+    frequencyAnalysis: "Frekvensanalyse",
+    bands: "B\xE5nd",
+    waveform: "B\xF8lgeform",
+    spectrogram: "Spectrogram",
+    adjustWaveformHeight: "Juster b\xF8lgeformh\xF8yde",
+    adjustSpectrogramHeight: "Juster spectrogram-h\xF8yde",
+    ready: "Klar",
+    workspaceNotTrusted: "Arbeidsomr\xE5det er ikke klarert; lydinnhold overf\xF8res ikke",
+    fileTooLarge: "Filen overskrider grensen",
+    readingAudio: "Leser lyd",
+    readingAudioProgress: "Leser lyd",
+    decodingAudio: "Dekoder lyd",
+    audioLoaded: "Lyd lastet",
+    audioNotReady: "Lyden er ikke klar",
+    audioCannotPlay: "Denne lyden kan ikke spilles av i webview",
+    playbackFailed: "Avspilling mislyktes",
+    analyzingSpectrogram: "Analyserer spectrogram",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens-initialisering mislyktes"
+  };
+
+  // src/webview/i18n/locales/pl.ts
+  var messages11 = {
+    waitingAudioFile: "Oczekiwanie na plik audio",
+    initializing: "Inicjalizacja",
+    spectrogramSettings: "Ustawienia spektrogramu",
+    playPause: "Odtw\xF3rz / pauza",
+    playbackPosition: "Pozycja odtwarzania",
+    closeSettings: "Zamknij ustawienia",
+    spectrogramDisplay: "Widok spektrogramu",
+    algorithm: "Algorytm",
+    algorithmFrequency: "Cz\u0119stotliwo\u015B\u0107",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Rozmiar okna",
+    windowType: "Typ okna",
+    windowRectangular: "Prostok\u0105tne",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussowskie (\u03B1=2.5)",
+    windowGaussian35: "Gaussowskie (\u03B1=3.5)",
+    windowGaussian45: "Gaussowskie (\u03B1=4.5)",
+    zeroPaddingFactor: "Wsp\xF3\u0142czynnik zero padding",
+    frequencyScale: "Skala cz\u0119stotliwo\u015Bci",
+    palette: "Paleta",
+    paletteRose: "R\xF3\u017C",
+    paletteClassic: "Klasyczna",
+    paletteGrayscale: "Skala szaro\u015Bci",
+    paletteInverseGrayscale: "Odwr\xF3cona szaro\u015B\u0107",
+    minDb: "Min. dB",
+    maxDb: "Maks. dB",
+    channel: "Kana\u0142",
+    timeZoom: "Powi\u0119kszenie czasu",
+    timePosition: "Pozycja czasu",
+    amplitudeZoom: "Powi\u0119kszenie amplitudy",
+    mouseWheel: "K\xF3\u0142ko myszy",
+    refreshSpectrogram: "Od\u015Bwie\u017C spektrogram",
+    resetView: "Resetuj widok",
+    selectionAnalysis: "Analiza zaznaczenia",
+    selectionStart: "Start",
+    selectionEnd: "Koniec",
+    selectionDuration: "Czas trwania",
+    rmsLevel: "Poziom RMS",
+    peakLevel: "Poziom Peak",
+    dominant: "Dominuj\u0105ca",
+    frequencyAnalysis: "Analiza cz\u0119stotliwo\u015Bci",
+    bands: "Pasma",
+    waveform: "Przebieg",
+    spectrogram: "Spektrogram",
+    adjustWaveformHeight: "Dostosuj wysoko\u015B\u0107 przebiegu",
+    adjustSpectrogramHeight: "Dostosuj wysoko\u015B\u0107 spektrogramu",
+    ready: "Gotowe",
+    workspaceNotTrusted: "Obszar roboczy nie jest zaufany; tre\u015B\u0107 audio nie jest przesy\u0142ana",
+    fileTooLarge: "Plik przekracza limit",
+    readingAudio: "Odczyt audio",
+    readingAudioProgress: "Odczyt audio",
+    decodingAudio: "Dekodowanie audio",
+    audioLoaded: "Audio wczytane",
+    audioNotReady: "Audio nie jest gotowe",
+    audioCannotPlay: "Tego audio nie mo\u017Cna odtworzy\u0107 w webview",
+    playbackFailed: "Odtwarzanie nie powiod\u0142o si\u0119",
+    analyzingSpectrogram: "Analiza spektrogramu",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "Inicjalizacja AudioLens nie powiod\u0142a si\u0119"
+  };
+
+  // src/webview/i18n/locales/pt.ts
+  var messages12 = {
+    waitingAudioFile: "Aguardando \xE1udio",
+    initializing: "Inicializando",
+    spectrogramSettings: "Config. do espectrograma",
+    playPause: "Reproduzir / pausar",
+    playbackPosition: "Posi\xE7\xE3o de reprodu\xE7\xE3o",
+    closeSettings: "Fechar ajustes",
+    spectrogramDisplay: "Exibi\xE7\xE3o do espectrograma",
+    algorithm: "Algoritmo",
+    algorithmFrequency: "Frequ\xEAncia",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Tamanho da janela",
+    windowType: "Tipo de janela",
+    windowRectangular: "Retangular",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussiana (\u03B1=2.5)",
+    windowGaussian35: "Gaussiana (\u03B1=3.5)",
+    windowGaussian45: "Gaussiana (\u03B1=4.5)",
+    zeroPaddingFactor: "Fator de zero padding",
+    frequencyScale: "Escala de frequ\xEAncia",
+    palette: "Paleta",
+    paletteRose: "Rosa",
+    paletteClassic: "Cl\xE1ssica",
+    paletteGrayscale: "Tons de cinza",
+    paletteInverseGrayscale: "Cinza inverso",
+    minDb: "dB m\xEDn.",
+    maxDb: "dB m\xE1x.",
+    channel: "Canal",
+    timeZoom: "Zoom temporal",
+    timePosition: "Posi\xE7\xE3o temporal",
+    amplitudeZoom: "Zoom de amplitude",
+    mouseWheel: "Roda do mouse",
+    refreshSpectrogram: "Atualizar espectrograma",
+    resetView: "Redefinir vista",
+    selectionAnalysis: "An\xE1lise da sele\xE7\xE3o",
+    selectionStart: "In\xEDcio",
+    selectionEnd: "Fim",
+    selectionDuration: "Dura\xE7\xE3o",
+    rmsLevel: "N\xEDvel RMS",
+    peakLevel: "N\xEDvel Peak",
+    dominant: "Dominante",
+    frequencyAnalysis: "An\xE1lise de frequ\xEAncia",
+    bands: "Bandas",
+    waveform: "Forma de onda",
+    spectrogram: "Espectrograma",
+    adjustWaveformHeight: "Ajustar altura da forma de onda",
+    adjustSpectrogramHeight: "Ajustar altura do espectrograma",
+    ready: "Pronto",
+    workspaceNotTrusted: "Workspace n\xE3o confi\xE1vel; o \xE1udio n\xE3o \xE9 transferido",
+    fileTooLarge: "Arquivo excede o limite",
+    readingAudio: "Lendo \xE1udio",
+    readingAudioProgress: "Lendo \xE1udio",
+    decodingAudio: "Decodificando \xE1udio",
+    audioLoaded: "\xC1udio carregado",
+    audioNotReady: "\xC1udio n\xE3o est\xE1 pronto",
+    audioCannotPlay: "Este \xE1udio n\xE3o pode ser reproduzido no webview",
+    playbackFailed: "Falha na reprodu\xE7\xE3o",
+    analyzingSpectrogram: "Analisando espectrograma",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "Falha ao inicializar AudioLens"
+  };
+
+  // src/webview/i18n/locales/ru.ts
+  var messages13 = {
+    waitingAudioFile: "\u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435 \u0430\u0443\u0434\u0438\u043E\u0444\u0430\u0439\u043B\u0430",
+    initializing: "\u0418\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u044F",
+    spectrogramSettings: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B",
+    playPause: "\u041F\u0443\u0441\u043A / \u043F\u0430\u0443\u0437\u0430",
+    playbackPosition: "\u041F\u043E\u0437\u0438\u0446\u0438\u044F \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0438\u044F",
+    closeSettings: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    spectrogramDisplay: "\u041E\u0442\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B",
+    algorithm: "\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C",
+    algorithmFrequency: "\u0427\u0430\u0441\u0442\u043E\u0442\u0430",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "\u0412\u044B\u0441\u043E\u0442\u0430 \u0442\u043E\u043D\u0430 (EAC)",
+    windowSize: "\u0420\u0430\u0437\u043C\u0435\u0440 \u043E\u043A\u043D\u0430",
+    windowType: "\u0422\u0438\u043F \u043E\u043A\u043D\u0430",
+    windowRectangular: "\u041F\u0440\u044F\u043C\u043E\u0443\u0433\u043E\u043B\u044C\u043D\u043E\u0435",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "\u041A\u043E\u044D\u0444. zero padding",
+    frequencyScale: "\u0428\u043A\u0430\u043B\u0430 \u0447\u0430\u0441\u0442\u043E\u0442",
+    palette: "\u041F\u0430\u043B\u0438\u0442\u0440\u0430",
+    paletteRose: "\u0420\u043E\u0437\u0430",
+    paletteClassic: "\u041A\u043B\u0430\u0441\u0441\u0438\u0447\u0435\u0441\u043A\u0430\u044F",
+    paletteGrayscale: "\u0421\u0435\u0440\u0430\u044F \u0448\u043A\u0430\u043B\u0430",
+    paletteInverseGrayscale: "\u0418\u043D\u0432\u0435\u0440\u0442. \u0441\u0435\u0440\u0430\u044F",
+    minDb: "\u041C\u0438\u043D. dB",
+    maxDb: "\u041C\u0430\u043A\u0441. dB",
+    channel: "\u041A\u0430\u043D\u0430\u043B",
+    timeZoom: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431 \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
+    timePosition: "\u041F\u043E\u0437\u0438\u0446\u0438\u044F \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
+    amplitudeZoom: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431 \u0430\u043C\u043F\u043B\u0438\u0442\u0443\u0434\u044B",
+    mouseWheel: "\u041A\u043E\u043B\u0435\u0441\u043E \u043C\u044B\u0448\u0438",
+    refreshSpectrogram: "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0443",
+    resetView: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0432\u0438\u0434",
+    selectionAnalysis: "\u0410\u043D\u0430\u043B\u0438\u0437 \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u044F",
+    selectionStart: "\u041D\u0430\u0447\u0430\u043B\u043E",
+    selectionEnd: "\u041A\u043E\u043D\u0435\u0446",
+    selectionDuration: "\u0414\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C",
+    rmsLevel: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C RMS",
+    peakLevel: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C Peak",
+    dominant: "\u0414\u043E\u043C\u0438\u043D\u0438\u0440\u0443\u044E\u0449\u0430\u044F",
+    frequencyAnalysis: "\u0410\u043D\u0430\u043B\u0438\u0437 \u0447\u0430\u0441\u0442\u043E\u0442",
+    bands: "\u041F\u043E\u043B\u043E\u0441\u044B",
+    waveform: "\u0412\u043E\u043B\u043D\u0430",
+    spectrogram: "\u0421\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430",
+    adjustWaveformHeight: "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0432\u044B\u0441\u043E\u0442\u0443 \u0432\u043E\u043B\u043D\u044B",
+    adjustSpectrogramHeight: "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0432\u044B\u0441\u043E\u0442\u0443 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B",
+    ready: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    workspaceNotTrusted: "\u0420\u0430\u0431\u043E\u0447\u0430\u044F \u043E\u0431\u043B\u0430\u0441\u0442\u044C \u043D\u0435 \u0434\u043E\u0432\u0435\u0440\u0435\u043D\u0430; \u0430\u0443\u0434\u0438\u043E \u043D\u0435 \u043F\u0435\u0440\u0435\u0434\u0430\u0435\u0442\u0441\u044F",
+    fileTooLarge: "\u0424\u0430\u0439\u043B \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442",
+    readingAudio: "\u0427\u0442\u0435\u043D\u0438\u0435 \u0430\u0443\u0434\u0438\u043E",
+    readingAudioProgress: "\u0427\u0442\u0435\u043D\u0438\u0435 \u0430\u0443\u0434\u0438\u043E",
+    decodingAudio: "\u0414\u0435\u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0430\u0443\u0434\u0438\u043E",
+    audioLoaded: "\u0410\u0443\u0434\u0438\u043E \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u043E",
+    audioNotReady: "\u0410\u0443\u0434\u0438\u043E \u043D\u0435 \u0433\u043E\u0442\u043E\u0432\u043E",
+    audioCannotPlay: "\u042D\u0442\u043E \u0430\u0443\u0434\u0438\u043E \u043D\u0435\u043B\u044C\u0437\u044F \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u0432 webview",
+    playbackFailed: "\u0421\u0431\u043E\u0439 \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0438\u044F",
+    analyzingSpectrogram: "\u0410\u043D\u0430\u043B\u0438\u0437 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "\u0421\u0431\u043E\u0439 \u0438\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438 AudioLens"
+  };
+
+  // src/webview/i18n/locales/tr.ts
+  var messages14 = {
+    waitingAudioFile: "Ses dosyasi bekleniyor",
+    initializing: "Baslatiliyor",
+    spectrogramSettings: "Spektrogram ayarlari",
+    playPause: "Oynat / duraklat",
+    playbackPosition: "Oynatma konumu",
+    closeSettings: "Ayarlari kapat",
+    spectrogramDisplay: "Spektrogram gorunumu",
+    algorithm: "Algoritma",
+    algorithmFrequency: "Frekans",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Pitch (EAC)",
+    windowSize: "Pencere boyutu",
+    windowType: "Pencere tipi",
+    windowRectangular: "Dikdortgen",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gauss (\u03B1=2.5)",
+    windowGaussian35: "Gauss (\u03B1=3.5)",
+    windowGaussian45: "Gauss (\u03B1=4.5)",
+    zeroPaddingFactor: "Zero padding katsayisi",
+    frequencyScale: "Frekans olcegi",
+    palette: "Palet",
+    paletteRose: "Gul",
+    paletteClassic: "Klasik",
+    paletteGrayscale: "Gri tonlama",
+    paletteInverseGrayscale: "Ters gri tonlama",
+    minDb: "Min dB",
+    maxDb: "Maks dB",
+    channel: "Kanal",
+    timeZoom: "Zaman zumu",
+    timePosition: "Zaman konumu",
+    amplitudeZoom: "Genlik zumu",
+    mouseWheel: "Fare tekeri",
+    refreshSpectrogram: "Spektrogrami yenile",
+    resetView: "Gorunumu sifirla",
+    selectionAnalysis: "Secim analizi",
+    selectionStart: "Baslangic",
+    selectionEnd: "Bitis",
+    selectionDuration: "Sure",
+    rmsLevel: "RMS seviyesi",
+    peakLevel: "Peak seviyesi",
+    dominant: "Baskin",
+    frequencyAnalysis: "Frekans analizi",
+    bands: "Bantlar",
+    waveform: "Dalga bicimi",
+    spectrogram: "Spektrogram",
+    adjustWaveformHeight: "Dalga bicimi yuksekligini ayarla",
+    adjustSpectrogramHeight: "Spektrogram yuksekligini ayarla",
+    ready: "Hazir",
+    workspaceNotTrusted: "Calisma alani guvenilir degil; ses icerigi aktarilmaz",
+    fileTooLarge: "Dosya siniri asiyor",
+    readingAudio: "Ses okunuyor",
+    readingAudioProgress: "Ses okunuyor",
+    decodingAudio: "Ses cozuluyor",
+    audioLoaded: "Ses yuklendi",
+    audioNotReady: "Ses hazir degil",
+    audioCannotPlay: "Bu ses webview icinde oynatilamiyor",
+    playbackFailed: "Oynatma basarisiz",
+    analyzingSpectrogram: "Spektrogram analiz ediliyor",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens baslatilamadi"
+  };
+
+  // src/webview/i18n/locales/vi.ts
+  var messages15 = {
+    waitingAudioFile: "\u0110ang ch\u1EDD t\u1EC7p \xE2m thanh",
+    initializing: "\u0110ang kh\u1EDFi t\u1EA1o",
+    spectrogramSettings: "C\xE0i \u0111\u1EB7t spectrogram",
+    playPause: "Ph\xE1t / t\u1EA1m d\u1EEBng",
+    playbackPosition: "V\u1ECB tr\xED ph\xE1t",
+    closeSettings: "\u0110\xF3ng c\xE0i \u0111\u1EB7t",
+    spectrogramDisplay: "Hi\u1EC3n th\u1ECB spectrogram",
+    algorithm: "Thu\u1EADt to\xE1n",
+    algorithmFrequency: "T\u1EA7n s\u1ED1",
+    algorithmReassignment: "Reassignment",
+    algorithmPitchEac: "Cao \u0111\u1ED9 (EAC)",
+    windowSize: "K\xEDch th\u01B0\u1EDBc c\u1EEDa s\u1ED5",
+    windowType: "Lo\u1EA1i c\u1EEDa s\u1ED5",
+    windowRectangular: "Ch\u1EEF nh\u1EADt",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "H\u1EC7 s\u1ED1 zero padding",
+    frequencyScale: "Thang t\u1EA7n s\u1ED1",
+    palette: "B\u1EA3ng m\xE0u",
+    paletteRose: "Rose",
+    paletteClassic: "C\u1ED5 \u0111i\u1EC3n",
+    paletteGrayscale: "Thang x\xE1m",
+    paletteInverseGrayscale: "Thang x\xE1m \u0111\u1EA3o",
+    minDb: "dB t\u1ED1i thi\u1EC3u",
+    maxDb: "dB t\u1ED1i \u0111a",
+    channel: "K\xEAnh",
+    timeZoom: "Thu ph\xF3ng th\u1EDDi gian",
+    timePosition: "V\u1ECB tr\xED th\u1EDDi gian",
+    amplitudeZoom: "Thu ph\xF3ng bi\xEAn \u0111\u1ED9",
+    mouseWheel: "Con l\u0103n chu\u1ED9t",
+    refreshSpectrogram: "L\xE0m m\u1EDBi spectrogram",
+    resetView: "\u0110\u1EB7t l\u1EA1i ch\u1EBF \u0111\u1ED9 xem",
+    selectionAnalysis: "Ph\xE2n t\xEDch v\xF9ng ch\u1ECDn",
+    selectionStart: "B\u1EAFt \u0111\u1EA7u",
+    selectionEnd: "K\u1EBFt th\xFAc",
+    selectionDuration: "Th\u1EDDi l\u01B0\u1EE3ng",
+    rmsLevel: "M\u1EE9c RMS",
+    peakLevel: "M\u1EE9c Peak",
+    dominant: "Chi\u1EBFm \u01B0u th\u1EBF",
+    frequencyAnalysis: "Ph\xE2n t\xEDch t\u1EA7n s\u1ED1",
+    bands: "D\u1EA3i",
+    waveform: "D\u1EA1ng s\xF3ng",
+    spectrogram: "Spectrogram",
+    adjustWaveformHeight: "\u0110i\u1EC1u ch\u1EC9nh chi\u1EC1u cao d\u1EA1ng s\xF3ng",
+    adjustSpectrogramHeight: "\u0110i\u1EC1u ch\u1EC9nh chi\u1EC1u cao spectrogram",
+    ready: "S\u1EB5n s\xE0ng",
+    workspaceNotTrusted: "Workspace kh\xF4ng \u0111\xE1ng tin c\u1EADy; n\u1ED9i dung \xE2m thanh kh\xF4ng \u0111\u01B0\u1EE3c truy\u1EC1n",
+    fileTooLarge: "T\u1EC7p v\u01B0\u1EE3t qu\xE1 gi\u1EDBi h\u1EA1n",
+    readingAudio: "\u0110ang \u0111\u1ECDc \xE2m thanh",
+    readingAudioProgress: "\u0110ang \u0111\u1ECDc \xE2m thanh",
+    decodingAudio: "\u0110ang gi\u1EA3i m\xE3 \xE2m thanh",
+    audioLoaded: "\u0110\xE3 t\u1EA3i \xE2m thanh",
+    audioNotReady: "\xC2m thanh ch\u01B0a s\u1EB5n s\xE0ng",
+    audioCannotPlay: "Kh\xF4ng th\u1EC3 ph\xE1t \xE2m thanh n\xE0y trong webview",
+    playbackFailed: "Ph\xE1t th\u1EA5t b\u1EA1i",
+    analyzingSpectrogram: "\u0110ang ph\xE2n t\xEDch spectrogram",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "Kh\u1EDFi t\u1EA1o AudioLens th\u1EA5t b\u1EA1i"
+  };
+
+  // src/webview/i18n/locales/zh-CN.ts
+  var messages16 = {
+    waitingAudioFile: "\u7B49\u5F85\u97F3\u9891\u6587\u4EF6",
+    initializing: "\u6B63\u5728\u521D\u59CB\u5316",
+    spectrogramSettings: "\u9891\u8C31\u56FE\u8BBE\u7F6E",
+    playPause: "\u64AD\u653E / \u6682\u505C",
+    playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
+    closeSettings: "\u5173\u95ED\u8BBE\u7F6E",
+    spectrogramDisplay: "\u9891\u8C31\u56FE\u663E\u793A",
+    algorithm: "\u7B97\u6CD5",
+    algorithmFrequency: "\u9891\u7387",
+    algorithmReassignment: "\u91CD\u5206\u914D",
+    algorithmPitchEac: "\u97F3\u9AD8 (EAC)",
+    windowSize: "\u7A97\u53E3\u5927\u5C0F",
+    windowType: "\u7A97\u53E3\u7C7B\u578B",
+    windowRectangular: "\u77E9\u5F62",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "\u96F6\u586B\u5145\u56E0\u5B50",
+    frequencyScale: "\u9891\u7387\u523B\u5EA6",
+    palette: "\u8C03\u8272\u677F",
+    paletteRose: "\u989C\u8272 (\u73AB\u7470)",
+    paletteClassic: "\u989C\u8272 (\u7ECF\u5178)",
+    paletteGrayscale: "\u7070\u5EA6",
+    paletteInverseGrayscale: "\u53CD\u76F8\u7070\u5EA6",
+    minDb: "\u6700\u5C0F dB",
+    maxDb: "\u6700\u5927 dB",
+    channel: "\u58F0\u9053",
+    timeZoom: "\u65F6\u95F4\u7F29\u653E",
+    timePosition: "\u65F6\u95F4\u4F4D\u7F6E",
+    amplitudeZoom: "\u5E45\u5EA6\u7F29\u653E",
+    mouseWheel: "\u9F20\u6807\u6EDA\u8F6E",
+    refreshSpectrogram: "\u5237\u65B0\u9891\u8C31\u56FE",
+    resetView: "\u91CD\u7F6E\u89C6\u56FE",
+    selectionAnalysis: "\u9009\u533A\u5206\u6790",
+    selectionStart: "\u5F00\u59CB",
+    selectionEnd: "\u7ED3\u675F",
+    selectionDuration: "\u65F6\u957F",
+    rmsLevel: "RMS Lev DB",
+    peakLevel: "Peak Lev DB",
+    dominant: "\u4E3B\u9891",
+    frequencyAnalysis: "\u9891\u7387\u5206\u6790",
+    bands: "\u9891\u6BB5",
+    waveform: "\u6CE2\u5F62",
+    spectrogram: "\u9891\u8C31\u56FE",
+    adjustWaveformHeight: "\u8C03\u6574\u6CE2\u5F62\u9AD8\u5EA6",
+    adjustSpectrogramHeight: "\u8C03\u6574\u9891\u8C31\u56FE\u9AD8\u5EA6",
+    ready: "\u5C31\u7EEA",
+    workspaceNotTrusted: "\u5DE5\u4F5C\u533A\u4E0D\u53D7\u4FE1\u4EFB",
+    fileTooLarge: "\u6587\u4EF6\u8D85\u8FC7\u9650\u5236",
+    readingAudio: "\u6B63\u5728\u8BFB\u53D6\u97F3\u9891",
+    readingAudioProgress: "\u6B63\u5728\u8BFB\u53D6\u97F3\u9891",
+    decodingAudio: "\u6B63\u5728\u89E3\u7801\u97F3\u9891",
+    audioLoaded: "\u97F3\u9891\u5DF2\u52A0\u8F7D",
+    audioNotReady: "\u97F3\u9891\u5C1A\u672A\u5C31\u7EEA",
+    audioCannotPlay: "\u6B64\u97F3\u9891\u65E0\u6CD5\u5728 Webview \u4E2D\u64AD\u653E",
+    playbackFailed: "\u64AD\u653E\u5931\u8D25",
+    analyzingSpectrogram: "\u6B63\u5728\u5206\u6790\u9891\u8C31\u56FE",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u8D25"
+  };
+
+  // src/webview/i18n/locales/zh-TW.ts
+  var messages17 = {
+    waitingAudioFile: "\u7B49\u5F85\u97F3\u8A0A\u6A94\u6848",
+    initializing: "\u521D\u59CB\u5316\u4E2D",
+    spectrogramSettings: "\u983B\u8B5C\u5716\u8A2D\u5B9A",
+    playPause: "\u64AD\u653E / \u66AB\u505C",
+    playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
+    closeSettings: "\u95DC\u9589\u8A2D\u5B9A",
+    spectrogramDisplay: "\u983B\u8B5C\u5716\u986F\u793A",
+    algorithm: "\u6F14\u7B97\u6CD5",
+    algorithmFrequency: "\u983B\u7387",
+    algorithmReassignment: "\u91CD\u5206\u914D",
+    algorithmPitchEac: "\u97F3\u9AD8 (EAC)",
+    windowSize: "\u8996\u7A97\u5927\u5C0F",
+    windowType: "\u8996\u7A97\u985E\u578B",
+    windowRectangular: "\u77E9\u5F62",
+    windowBartlett: "Bartlett",
+    windowHamming: "Hamming",
+    windowHann: "Hann",
+    windowBlackman: "Blackman",
+    windowBlackmanHarris: "Blackman-Harris",
+    windowWelch: "Welch",
+    windowGaussian25: "Gaussian (\u03B1=2.5)",
+    windowGaussian35: "Gaussian (\u03B1=3.5)",
+    windowGaussian45: "Gaussian (\u03B1=4.5)",
+    zeroPaddingFactor: "\u96F6\u586B\u5145\u56E0\u5B50",
+    frequencyScale: "\u983B\u7387\u523B\u5EA6",
+    palette: "\u8272\u76E4",
+    paletteRose: "\u8272\u5F69 (\u73AB\u7470)",
+    paletteClassic: "\u8272\u5F69 (\u7D93\u5178)",
+    paletteGrayscale: "\u7070\u968E",
+    paletteInverseGrayscale: "\u53CD\u5411\u7070\u968E",
+    minDb: "\u6700\u5C0F dB",
+    maxDb: "\u6700\u5927 dB",
+    channel: "\u8072\u9053",
+    timeZoom: "\u6642\u9593\u7E2E\u653E",
+    timePosition: "\u6642\u9593\u4F4D\u7F6E",
+    amplitudeZoom: "\u632F\u5E45\u7E2E\u653E",
+    mouseWheel: "\u6ED1\u9F20\u6EFE\u8F2A",
+    refreshSpectrogram: "\u91CD\u65B0\u6574\u7406\u983B\u8B5C\u5716",
+    resetView: "\u91CD\u8A2D\u8996\u5716",
+    selectionAnalysis: "\u9078\u5340\u5206\u6790",
+    selectionStart: "\u958B\u59CB",
+    selectionEnd: "\u7D50\u675F",
+    selectionDuration: "\u6301\u7E8C\u6642\u9593",
+    rmsLevel: "RMS Lev DB",
+    peakLevel: "Peak Lev DB",
+    dominant: "\u4E3B\u983B",
+    frequencyAnalysis: "\u983B\u7387\u5206\u6790",
+    bands: "\u983B\u5E36",
+    waveform: "\u6CE2\u5F62",
+    spectrogram: "\u983B\u8B5C\u5716",
+    adjustWaveformHeight: "\u8ABF\u6574\u6CE2\u5F62\u9AD8\u5EA6",
+    adjustSpectrogramHeight: "\u8ABF\u6574\u983B\u8B5C\u5716\u9AD8\u5EA6",
+    ready: "\u5C31\u7DD2",
+    workspaceNotTrusted: "\u5DE5\u4F5C\u5340\u4E0D\u53D7\u4FE1\u4EFB",
+    fileTooLarge: "\u6A94\u6848\u8D85\u904E\u9650\u5236",
+    readingAudio: "\u8B80\u53D6\u97F3\u8A0A\u4E2D",
+    readingAudioProgress: "\u8B80\u53D6\u97F3\u8A0A\u4E2D",
+    decodingAudio: "\u89E3\u78BC\u97F3\u8A0A\u4E2D",
+    audioLoaded: "\u97F3\u8A0A\u5DF2\u8F09\u5165",
+    audioNotReady: "\u97F3\u8A0A\u5C1A\u672A\u5C31\u7DD2",
+    audioCannotPlay: "\u6B64\u97F3\u8A0A\u7121\u6CD5\u5728 Webview \u64AD\u653E",
+    playbackFailed: "\u64AD\u653E\u5931\u6557",
+    analyzingSpectrogram: "\u5206\u6790\u983B\u8B5C\u5716\u4E2D",
+    frequencyBand0To250: "0-250",
+    frequencyBand250To500: "250-500",
+    frequencyBand500To1k: "0.5-1k",
+    frequencyBand1To2k: "1-2k",
+    frequencyBand2To4k: "2-4k",
+    frequencyBand4To8k: "4-8k",
+    frequencyBand8kPlus: "8k+",
+    pad: "pad",
+    hop: "hop",
+    initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u6557"
+  };
+
+  // src/webview/i18n/index.ts
+  var localeMessages = {
+    "zh-CN": messages16,
+    "zh-TW": messages17,
+    en: messages2,
+    ja: messages7,
+    ko: messages8,
+    fr: messages4,
+    de: messages,
+    ru: messages13,
+    es: messages3,
+    it: messages6,
+    pt: messages12,
+    id: messages5,
+    no: messages10,
+    nl: messages9,
+    pl: messages11,
+    tr: messages14,
+    vi: messages15
+  };
+  function getMessages(locale) {
+    return localeMessages[locale] ?? messages2;
+  }
+  function normalizeLocale(language) {
+    const value = (language || "en").toLowerCase();
+    if (value === "zh-tw" || value === "zh-hk" || value === "zh-hant" || value.startsWith("zh-hant")) {
+      return "zh-TW";
+    }
+    if (value === "zh-cn" || value === "zh-sg" || value === "zh-hans" || value.startsWith("zh")) {
+      return "zh-CN";
+    }
+    if (value.startsWith("ja")) return "ja";
+    if (value.startsWith("ko")) return "ko";
+    if (value.startsWith("fr")) return "fr";
+    if (value.startsWith("de")) return "de";
+    if (value.startsWith("ru")) return "ru";
+    if (value.startsWith("es")) return "es";
+    if (value.startsWith("it")) return "it";
+    if (value.startsWith("pt")) return "pt";
+    if (value.startsWith("id")) return "id";
+    if (value.startsWith("no") || value.startsWith("nb") || value.startsWith("nn")) return "no";
+    if (value.startsWith("nl")) return "nl";
+    if (value.startsWith("pl")) return "pl";
+    if (value.startsWith("tr")) return "tr";
+    if (value.startsWith("vi")) return "vi";
+    return "en";
+  }
+  function resolveLocale(setting, vscodeLanguage) {
+    if (setting && setting !== "auto") {
+      return setting;
+    }
+    return normalizeLocale(vscodeLanguage);
+  }
+
+  // src/webview/view.ts
+  function renderShell(root2) {
+    root2.innerHTML = /* html */
+    `
+    <main class="shell">
+      <header class="topbar">
+        <div class="identity">
+          <strong class="brand">AudioLens</strong>
+          <span id="fileMeta" class="muted" data-i18n="waitingAudioFile">Waiting for audio file</span>
+        </div>
+        <div id="status" class="status" data-i18n="initializing">Initializing</div>
+        <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="spectrogramSettings" data-i18n-aria="spectrogramSettings" title="Spectrogram settings" aria-label="Spectrogram settings">\u2699</button>
+      </header>
+
+      <section class="player">
+        <button id="play" class="iconButton" data-i18n-title="playPause" data-i18n-aria="playPause" title="Play / pause" aria-label="Play / pause">\u25B6</button>
+        <span id="clock" class="clock">0:00.000 / 0:00.000</span>
+        <input id="seek" class="seek" type="range" min="0" max="1000" value="0" data-i18n-aria="playbackPosition" aria-label="Playback position" />
+        <audio id="audio" preload="auto"></audio>
+      </section>
+
+      <aside id="settingsPanel" class="settingsPanel" hidden>
+        <div class="settingsHeader">
+          <strong data-i18n="spectrogramDisplay">Spectrogram display</strong>
+          <button id="settingsClose" class="iconButton secondaryIcon" data-i18n-title="closeSettings" data-i18n-aria="closeSettings" title="Close settings" aria-label="Close settings">\xD7</button>
+        </div>
+        <label>
+          <span data-i18n="algorithm">Algorithm</span>
+          <select id="algorithm">
+            <option value="frequency" data-i18n="algorithmFrequency">Frequency</option>
+            <option value="reassignment" data-i18n="algorithmReassignment">Reassignment</option>
+            <option value="pitchEac" data-i18n="algorithmPitchEac">Pitch (EAC)</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="windowSize">Window size</span>
+          <select id="fftSize">
+            <option value="8">8</option>
+            <option value="16">16</option>
+            <option value="32">32</option>
+            <option value="64">64</option>
+            <option value="128">128</option>
+            <option value="256">256</option>
+            <option value="512">512</option>
+            <option value="1024">1024</option>
+            <option value="2048">2048</option>
+            <option value="4096">4096</option>
+            <option value="8192">8192</option>
+            <option value="16384">16384</option>
+            <option value="32768">32768</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="windowType">Window type</span>
+          <select id="windowFunction">
+            <option value="rectangular" data-i18n="windowRectangular">Rectangular</option>
+            <option value="bartlett" data-i18n="windowBartlett">Bartlett</option>
+            <option value="hamming" data-i18n="windowHamming">Hamming</option>
+            <option value="hann" data-i18n="windowHann">Hann</option>
+            <option value="blackman" data-i18n="windowBlackman">Blackman</option>
+            <option value="blackmanHarris" data-i18n="windowBlackmanHarris">Blackman-Harris</option>
+            <option value="welch" data-i18n="windowWelch">Welch</option>
+            <option value="gaussian25" data-i18n="windowGaussian25">Gaussian (\u03B1=2.5)</option>
+            <option value="gaussian35" data-i18n="windowGaussian35">Gaussian (\u03B1=3.5)</option>
+            <option value="gaussian45" data-i18n="windowGaussian45">Gaussian (\u03B1=4.5)</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="zeroPaddingFactor">Zero padding factor</span>
+          <select id="zeroPaddingFactor">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="8">8</option>
+            <option value="16">16</option>
+            <option value="32">32</option>
+            <option value="64">64</option>
+            <option value="128">128</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="frequencyScale">Frequency scale</span>
+          <select id="frequencyScale">
+            <option value="linear">Linear</option>
+            <option value="log">Log</option>
+            <option value="mel">Mel</option>
+            <option value="bark">Bark</option>
+            <option value="erb">ERB</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="palette">Palette</span>
+          <select id="palette">
+            <option value="rose" data-i18n="paletteRose">Color (rose)</option>
+            <option value="classic" data-i18n="paletteClassic">Color (classic)</option>
+            <option value="grayscale" data-i18n="paletteGrayscale">Grayscale</option>
+            <option value="inverseGrayscale" data-i18n="paletteInverseGrayscale">Inverse grayscale</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="minDb">Min dB</span>
+          <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
+        </label>
+        <label>
+          <span data-i18n="maxDb">Max dB</span>
+          <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
+        </label>
+      </aside>
+
+      <section class="workspace">
+        <aside class="controls">
+          <label>
+            <span data-i18n="channel">Channel</span>
+            <select id="channel"></select>
+          </label>
+          <label>
+            <span data-i18n="timeZoom">Time zoom</span>
+            <input id="timeZoom" type="range" min="1" max="64" step="0.25" value="1" />
+            <small class="wheelHint"><kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
+          </label>
+          <label>
+            <span data-i18n="timePosition">Time position</span>
+            <input id="timeOffset" type="range" min="0" max="1" step="0.001" value="0" />
+            <small class="wheelHint"><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
+          </label>
+          <label>
+            <span data-i18n="amplitudeZoom">Amplitude zoom</span>
+            <input id="amplitudeZoom" type="range" min="0.25" max="32" step="0.25" value="1" />
+            <small class="wheelHint"><kbd>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
+          </label>
+          <button id="analyze" class="primary" data-i18n="refreshSpectrogram">Refresh spectrogram</button>
+          <button id="resetView" class="secondary" data-i18n="resetView">Reset view</button>
+
+          <section class="selectionAnalysisPane" data-i18n-aria="selectionAnalysis" aria-label="Selection analysis">
+            <div class="paneTitle" data-i18n="selectionAnalysis">Selection analysis</div>
+            <table class="analysisTable">
+              <tbody>
+                <tr><th data-i18n="selectionStart">Start</th><td id="analysisStart">--</td></tr>
+                <tr><th data-i18n="selectionEnd">End</th><td id="analysisEnd">--</td></tr>
+                <tr><th data-i18n="selectionDuration">Duration</th><td id="analysisDuration">--</td></tr>
+                <tr><th data-i18n="rmsLevel">RMS Lev DB</th><td id="analysisRms">--</td></tr>
+                <tr><th data-i18n="peakLevel">Peak Lev DB</th><td id="analysisPeak">--</td></tr>
+                <tr><th data-i18n="dominant">Dominant</th><td id="analysisDominant">--</td></tr>
+              </tbody>
+            </table>
+            <div class="paneSubtitle" data-i18n="frequencyAnalysis">Frequency analysis</div>
+            <table class="analysisTable">
+              <tbody id="analysisBands">
+                <tr><th data-i18n="bands">Bands</th><td>--</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </aside>
+
+        <section id="figures" class="figures">
+          <div class="figureHeader">
+            <span data-i18n="waveform">Waveform</span>
+            <span id="viewRange" class="muted">0.000s - 0.000s</span>
+          </div>
+          <div id="waveformPane" class="plotPane waveformPane">
+            <canvas id="waveform" class="waveform"></canvas>
+          </div>
+          <div id="waveformResize" class="plotResize" role="separator" aria-orientation="horizontal" data-i18n-title="adjustWaveformHeight" title="Adjust waveform height"></div>
+          <div class="figureHeader">
+            <span data-i18n="spectrogram">Spectrogram</span>
+            <span id="analysisMeta" class="muted"></span>
+          </div>
+          <div id="spectrogramPane" class="plotPane spectrogramPane">
+            <canvas id="spectrogram" class="spectrogram"></canvas>
+          </div>
+          <div id="spectrogramResize" class="plotResize" role="separator" aria-orientation="horizontal" data-i18n-title="adjustSpectrogramHeight" title="Adjust spectrogram height"></div>
+          <div id="selectionBox" class="selectionBox" hidden></div>
+        </section>
+      </section>
+
+    </main>
+  `;
+    return {
+      fileMeta: query("#fileMeta", HTMLSpanElement),
+      status: query("#status", HTMLDivElement),
+      play: query("#play", HTMLButtonElement),
+      clock: query("#clock", HTMLSpanElement),
+      seek: query("#seek", HTMLInputElement),
+      audio: query("#audio", HTMLAudioElement),
+      algorithm: query("#algorithm", HTMLSelectElement),
+      zeroPaddingFactor: query("#zeroPaddingFactor", HTMLSelectElement),
+      settingsToggle: query("#settingsToggle", HTMLButtonElement),
+      settingsPanel: query("#settingsPanel", HTMLElement),
+      settingsClose: query("#settingsClose", HTMLButtonElement),
+      windowFunction: query("#windowFunction", HTMLSelectElement),
+      fftSize: query("#fftSize", HTMLSelectElement),
+      channel: query("#channel", HTMLSelectElement),
+      timeZoom: query("#timeZoom", HTMLInputElement),
+      timeOffset: query("#timeOffset", HTMLInputElement),
+      amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
+      minDb: query("#minDb", HTMLInputElement),
+      maxDb: query("#maxDb", HTMLInputElement),
+      frequencyScale: query("#frequencyScale", HTMLSelectElement),
+      palette: query("#palette", HTMLSelectElement),
+      analyze: query("#analyze", HTMLButtonElement),
+      resetView: query("#resetView", HTMLButtonElement),
+      viewRange: query("#viewRange", HTMLSpanElement),
+      analysisMeta: query("#analysisMeta", HTMLSpanElement),
+      analysisStart: query("#analysisStart", HTMLElement),
+      analysisEnd: query("#analysisEnd", HTMLElement),
+      analysisDuration: query("#analysisDuration", HTMLElement),
+      analysisRms: query("#analysisRms", HTMLElement),
+      analysisPeak: query("#analysisPeak", HTMLElement),
+      analysisDominant: query("#analysisDominant", HTMLElement),
+      analysisBands: query("#analysisBands", HTMLElement),
+      figures: query("#figures", HTMLElement),
+      waveformPane: query("#waveformPane", HTMLElement),
+      spectrogramPane: query("#spectrogramPane", HTMLElement),
+      waveformResize: query("#waveformResize", HTMLDivElement),
+      spectrogramResize: query("#spectrogramResize", HTMLDivElement),
+      waveform: query("#waveform", HTMLCanvasElement),
+      spectrogram: query("#spectrogram", HTMLCanvasElement),
+      selectionBox: query("#selectionBox", HTMLDivElement)
+    };
+  }
+  function applyLocale(root2, messages18) {
+    root2.querySelectorAll("[data-i18n]").forEach((element) => {
+      const key = element.dataset.i18n;
+      if (key && messages18[key]) {
+        element.textContent = messages18[key];
+      }
+    });
+    root2.querySelectorAll("[data-i18n-title]").forEach((element) => {
+      const key = element.dataset.i18nTitle;
+      if (key && messages18[key]) {
+        element.title = messages18[key];
+      }
+    });
+    root2.querySelectorAll("[data-i18n-aria]").forEach((element) => {
+      const key = element.dataset.i18nAria;
+      if (key && messages18[key]) {
+        element.setAttribute("aria-label", messages18[key]);
+      }
+    });
+  }
+
   // src/webview/app.ts
   var MIN_DRAG_PIXELS = 6;
   var PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
   var AXIS_FONT_SIZE = 13;
   var PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
   var BAND_LIMITS = [
-    { label: "0-250", min: 0, max: 250 },
-    { label: "250-500", min: 250, max: 500 },
-    { label: "0.5-1k", min: 500, max: 1e3 },
-    { label: "1-2k", min: 1e3, max: 2e3 },
-    { label: "2-4k", min: 2e3, max: 4e3 },
-    { label: "4-8k", min: 4e3, max: 8e3 },
-    { label: "8k+", min: 8e3, max: Number.POSITIVE_INFINITY }
+    { labelKey: "frequencyBand0To250", min: 0, max: 250 },
+    { labelKey: "frequencyBand250To500", min: 250, max: 500 },
+    { labelKey: "frequencyBand500To1k", min: 500, max: 1e3 },
+    { labelKey: "frequencyBand1To2k", min: 1e3, max: 2e3 },
+    { labelKey: "frequencyBand2To4k", min: 2e3, max: 4e3 },
+    { labelKey: "frequencyBand4To8k", min: 4e3, max: 8e3 },
+    { labelKey: "frequencyBand8kPlus", min: 8e3, max: Number.POSITIVE_INFINITY }
   ];
   var AudioLensApp = class {
     constructor(vscode2, elements) {
@@ -396,6 +2000,7 @@
     spectrogramCache = /* @__PURE__ */ new Map();
     waveformCache = /* @__PURE__ */ new Map();
     worker = createAnalysisWorker();
+    messages = getMessages("en");
     settings = {
       algorithm: "frequency",
       windowFunction: "hamming",
@@ -414,12 +2019,20 @@
       switch (message.type) {
         case "bootstrap":
           this.config = message.config;
+          this.applyLanguage(message.config);
           this.settings.windowFunction = message.config.analysis.windowFunction;
           this.settings.fftSize = message.config.analysis.fftSize;
           this.settings.zeroPaddingFactor = message.config.analysis.zeroPaddingFactor;
           this.applyPreferences(message.preferences);
           this.syncControls();
           await this.load(message.metadata);
+          break;
+        case "configChanged":
+          this.config = message.config;
+          this.applyLanguage(message.config);
+          this.syncControls();
+          this.updateSelectionAnalysis();
+          this.redrawVisuals();
           break;
         case "fileChanged":
           await this.load(message.metadata);
@@ -443,6 +2056,11 @@
         element.textContent = modifier;
       });
     }
+    applyLanguage(config) {
+      const locale = resolveLocale(config.language, config.vscodeLanguage);
+      this.messages = getMessages(locale);
+      applyLocale(document, this.messages);
+    }
     resetAnalysisWorker() {
       this.worker.terminate();
       this.worker = createAnalysisWorker();
@@ -451,7 +2069,7 @@
     async load(metadata) {
       this.elements.fileMeta.textContent = `${metadata.fileName} \xB7 ${formatBytes(metadata.size)}`;
       if (!metadata.trusted) {
-        this.setStatus("\u5DE5\u4F5C\u533A\u672A\u53D7\u4FE1\u4EFB");
+        this.setStatus(this.messages.workspaceNotTrusted);
         return;
       }
       if (!this.config) {
@@ -459,13 +2077,13 @@
       }
       const maxBytes = this.config.maxFileSizeMB * 1024 * 1024;
       if (metadata.size > maxBytes) {
-        this.setStatus(`\u6587\u4EF6\u8D85\u8FC7\u9650\u5236\uFF1A${formatBytes(metadata.size)} / ${this.config.maxFileSizeMB} MB`);
+        this.setStatus(`${this.messages.fileTooLarge}: ${formatBytes(metadata.size)} / ${this.config.maxFileSizeMB} MB`);
         return;
       }
-      this.setStatus("\u8BFB\u53D6\u97F3\u9891");
+      this.setStatus(this.messages.readingAudio);
       this.audioBytes = await this.readAll(metadata.size);
       const facts = readAudioFileFacts(this.audioBytes, metadata.fileName);
-      this.setStatus("\u89E3\u7801\u97F3\u9891");
+      this.setStatus(this.messages.decodingAudio);
       this.stopPlaybackTicker();
       const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
       this.audioBuffer = await audioContext.decodeAudioData(toArrayBuffer(this.audioBytes));
@@ -484,7 +2102,7 @@
       if (this.config.autoAnalyze) {
         this.analyze();
       }
-      this.setStatus("\u5C31\u7EEA");
+      this.setStatus(this.messages.ready);
     }
     bindUi() {
       this.elements.play.addEventListener("click", () => {
@@ -501,10 +2119,10 @@
       });
       this.elements.audio.addEventListener("loadedmetadata", () => {
         this.updateClock();
-        this.setStatus("\u97F3\u9891\u5DF2\u52A0\u8F7D");
+        this.setStatus(this.messages.audioLoaded);
       });
       this.elements.audio.addEventListener("error", () => {
-        const detail = this.elements.audio.error?.message || "\u5F53\u524D\u97F3\u9891\u65E0\u6CD5\u88AB Webview \u64AD\u653E";
+        const detail = this.elements.audio.error?.message || this.messages.audioCannotPlay;
         this.reportPlaybackError(detail);
       });
       this.elements.audio.addEventListener("timeupdate", () => {
@@ -581,7 +2199,7 @@
     }
     async togglePlayback() {
       if (!this.elements.audio.src) {
-        this.reportPlaybackError("\u97F3\u9891\u5C1A\u672A\u52A0\u8F7D\u5B8C\u6210");
+        this.reportPlaybackError(this.messages.audioNotReady);
         return;
       }
       try {
@@ -691,7 +2309,7 @@
       this.redrawVisuals();
     }
     reportPlaybackError(message) {
-      const detail = "\u64AD\u653E\u5931\u8D25\uFF1A" + message;
+      const detail = `${this.messages.playbackFailed}: ${message}`;
       this.setStatus(detail);
       this.vscode.postMessage({ type: "showError", message: detail });
     }
@@ -822,7 +2440,7 @@
         const bytes = new Uint8Array(chunk.bytes);
         target.set(bytes, offset);
         offset += bytes.byteLength;
-        this.setStatus(`\u8BFB\u53D6\u97F3\u9891 ${Math.round(offset / size * 100)}%`);
+        this.setStatus(`${this.messages.readingAudioProgress} ${Math.round(offset / size * 100)}%`);
       }
       return target;
     }
@@ -964,7 +2582,7 @@
       const windowSize = Math.min(this.settings.fftSize, Math.max(1, source.length));
       const hopSize = Math.max(1, Math.floor(Math.max(1, source.length - windowSize) / targetFrames));
       this.pendingAnalysisKey = cacheKey;
-      this.setStatus("\u5206\u6790\u9891\u8C31");
+      this.setStatus(this.messages.analyzingSpectrogram);
       this.worker.postMessage(
         {
           type: "analyze",
@@ -986,7 +2604,7 @@
         },
         [source.buffer]
       );
-      this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm)} \xB7 ${formatWindowFunction(this.settings.windowFunction)} \xB7 ${this.settings.fftSize} \xB7 pad ${this.settings.zeroPaddingFactor} \xB7 ${this.settings.frequencyScale} \xB7 hop ${hopSize}`;
+      this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} \xB7 ${formatWindowFunction(this.settings.windowFunction, this.messages)} \xB7 ${this.settings.fftSize} \xB7 ${this.messages.pad} ${this.settings.zeroPaddingFactor} \xB7 ${this.settings.frequencyScale} \xB7 ${this.messages.hop} ${hopSize}`;
     }
     drawSpectrogramResult(result) {
       if (this.pendingAnalysisKey && result.requestId !== this.pendingAnalysisKey && !this.spectrogramCache.has(result.requestId)) {
@@ -998,7 +2616,7 @@
       }
       this.lastSpectrogram = result;
       this.drawSpectrogramCanvas(result);
-      this.setStatus("\u5C31\u7EEA");
+      this.setStatus(this.messages.ready);
     }
     drawSpectrogramCanvas(result) {
       const canvas = this.elements.spectrogram;
@@ -1269,7 +2887,7 @@
         peak = Math.max(peak, Math.abs(value));
         measured += 1;
       }
-      const spectrum = computeSpectrum(samples, startSample, endSample, this.analysisSampleRate(), this.settings.fftSize, this.settings.windowFunction);
+      const spectrum = computeSpectrum(samples, startSample, endSample, this.analysisSampleRate(), this.settings.fftSize, this.settings.windowFunction, this.messages);
       this.elements.analysisStart.textContent = `${this.selection.start.toFixed(3)}s`;
       this.elements.analysisEnd.textContent = `${this.selection.end.toFixed(3)}s`;
       this.elements.analysisDuration.textContent = `${(this.selection.end - this.selection.start).toFixed(3)}s`;
@@ -1280,7 +2898,7 @@
     }
     renderFrequencyRows(bands) {
       this.elements.analysisBands.replaceChildren();
-      const rows = bands.length > 0 ? bands : [{ label: "Bands", percent: Number.NaN }];
+      const rows = bands.length > 0 ? bands : [{ label: this.messages.bands, percent: Number.NaN }];
       for (const band of rows) {
         const row = document.createElement("tr");
         const name = document.createElement("th");
@@ -1493,27 +3111,27 @@
   function formatDb(value) {
     return `${value.toFixed(1)} dBFS`;
   }
-  function formatAlgorithm(value) {
+  function formatAlgorithm(value, messages18) {
     if (value === "reassignment") {
-      return "\u91CD\u65B0\u5206\u914D";
+      return messages18.algorithmReassignment;
     }
     if (value === "pitchEac") {
-      return "\u97F3\u9AD8(EAC)";
+      return messages18.algorithmPitchEac;
     }
-    return "\u9891\u7387";
+    return messages18.algorithmFrequency;
   }
-  function formatWindowFunction(value) {
+  function formatWindowFunction(value, messages18) {
     const labels = {
-      rectangular: "\u77E9\u5F62",
-      bartlett: "Bartlett",
-      hamming: "Hamming",
-      hann: "Hann",
-      blackman: "Blackman",
-      blackmanHarris: "Blackman-Harris",
-      welch: "Welch",
-      gaussian25: "Gaussian 2.5",
-      gaussian35: "Gaussian 3.5",
-      gaussian45: "Gaussian 4.5"
+      rectangular: messages18.windowRectangular,
+      bartlett: messages18.windowBartlett,
+      hamming: messages18.windowHamming,
+      hann: messages18.windowHann,
+      blackman: messages18.windowBlackman,
+      blackmanHarris: messages18.windowBlackmanHarris,
+      welch: messages18.windowWelch,
+      gaussian25: messages18.windowGaussian25,
+      gaussian35: messages18.windowGaussian35,
+      gaussian45: messages18.windowGaussian45
     };
     return labels[value];
   }
@@ -1562,11 +3180,11 @@
   function erbToHz(erb) {
     return (Math.pow(10, erb / 21.4) - 1) / 437e-5;
   }
-  function computeSpectrum(samples, startSample, endSample, sampleRate, requestedSize, windowFunction) {
+  function computeSpectrum(samples, startSample, endSample, sampleRate, requestedSize, windowFunction, messages18) {
     const available = Math.max(0, endSample - startSample);
     const fftSize = largestPowerOfTwo(Math.min(requestedSize, available));
     if (fftSize < 64) {
-      return { dominantHz: 0, bands: BAND_LIMITS.map((band) => ({ label: band.label, percent: 0 })) };
+      return { dominantHz: 0, bands: BAND_LIMITS.map((band) => ({ label: messages18[band.labelKey], percent: 0 })) };
     }
     const re = new Float32Array(fftSize);
     const im = new Float32Array(fftSize);
@@ -1596,7 +3214,7 @@
     return {
       dominantHz: dominantBin * sampleRate / fftSize,
       bands: BAND_LIMITS.map((band, index) => ({
-        label: band.label,
+        label: messages18[band.labelKey],
         percent: totalPower <= 0 ? 0 : bandPower[index] / totalPower * 100
       }))
     };
@@ -2002,227 +3620,6 @@
     }
   `;
     document.head.appendChild(style);
-  }
-
-  // src/webview/view.ts
-  function renderShell(root2) {
-    root2.innerHTML = /* html */
-    `
-    <main class="shell">
-      <header class="topbar">
-        <div class="identity">
-          <strong class="brand">AudioLens</strong>
-          <span id="fileMeta" class="muted">\u7B49\u5F85\u97F3\u9891\u6587\u4EF6</span>
-        </div>
-        <div id="status" class="status">\u521D\u59CB\u5316\u4E2D</div>
-        <button id="settingsToggle" class="iconButton secondaryIcon" title="\u9891\u8C31\u8BBE\u7F6E" aria-label="\u9891\u8C31\u8BBE\u7F6E">\u2699</button>
-      </header>
-
-      <section class="player">
-        <button id="play" class="iconButton" title="\u64AD\u653E/\u6682\u505C" aria-label="\u64AD\u653E/\u6682\u505C">\u25B6</button>
-        <span id="clock" class="clock">0:00.000 / 0:00.000</span>
-        <input id="seek" class="seek" type="range" min="0" max="1000" value="0" aria-label="\u64AD\u653E\u4F4D\u7F6E" />
-        <audio id="audio" preload="auto"></audio>
-      </section>
-
-      <aside id="settingsPanel" class="settingsPanel" hidden>
-        <div class="settingsHeader">
-          <strong>\u9891\u8C31\u663E\u793A</strong>
-          <button id="settingsClose" class="iconButton secondaryIcon" title="\u5173\u95ED\u8BBE\u7F6E" aria-label="\u5173\u95ED\u8BBE\u7F6E">\xD7</button>
-        </div>
-        <label>
-          <span>\u7B97\u6CD5</span>
-          <select id="algorithm">
-            <option value="frequency">\u9891\u7387</option>
-            <option value="reassignment">\u91CD\u65B0\u5206\u914D</option>
-            <option value="pitchEac">\u97F3\u9AD8(EAC)</option>
-          </select>
-        </label>
-        <label>
-          <span>\u7A97\u53E3\u5927\u5C0F</span>
-          <select id="fftSize">
-            <option value="8">8</option>
-            <option value="16">16</option>
-            <option value="32">32</option>
-            <option value="64">64</option>
-            <option value="128">128</option>
-            <option value="256">256</option>
-            <option value="512">512</option>
-            <option value="1024">1024</option>
-            <option value="2048">2048</option>
-            <option value="4096">4096</option>
-            <option value="8192">8192</option>
-            <option value="16384">16384</option>
-            <option value="32768">32768</option>
-          </select>
-        </label>
-        <label>
-          <span>\u7A97\u53E3\u7C7B\u578B</span>
-          <select id="windowFunction">
-            <option value="rectangular">\u77E9\u5F62</option>
-            <option value="bartlett">Bartlett</option>
-            <option value="hamming">\u6C49\u660E(Hamming)</option>
-            <option value="hann">\u6C49\u5B81(Hann)</option>
-            <option value="blackman">Blackman</option>
-            <option value="blackmanHarris">Blackman-Harris</option>
-            <option value="welch">Welch</option>
-            <option value="gaussian25">\u9AD8\u65AF(\u03B1=2.5)</option>
-            <option value="gaussian35">\u9AD8\u65AF(\u03B1=3.5)</option>
-            <option value="gaussian45">\u9AD8\u65AF(\u03B1=4.5)</option>
-          </select>
-        </label>
-        <label>
-          <span>\u96F6\u586B\u5145\u56E0\u5B50</span>
-          <select id="zeroPaddingFactor">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="4">4</option>
-            <option value="8">8</option>
-            <option value="16">16</option>
-            <option value="32">32</option>
-            <option value="64">64</option>
-            <option value="128">128</option>
-          </select>
-        </label>
-        <label>
-          <span>\u9891\u7387\u523B\u5EA6</span>
-          <select id="frequencyScale">
-            <option value="linear">Linear</option>
-            <option value="log">Log</option>
-            <option value="mel">Mel</option>
-            <option value="bark">Bark</option>
-            <option value="erb">ERB</option>
-          </select>
-        </label>
-        <label>
-          <span>\u914D\u8272</span>
-          <select id="palette">
-            <option value="rose">\u5F69\u8272\uFF08\u73AB\u7470\uFF09</option>
-            <option value="classic">\u5F69\u8272\uFF08\u7ECF\u5178\uFF09</option>
-            <option value="grayscale">\u7070\u5EA6</option>
-            <option value="inverseGrayscale">\u53CD\u8F6C\u7070\u5EA6</option>
-          </select>
-        </label>
-        <label>
-          <span>\u4E0B\u9650 dB</span>
-          <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
-        </label>
-        <label>
-          <span>\u4E0A\u9650 dB</span>
-          <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
-        </label>
-      </aside>
-
-      <section class="workspace">
-        <aside class="controls">
-          <label>
-            <span>\u58F0\u9053</span>
-            <select id="channel"></select>
-          </label>
-          <label>
-            <span>\u65F6\u95F4\u7F29\u653E</span>
-            <input id="timeZoom" type="range" min="1" max="64" step="0.25" value="1" />
-            <small class="wheelHint"><kbd data-time-zoom-modifier>Ctrl</kbd> + \u6EDA\u8F6E</small>
-          </label>
-          <label>
-            <span>\u65F6\u95F4\u4F4D\u7F6E</span>
-            <input id="timeOffset" type="range" min="0" max="1" step="0.001" value="0" />
-            <small class="wheelHint"><kbd>Shift</kbd> + \u6EDA\u8F6E</small>
-          </label>
-          <label>
-            <span>\u5E45\u5EA6\u7F29\u653E</span>
-            <input id="amplitudeZoom" type="range" min="0.25" max="32" step="0.25" value="1" />
-            <small class="wheelHint"><kbd>Alt</kbd> + \u6EDA\u8F6E</small>
-          </label>
-          <button id="analyze" class="primary">\u5237\u65B0\u9891\u8C31</button>
-          <button id="resetView" class="secondary">\u91CD\u7F6E\u89C6\u56FE</button>
-
-          <section class="selectionAnalysisPane" aria-label="\u9009\u533A\u5206\u6790">
-            <div class="paneTitle">\u9009\u533A\u5206\u6790</div>
-            <table class="analysisTable">
-              <tbody>
-                <tr><th>\u5F00\u59CB</th><td id="analysisStart">--</td></tr>
-                <tr><th>\u7ED3\u675F</th><td id="analysisEnd">--</td></tr>
-                <tr><th>\u65F6\u957F</th><td id="analysisDuration">--</td></tr>
-                <tr><th>RMS Lev DB</th><td id="analysisRms">--</td></tr>
-                <tr><th>Peak Lev DB</th><td id="analysisPeak">--</td></tr>
-                <tr><th>Dominant</th><td id="analysisDominant">--</td></tr>
-              </tbody>
-            </table>
-            <div class="paneSubtitle">\u9891\u7387\u5206\u6790</div>
-            <table class="analysisTable">
-              <tbody id="analysisBands">
-                <tr><th>Bands</th><td>--</td></tr>
-              </tbody>
-            </table>
-          </section>
-        </aside>
-
-        <section id="figures" class="figures">
-          <div class="figureHeader">
-            <span>Waveform</span>
-            <span id="viewRange" class="muted">0.000s - 0.000s</span>
-          </div>
-          <div id="waveformPane" class="plotPane waveformPane">
-            <canvas id="waveform" class="waveform"></canvas>
-          </div>
-          <div id="waveformResize" class="plotResize" role="separator" aria-orientation="horizontal" title="\u8C03\u6574\u6CE2\u5F62\u9AD8\u5EA6"></div>
-          <div class="figureHeader">
-            <span>Spectrogram</span>
-            <span id="analysisMeta" class="muted"></span>
-          </div>
-          <div id="spectrogramPane" class="plotPane spectrogramPane">
-            <canvas id="spectrogram" class="spectrogram"></canvas>
-          </div>
-          <div id="spectrogramResize" class="plotResize" role="separator" aria-orientation="horizontal" title="\u8C03\u6574\u9891\u8C31\u9AD8\u5EA6"></div>
-          <div id="selectionBox" class="selectionBox" hidden></div>
-        </section>
-      </section>
-
-    </main>
-  `;
-    return {
-      fileMeta: query("#fileMeta", HTMLSpanElement),
-      status: query("#status", HTMLDivElement),
-      play: query("#play", HTMLButtonElement),
-      clock: query("#clock", HTMLSpanElement),
-      seek: query("#seek", HTMLInputElement),
-      audio: query("#audio", HTMLAudioElement),
-      algorithm: query("#algorithm", HTMLSelectElement),
-      zeroPaddingFactor: query("#zeroPaddingFactor", HTMLSelectElement),
-      settingsToggle: query("#settingsToggle", HTMLButtonElement),
-      settingsPanel: query("#settingsPanel", HTMLElement),
-      settingsClose: query("#settingsClose", HTMLButtonElement),
-      windowFunction: query("#windowFunction", HTMLSelectElement),
-      fftSize: query("#fftSize", HTMLSelectElement),
-      channel: query("#channel", HTMLSelectElement),
-      timeZoom: query("#timeZoom", HTMLInputElement),
-      timeOffset: query("#timeOffset", HTMLInputElement),
-      amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
-      minDb: query("#minDb", HTMLInputElement),
-      maxDb: query("#maxDb", HTMLInputElement),
-      frequencyScale: query("#frequencyScale", HTMLSelectElement),
-      palette: query("#palette", HTMLSelectElement),
-      analyze: query("#analyze", HTMLButtonElement),
-      resetView: query("#resetView", HTMLButtonElement),
-      viewRange: query("#viewRange", HTMLSpanElement),
-      analysisMeta: query("#analysisMeta", HTMLSpanElement),
-      analysisStart: query("#analysisStart", HTMLElement),
-      analysisEnd: query("#analysisEnd", HTMLElement),
-      analysisDuration: query("#analysisDuration", HTMLElement),
-      analysisRms: query("#analysisRms", HTMLElement),
-      analysisPeak: query("#analysisPeak", HTMLElement),
-      analysisDominant: query("#analysisDominant", HTMLElement),
-      analysisBands: query("#analysisBands", HTMLElement),
-      figures: query("#figures", HTMLElement),
-      waveformPane: query("#waveformPane", HTMLElement),
-      spectrogramPane: query("#spectrogramPane", HTMLElement),
-      waveformResize: query("#waveformResize", HTMLDivElement),
-      spectrogramResize: query("#spectrogramResize", HTMLDivElement),
-      waveform: query("#waveform", HTMLCanvasElement),
-      spectrogram: query("#spectrogram", HTMLCanvasElement),
-      selectionBox: query("#selectionBox", HTMLDivElement)
-    };
   }
 
   // src/webview/main.ts

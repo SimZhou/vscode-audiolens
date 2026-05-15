@@ -47,6 +47,14 @@ AudioLens includes Audacity-inspired spectrogram controls for day-to-day audio a
 
 The current release focuses on a responsive analysis workflow in VS Code. Performance-sensitive analysis paths are isolated behind a worker boundary so future releases can move heavier FFT/STFT work to WebAssembly or a native helper without changing the user interface.
 
+## Localization
+
+AudioLens uses your VS Code display language by default. You can override the Webview language with the `audiolens.language` setting.
+
+You can also switch the AudioLens UI language directly from the Command Palette with `AudioLens: 切换语言`.
+
+Supported languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Russian, Spanish, Italian, Portuguese, Indonesian, Norwegian, Dutch, Polish, Turkish, Vietnamese.
+
 ## Remote SSH
 
 AudioLens is declared as a workspace extension. In a Remote SSH window, the extension host runs in the remote workspace, reads audio files from the remote file system in chunks, and streams them to the local webview for playback and visualization.
@@ -74,7 +82,7 @@ code --install-extension simzhou.audiolens
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-0.2.11.vsix
+code --install-extension dist/audiolens-0.2.12.vsix
 ```
 
 ## Development

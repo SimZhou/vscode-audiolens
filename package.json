@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens",
   "description": "Audio preview, waveform inspection, and spectrogram analysis for VS Code.",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
@@ -47,10 +47,17 @@
     "remote-ssh"
   ],
   "activationEvents": [
-    "onCustomEditor:audiolens.audioPreview"
+    "onCustomEditor:audiolens.audioPreview",
+    "onCommand:audiolens.selectLanguage"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "audiolens.selectLanguage",
+        "title": "AudioLens: 切换语言"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "audiolens.audioPreview",
@@ -88,6 +95,51 @@
           "type": "boolean",
           "default": true,
           "description": "打开音频后自动计算频谱。"
+        },
+        "audiolens.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "zh-CN",
+            "zh-TW",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "ru",
+            "es",
+            "it",
+            "pt",
+            "id",
+            "no",
+            "nl",
+            "pl",
+            "tr",
+            "vi"
+          ],
+          "enumDescriptions": [
+            "Use VS Code display language",
+            "中文（简体）",
+            "中文（繁體）",
+            "English",
+            "日本語",
+            "한국어",
+            "Français",
+            "Deutsch",
+            "Русский",
+            "Español",
+            "Italiano",
+            "Português",
+            "Bahasa Indonesia",
+            "Norsk",
+            "Nederlands",
+            "Polski",
+            "Türkçe",
+            "Tiếng Việt"
+          ],
+          "default": "auto",
+          "description": "Controls the AudioLens Webview language."
         },
         "audiolens.analysis.windowFunction": {
           "type": "string",
@@ -162,7 +214,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-0.2.11.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-0.2.12.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

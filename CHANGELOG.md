@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.12
+
+Localization update.
+
+- Added Webview UI localization with VS Code display language as the default.
+- Added `audiolens.language` setting for overriding the AudioLens UI language.
+- Added `AudioLens: 切换语言` command for changing the Webview language from the Command Palette.
+- Added locale coverage for Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Russian, Spanish, Italian, Portuguese, Indonesian, Norwegian, Dutch, Polish, Turkish, and Vietnamese.
+
 ## 0.2.11
 
 Default spectrogram settings update.

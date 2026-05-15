@@ -34,6 +34,7 @@ __export(extension_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(extension_exports);
+var vscode2 = __toESM(require("vscode"));
 
 // src/audioLensEditor.ts
 var import_promises = require("node:fs/promises");
@@ -154,6 +155,14 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
           metadata: this.createMetadata(document)
         });
       }),
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration("audiolens.language")) {
+          this.postMessage(webviewPanel.webview, {
+            type: "configChanged",
+            config: this.readConfig()
+          });
+        }
+      }),
       webviewPanel.webview.onDidReceiveMessage(async (message) => {
         await this.handleWebviewMessage(message, document, webviewPanel.webview, postBootstrap);
       })
@@ -228,6 +237,8 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     return {
       autoAnalyze: config.get("autoAnalyze", true),
       maxFileSizeMB: config.get("maxFileSizeMB", 512),
+      language: config.get("language", "auto"),
+      vscodeLanguage: vscode.env.language,
       analysis: {
         windowFunction: config.get("analysis.windowFunction", "hamming"),
         fftSize: config.get("analysis.fftSize", 512),
@@ -244,7 +255,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     return (
       /* html */
       `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="${escapeHtml(this.resolveHtmlLanguage())}">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob: data:; media-src ${webview.cspSource} blob: data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; worker-src blob:; connect-src ${webview.cspSource} blob: data:;">
@@ -258,7 +269,23 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
 </html>`
     );
   }
+  resolveHtmlLanguage() {
+    const config = this.readConfig();
+    return config.language === "auto" ? config.vscodeLanguage : config.language;
+  }
 };
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    };
+    return entities[char] ?? char;
+  });
+}
 function toArrayBuffer(bytes) {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -266,8 +293,51 @@ function toArrayBuffer(bytes) {
 }
 
 // src/extension.ts
+var LANGUAGE_OPTIONS = [
+  { value: "auto", label: "\u8DDF\u968F VS Code / Auto", detail: "\u4F7F\u7528 VS Code \u5F53\u524D\u663E\u793A\u8BED\u8A00" },
+  { value: "zh-CN", label: "\u4E2D\u6587\uFF08\u7B80\u4F53\uFF09", detail: "Simplified Chinese" },
+  { value: "zh-TW", label: "\u4E2D\u6587\uFF08\u7E41\u9AD4\uFF09", detail: "Traditional Chinese" },
+  { value: "en", label: "English", detail: "English" },
+  { value: "ja", label: "\u65E5\u672C\u8A9E", detail: "Japanese" },
+  { value: "ko", label: "\uD55C\uAD6D\uC5B4", detail: "Korean" },
+  { value: "fr", label: "Fran\xE7ais", detail: "French" },
+  { value: "de", label: "Deutsch", detail: "German" },
+  { value: "ru", label: "\u0420\u0443\u0441\u0441\u043A\u0438\u0439", detail: "Russian" },
+  { value: "es", label: "Espa\xF1ol", detail: "Spanish" },
+  { value: "it", label: "Italiano", detail: "Italian" },
+  { value: "pt", label: "Portugu\xEAs", detail: "Portuguese" },
+  { value: "id", label: "Bahasa Indonesia", detail: "Indonesian" },
+  { value: "no", label: "Norsk", detail: "Norwegian" },
+  { value: "nl", label: "Nederlands", detail: "Dutch" },
+  { value: "pl", label: "Polski", detail: "Polish" },
+  { value: "tr", label: "T\xFCrk\xE7e", detail: "Turkish" },
+  { value: "vi", label: "Ti\u1EBFng Vi\u1EC7t", detail: "Vietnamese" }
+];
 function activate(context) {
-  context.subscriptions.push(AudioLensEditorProvider.register(context));
+  context.subscriptions.push(
+    AudioLensEditorProvider.register(context),
+    vscode2.commands.registerCommand("audiolens.selectLanguage", async () => {
+      const config = vscode2.workspace.getConfiguration("audiolens");
+      const current = config.get("language", "auto");
+      const picked = await vscode2.window.showQuickPick(
+        LANGUAGE_OPTIONS.map((option) => ({
+          label: option.label,
+          description: option.value === current ? "\u5F53\u524D" : "",
+          detail: option.detail,
+          value: option.value
+        })),
+        {
+          title: "AudioLens: \u9009\u62E9\u8BED\u8A00",
+          placeHolder: "\u9009\u62E9 AudioLens \u754C\u9762\u8BED\u8A00"
+        }
+      );
+      if (!picked) {
+        return;
+      }
+      await config.update("language", picked.value, vscode2.ConfigurationTarget.Global);
+      void vscode2.window.showInformationMessage(`AudioLens \u8BED\u8A00\u5DF2\u5207\u6362\u4E3A ${picked.label}`);
+    })
+  );
 }
 function deactivate() {
 }
