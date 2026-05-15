@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.13
+
+Spectrogram adaptive brightness update.
+
+- Added auto brightness for spectrogram based on audio peak and RMS levels.
+- Added "Auto brightness" toggle in spectrogram settings (enabled by default).
+- Renamed "Min dB" / "Max dB" labels to include "(brightness)" suffix.
+- Fixed negative sign input in Min/Max dB number fields.
+
 ## 0.2.12
 
 Localization update.

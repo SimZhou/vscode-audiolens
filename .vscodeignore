@@ -8,6 +8,7 @@ node_modules/**
 .github/**
 .tmp/**
 .vscode/**
+.claude/**
 .gitignore
 AGENTS.md
 CLAUDE.md

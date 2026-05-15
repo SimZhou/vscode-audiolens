@@ -17,7 +17,7 @@ Open an audio file and AudioLens gives you playback, waveform inspection, spectr
 - Drag across the waveform or spectrogram to create an Audacity-style time selection.
 - Play only the selected range when a selection is active.
 - Inspect selection statistics including duration, RMS level, peak level, dominant frequency, and frequency-band energy.
-- Tune spectrogram settings: algorithm, FFT size, window type, zero padding, dB range, frequency scale, and color palette.
+- Tune spectrogram settings: algorithm, FFT size, window type, zero padding, dB range, frequency scale, color palette, and auto brightness.
 - Use Linear, Log, Mel, Bark, and ERB frequency scales.
 - Use rose, classic, grayscale, and inverse grayscale spectrogram palettes.
 - Resize waveform and spectrogram panel heights and keep preferences across files.
@@ -82,7 +82,7 @@ code --install-extension simzhou.audiolens
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-0.2.12.vsix
+code --install-extension dist/audiolens-0.2.13.vsix
 ```
 
 ## Development

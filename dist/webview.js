@@ -387,8 +387,9 @@
     paletteClassic: "Klassisch",
     paletteGrayscale: "Graustufen",
     paletteInverseGrayscale: "Inverse Graustufen",
-    minDb: "Min. dB",
-    maxDb: "Max. dB",
+    minDb: "Min. dB (Helligkeit)",
+    maxDb: "Max. dB (Helligkeit)",
+    autoBrightness: "Auto-Helligkeit",
     channel: "Kanal",
     timeZoom: "Zeitzoom",
     timePosition: "Zeitposition",
@@ -464,8 +465,9 @@
     paletteClassic: "Classic",
     paletteGrayscale: "Grayscale",
     paletteInverseGrayscale: "Inverse grayscale",
-    minDb: "Min dB",
-    maxDb: "Max dB",
+    minDb: "Min dB (brightness)",
+    maxDb: "Max dB (brightness)",
+    autoBrightness: "Auto brightness",
     channel: "Channel",
     timeZoom: "Time zoom",
     timePosition: "Time position",
@@ -541,8 +543,9 @@
     paletteClassic: "Cl\xE1sica",
     paletteGrayscale: "Escala de grises",
     paletteInverseGrayscale: "Grises invertidos",
-    minDb: "dB m\xEDn.",
-    maxDb: "dB m\xE1x.",
+    minDb: "dB m\xEDn. (brillo)",
+    maxDb: "dB m\xE1x. (brillo)",
+    autoBrightness: "Brillo autom\xE1tico",
     channel: "Canal",
     timeZoom: "Zoom de tiempo",
     timePosition: "Posici\xF3n temporal",
@@ -618,8 +621,9 @@
     paletteClassic: "Couleur (classique)",
     paletteGrayscale: "Niveaux de gris",
     paletteInverseGrayscale: "Gris invers\xE9s",
-    minDb: "dB min",
-    maxDb: "dB max",
+    minDb: "dB min (luminosit\xE9)",
+    maxDb: "dB max (luminosit\xE9)",
+    autoBrightness: "Luminosit\xE9 auto",
     channel: "Canal",
     timeZoom: "Zoom temporel",
     timePosition: "Position temporelle",
@@ -695,8 +699,9 @@
     paletteClassic: "Klasik",
     paletteGrayscale: "Grayscale",
     paletteInverseGrayscale: "Grayscale terbalik",
-    minDb: "Min dB",
-    maxDb: "Maks dB",
+    minDb: "Min dB (kecerahan)",
+    maxDb: "Maks dB (kecerahan)",
+    autoBrightness: "Kecerahan otomatis",
     channel: "Kanal",
     timeZoom: "Zoom waktu",
     timePosition: "Posisi waktu",
@@ -772,8 +777,9 @@
     paletteClassic: "Classica",
     paletteGrayscale: "Scala di grigi",
     paletteInverseGrayscale: "Grigi invertiti",
-    minDb: "dB min",
-    maxDb: "dB max",
+    minDb: "dB min (luminosit\xE0)",
+    maxDb: "dB max (luminosit\xE0)",
+    autoBrightness: "Luminosit\xE0 auto",
     channel: "Canale",
     timeZoom: "Zoom tempo",
     timePosition: "Posizione tempo",
@@ -849,8 +855,9 @@
     paletteClassic: "\u30AB\u30E9\u30FC (classic)",
     paletteGrayscale: "\u30B0\u30EC\u30FC\u30B9\u30B1\u30FC\u30EB",
     paletteInverseGrayscale: "\u53CD\u8EE2\u30B0\u30EC\u30FC",
-    minDb: "\u6700\u5C0F dB",
-    maxDb: "\u6700\u5927 dB",
+    minDb: "\u6700\u5C0F dB (\u660E\u308B\u3055)",
+    maxDb: "\u6700\u5927 dB (\u660E\u308B\u3055)",
+    autoBrightness: "\u81EA\u52D5\u660E\u308B\u3055",
     channel: "\u30C1\u30E3\u30F3\u30CD\u30EB",
     timeZoom: "\u6642\u9593\u30BA\u30FC\u30E0",
     timePosition: "\u6642\u9593\u4F4D\u7F6E",
@@ -926,8 +933,9 @@
     paletteClassic: "\uC0C9\uC0C1 (classic)",
     paletteGrayscale: "\uADF8\uB808\uC774\uC2A4\uCF00\uC77C",
     paletteInverseGrayscale: "\uBC18\uC804 \uADF8\uB808\uC774\uC2A4\uCF00\uC77C",
-    minDb: "\uCD5C\uC18C dB",
-    maxDb: "\uCD5C\uB300 dB",
+    minDb: "\uCD5C\uC18C dB (\uBC1D\uAE30)",
+    maxDb: "\uCD5C\uB300 dB (\uBC1D\uAE30)",
+    autoBrightness: "\uC790\uB3D9 \uBC1D\uAE30",
     channel: "\uCC44\uB110",
     timeZoom: "\uC2DC\uAC04 \uD655\uB300",
     timePosition: "\uC2DC\uAC04 \uC704\uCE58",
@@ -1003,8 +1011,9 @@
     paletteClassic: "Klassiek",
     paletteGrayscale: "Grijswaarden",
     paletteInverseGrayscale: "Omgekeerde grijswaarden",
-    minDb: "Min dB",
-    maxDb: "Max dB",
+    minDb: "Min dB (helderheid)",
+    maxDb: "Max dB (helderheid)",
+    autoBrightness: "Auto-helderheid",
     channel: "Kanaal",
     timeZoom: "Tijdzoom",
     timePosition: "Tijdpositie",
@@ -1080,8 +1089,9 @@
     paletteClassic: "Klassisk",
     paletteGrayscale: "Gr\xE5toner",
     paletteInverseGrayscale: "Inverterte gr\xE5toner",
-    minDb: "Min dB",
-    maxDb: "Maks dB",
+    minDb: "Min dB (lysstyrke)",
+    maxDb: "Maks dB (lysstyrke)",
+    autoBrightness: "Auto-lysstyrke",
     channel: "Kanal",
     timeZoom: "Tidszoom",
     timePosition: "Tidsposisjon",
@@ -1157,8 +1167,9 @@
     paletteClassic: "Klasyczna",
     paletteGrayscale: "Skala szaro\u015Bci",
     paletteInverseGrayscale: "Odwr\xF3cona szaro\u015B\u0107",
-    minDb: "Min. dB",
-    maxDb: "Maks. dB",
+    minDb: "Min. dB (jasno\u015B\u0107)",
+    maxDb: "Maks. dB (jasno\u015B\u0107)",
+    autoBrightness: "Auto-jasno\u015B\u0107",
     channel: "Kana\u0142",
     timeZoom: "Powi\u0119kszenie czasu",
     timePosition: "Pozycja czasu",
@@ -1234,8 +1245,9 @@
     paletteClassic: "Cl\xE1ssica",
     paletteGrayscale: "Tons de cinza",
     paletteInverseGrayscale: "Cinza inverso",
-    minDb: "dB m\xEDn.",
-    maxDb: "dB m\xE1x.",
+    minDb: "dB m\xEDn. (brilho)",
+    maxDb: "dB m\xE1x. (brilho)",
+    autoBrightness: "Brilho autom\xE1tico",
     channel: "Canal",
     timeZoom: "Zoom temporal",
     timePosition: "Posi\xE7\xE3o temporal",
@@ -1311,8 +1323,9 @@
     paletteClassic: "\u041A\u043B\u0430\u0441\u0441\u0438\u0447\u0435\u0441\u043A\u0430\u044F",
     paletteGrayscale: "\u0421\u0435\u0440\u0430\u044F \u0448\u043A\u0430\u043B\u0430",
     paletteInverseGrayscale: "\u0418\u043D\u0432\u0435\u0440\u0442. \u0441\u0435\u0440\u0430\u044F",
-    minDb: "\u041C\u0438\u043D. dB",
-    maxDb: "\u041C\u0430\u043A\u0441. dB",
+    minDb: "\u041C\u0438\u043D. dB (\u044F\u0440\u043A\u043E\u0441\u0442\u044C)",
+    maxDb: "\u041C\u0430\u043A\u0441. dB (\u044F\u0440\u043A\u043E\u0441\u0442\u044C)",
+    autoBrightness: "\u0410\u0432\u0442\u043E-\u044F\u0440\u043A\u043E\u0441\u0442\u044C",
     channel: "\u041A\u0430\u043D\u0430\u043B",
     timeZoom: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431 \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
     timePosition: "\u041F\u043E\u0437\u0438\u0446\u0438\u044F \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
@@ -1388,8 +1401,9 @@
     paletteClassic: "Klasik",
     paletteGrayscale: "Gri tonlama",
     paletteInverseGrayscale: "Ters gri tonlama",
-    minDb: "Min dB",
-    maxDb: "Maks dB",
+    minDb: "Min dB (parlakl\u0131k)",
+    maxDb: "Maks dB (parlakl\u0131k)",
+    autoBrightness: "Otomatik parlakl\u0131k",
     channel: "Kanal",
     timeZoom: "Zaman zumu",
     timePosition: "Zaman konumu",
@@ -1465,8 +1479,9 @@
     paletteClassic: "C\u1ED5 \u0111i\u1EC3n",
     paletteGrayscale: "Thang x\xE1m",
     paletteInverseGrayscale: "Thang x\xE1m \u0111\u1EA3o",
-    minDb: "dB t\u1ED1i thi\u1EC3u",
-    maxDb: "dB t\u1ED1i \u0111a",
+    minDb: "dB t\u1ED1i thi\u1EC3u (\u0111\u1ED9 s\xE1ng)",
+    maxDb: "dB t\u1ED1i \u0111a (\u0111\u1ED9 s\xE1ng)",
+    autoBrightness: "\u0110\u1ED9 s\xE1ng t\u1EF1 \u0111\u1ED9ng",
     channel: "K\xEAnh",
     timeZoom: "Thu ph\xF3ng th\u1EDDi gian",
     timePosition: "V\u1ECB tr\xED th\u1EDDi gian",
@@ -1542,8 +1557,9 @@
     paletteClassic: "\u989C\u8272 (\u7ECF\u5178)",
     paletteGrayscale: "\u7070\u5EA6",
     paletteInverseGrayscale: "\u53CD\u76F8\u7070\u5EA6",
-    minDb: "\u6700\u5C0F dB",
-    maxDb: "\u6700\u5927 dB",
+    minDb: "\u6700\u5C0F dB (\u4EAE\u5EA6)",
+    maxDb: "\u6700\u5927 dB (\u4EAE\u5EA6)",
+    autoBrightness: "\u81EA\u52A8\u4EAE\u5EA6",
     channel: "\u58F0\u9053",
     timeZoom: "\u65F6\u95F4\u7F29\u653E",
     timePosition: "\u65F6\u95F4\u4F4D\u7F6E",
@@ -1619,8 +1635,9 @@
     paletteClassic: "\u8272\u5F69 (\u7D93\u5178)",
     paletteGrayscale: "\u7070\u968E",
     paletteInverseGrayscale: "\u53CD\u5411\u7070\u968E",
-    minDb: "\u6700\u5C0F dB",
-    maxDb: "\u6700\u5927 dB",
+    minDb: "\u6700\u5C0F dB (\u4EAE\u5EA6)",
+    maxDb: "\u6700\u5927 dB (\u4EAE\u5EA6)",
+    autoBrightness: "\u81EA\u52D5\u4EAE\u5EA6",
     channel: "\u8072\u9053",
     timeZoom: "\u6642\u9593\u7E2E\u653E",
     timePosition: "\u6642\u9593\u4F4D\u7F6E",
@@ -1817,12 +1834,16 @@
             <option value="inverseGrayscale" data-i18n="paletteInverseGrayscale">Inverse grayscale</option>
           </select>
         </label>
+        <label class="checkboxLabel">
+          <input id="autoBrightness" type="checkbox" checked />
+          <span data-i18n="autoBrightness">Auto brightness</span>
+        </label>
         <label>
-          <span data-i18n="minDb">Min dB</span>
+          <span data-i18n="minDb">Min dB (brightness)</span>
           <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
         </label>
         <label>
-          <span data-i18n="maxDb">Max dB</span>
+          <span data-i18n="maxDb">Max dB (brightness)</span>
           <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
         </label>
       </aside>
@@ -1915,6 +1936,7 @@
       amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
       minDb: query("#minDb", HTMLInputElement),
       maxDb: query("#maxDb", HTMLInputElement),
+      autoBrightness: query("#autoBrightness", HTMLInputElement),
       frequencyScale: query("#frequencyScale", HTMLSelectElement),
       palette: query("#palette", HTMLSelectElement),
       analyze: query("#analyze", HTMLButtonElement),
@@ -2009,6 +2031,7 @@
       channel: 0,
       minDb: -96,
       maxDb: 0,
+      autoBrightness: true,
       amplitudeZoom: 1,
       timeZoom: 1,
       timeOffset: 0,
@@ -2098,6 +2121,7 @@
       this.updateSelectionAnalysis();
       this.installAudioElement(metadata.fileName);
       this.populateChannels();
+      this.applyAutoBrightness();
       this.redrawVisuals();
       if (this.config.autoAnalyze) {
         this.analyze();
@@ -2181,6 +2205,13 @@
         this.settings.palette = this.elements.palette.value;
         this.savePreferencesSoon();
         this.analyze();
+      });
+      this.elements.autoBrightness.addEventListener("change", () => {
+        this.settings.autoBrightness = this.elements.autoBrightness.checked;
+        if (this.settings.autoBrightness) {
+          this.applyAutoBrightness();
+        }
+        this.savePreferencesSoon();
       });
       for (const input of this.analysisInputs()) {
         input.addEventListener("input", () => this.updateAnalysisSettings());
@@ -2323,6 +2354,7 @@
       this.elements.amplitudeZoom.value = String(this.settings.amplitudeZoom);
       this.elements.minDb.value = String(this.settings.minDb);
       this.elements.maxDb.value = String(this.settings.maxDb);
+      this.elements.autoBrightness.checked = this.settings.autoBrightness;
       this.elements.frequencyScale.value = this.settings.frequencyScale;
       this.elements.palette.value = this.settings.palette;
     }
@@ -2339,9 +2371,21 @@
       this.settings.timeZoom = clamp2(Number(this.elements.timeZoom.value), 1, 64);
       this.settings.timeOffset = clamp2(Number(this.elements.timeOffset.value), 0, 1);
       this.settings.amplitudeZoom = clamp2(Number(this.elements.amplitudeZoom.value), 0.25, 32);
-      const range = normalizeDbRange(Number(this.elements.minDb.value), Number(this.elements.maxDb.value));
+      const minDbStr = this.elements.minDb.value;
+      const maxDbStr = this.elements.maxDb.value;
+      if (!minDbStr || !maxDbStr) {
+        return;
+      }
+      const minDbRaw = Number(minDbStr);
+      const maxDbRaw = Number(maxDbStr);
+      if (!Number.isFinite(minDbRaw) || !Number.isFinite(maxDbRaw)) {
+        return;
+      }
+      const range = normalizeDbRange(minDbRaw, maxDbRaw);
       this.settings.minDb = range.minDb;
       this.settings.maxDb = range.maxDb;
+      this.settings.autoBrightness = false;
+      this.elements.autoBrightness.checked = false;
       this.savePreferencesSoon();
       this.syncControls();
       this.redrawVisuals();
@@ -2370,6 +2414,9 @@
         const range = normalizeDbRange(preferences.minDb, preferences.maxDb);
         this.settings.minDb = range.minDb;
         this.settings.maxDb = range.maxDb;
+      }
+      if (preferences.autoBrightness !== void 0) {
+        this.settings.autoBrightness = preferences.autoBrightness;
       }
       if (preferences.amplitudeZoom !== void 0) {
         this.settings.amplitudeZoom = clamp2(preferences.amplitudeZoom, 0.25, 32);
@@ -2400,10 +2447,41 @@
         palette: this.settings.palette,
         minDb: this.settings.minDb,
         maxDb: this.settings.maxDb,
+        autoBrightness: this.settings.autoBrightness,
         amplitudeZoom: this.settings.amplitudeZoom,
         waveformHeight: this.getPlotHeight(this.elements.waveformPane),
         spectrogramHeight: this.getPlotHeight(this.elements.spectrogramPane)
       };
+    }
+    applyAutoBrightness() {
+      if (!this.settings.autoBrightness || !this.audioBuffer) {
+        return;
+      }
+      const { minDb, maxDb } = this.computeAutoDbRange();
+      const range = normalizeDbRange(minDb, maxDb);
+      this.settings.minDb = Math.round(range.minDb * 100) / 100;
+      this.settings.maxDb = Math.round(range.maxDb * 100) / 100;
+      this.syncControls();
+      this.analyze();
+    }
+    computeAutoDbRange() {
+      if (!this.audioBuffer) {
+        return { minDb: -96, maxDb: 0 };
+      }
+      const samples = this.audioBuffer.getChannelData(this.settings.channel);
+      const stride = Math.max(1, Math.ceil(samples.length / 2e6));
+      let sumSquares = 0;
+      let peak = 0;
+      let measured = 0;
+      for (let i = 0; i < samples.length; i += stride) {
+        const v = samples[i] ?? 0;
+        sumSquares += v * v;
+        peak = Math.max(peak, Math.abs(v));
+        measured += 1;
+      }
+      const rmsDb = amplitudeToDb(Math.sqrt(sumSquares / Math.max(1, measured)));
+      const peakDb = amplitudeToDb(peak);
+      return normalizeDbRange(rmsDb - 72, peakDb - 27);
     }
     resetView() {
       this.settings.timeZoom = 1;
@@ -3403,6 +3481,11 @@
     .controls label, .settingsPanel label {
       display: grid;
       gap: 5px;
+    }
+    .settingsPanel .checkboxLabel {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .controls label span, .settingsPanel label span {
       color: var(--vscode-descriptionForeground);
