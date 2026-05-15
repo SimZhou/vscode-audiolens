@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens",
   "description": "Audio preview and viewer with waveform inspection and spectrogram analysis for VS Code.",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
