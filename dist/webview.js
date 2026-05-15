@@ -1097,11 +1097,13 @@
     }
     handleWheel(event, canvas) {
       const timeZoomModifier = isTimeZoomModifier(event);
-      if (!this.audioBuffer || !timeZoomModifier && !event.shiftKey && !event.altKey) {
+      const trackpadPinchZoom = isTrackpadPinchZoom(event);
+      const horizontalPan = isHorizontalTrackpadPan(event);
+      if (!this.audioBuffer || !timeZoomModifier && !trackpadPinchZoom && !event.shiftKey && !event.altKey && !horizontalPan) {
         return;
       }
       event.preventDefault();
-      if (timeZoomModifier) {
+      if (timeZoomModifier || trackpadPinchZoom) {
         const ratio = this.canvasXRatio(canvas, event.clientX);
         const anchorTime = this.timeFromCanvasX(canvas, event.clientX);
         const factor = event.deltaY < 0 ? 1.25 : 0.8;
@@ -1117,6 +1119,16 @@
         const direction = event.deltaY > 0 ? 1 : -1;
         const viewDuration = range.endTime - range.startTime;
         this.panTime(direction * viewDuration * 0.12, duration);
+        this.syncControls();
+        this.redrawVisuals();
+        this.scheduleAnalyze();
+        return;
+      }
+      if (horizontalPan) {
+        const range = this.visibleRange();
+        const viewDuration = range.endTime - range.startTime;
+        const delta = normalizeWheelDelta(event.deltaX, event.deltaMode);
+        this.panTime(delta / 100 * viewDuration * 0.12, this.audioBuffer.duration);
         this.syncControls();
         this.redrawVisuals();
         this.scheduleAnalyze();
@@ -1442,6 +1454,26 @@
   }
   function isTimeZoomModifier(event) {
     return isMacPlatform() ? event.metaKey : event.ctrlKey;
+  }
+  function isTrackpadPinchZoom(event) {
+    return event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && Math.abs(normalizeWheelDelta(event.deltaY, event.deltaMode)) >= 1;
+  }
+  function isHorizontalTrackpadPan(event) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return false;
+    }
+    const deltaX = Math.abs(normalizeWheelDelta(event.deltaX, event.deltaMode));
+    const deltaY = Math.abs(normalizeWheelDelta(event.deltaY, event.deltaMode));
+    return deltaX >= 1 && deltaX > deltaY;
+  }
+  function normalizeWheelDelta(value, mode) {
+    if (mode === WheelEvent.DOM_DELTA_LINE) {
+      return value * 16;
+    }
+    if (mode === WheelEvent.DOM_DELTA_PAGE) {
+      return value * 800;
+    }
+    return value;
   }
   function isMacPlatform() {
     return /Mac|iPhone|iPad|iPod/.test(navigator.platform) || /Mac OS X/.test(navigator.userAgent);

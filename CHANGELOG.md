@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.10
+
+Interaction update.
+
+- Added trackpad horizontal swipe panning on waveform and spectrogram panels.
+- Added trackpad pinch time zoom on waveform and spectrogram panels.
+
 ## 0.2.9
 
 Marketplace asset and performance groundwork update.
