@@ -479,8 +479,8 @@
     selectionStart: "Start",
     selectionEnd: "End",
     selectionDuration: "Duration",
-    rmsLevel: "RMS level",
-    peakLevel: "Peak level",
+    rmsLevel: "RMS Level",
+    peakLevel: "Peak Level",
     dominant: "Dominant",
     frequencyAnalysis: "Frequency analysis",
     bands: "Bands",
@@ -635,8 +635,8 @@
     selectionStart: "D\xE9but",
     selectionEnd: "Fin",
     selectionDuration: "Dur\xE9e",
-    rmsLevel: "Niveau RMS dB",
-    peakLevel: "Niveau Peak dB",
+    rmsLevel: "Niveau RMS",
+    peakLevel: "Niveau Peak",
     dominant: "Dominante",
     frequencyAnalysis: "Analyse fr\xE9quentielle",
     bands: "Bandes",
@@ -869,8 +869,8 @@
     selectionStart: "\u958B\u59CB",
     selectionEnd: "\u7D42\u4E86",
     selectionDuration: "\u9577\u3055",
-    rmsLevel: "RMS Lev DB",
-    peakLevel: "Peak Lev DB",
+    rmsLevel: "RMS\u30EC\u30D9\u30EB",
+    peakLevel: "\u30D4\u30FC\u30AF\u30EC\u30D9\u30EB",
     dominant: "\u512A\u52E2",
     frequencyAnalysis: "\u5468\u6CE2\u6570\u5206\u6790",
     bands: "\u5E2F\u57DF",
@@ -947,8 +947,8 @@
     selectionStart: "\uC2DC\uC791",
     selectionEnd: "\uB05D",
     selectionDuration: "\uAE38\uC774",
-    rmsLevel: "RMS \uB808\uBCA8 DB",
-    peakLevel: "Peak \uB808\uBCA8 DB",
+    rmsLevel: "RMS \uB808\uBCA8",
+    peakLevel: "\uD53C\uD06C \uB808\uBCA8",
     dominant: "\uC8FC\uC694",
     frequencyAnalysis: "\uC8FC\uD30C\uC218 \uBD84\uC11D",
     bands: "\uB300\uC5ED",
@@ -1571,8 +1571,8 @@
     selectionStart: "\u5F00\u59CB",
     selectionEnd: "\u7ED3\u675F",
     selectionDuration: "\u65F6\u957F",
-    rmsLevel: "RMS Lev DB",
-    peakLevel: "Peak Lev DB",
+    rmsLevel: "RMS\u7535\u5E73",
+    peakLevel: "\u5CF0\u503C\u7535\u5E73",
     dominant: "\u4E3B\u9891",
     frequencyAnalysis: "\u9891\u7387\u5206\u6790",
     bands: "\u9891\u6BB5",
@@ -1649,8 +1649,8 @@
     selectionStart: "\u958B\u59CB",
     selectionEnd: "\u7D50\u675F",
     selectionDuration: "\u6301\u7E8C\u6642\u9593",
-    rmsLevel: "RMS Lev DB",
-    peakLevel: "Peak Lev DB",
+    rmsLevel: "RMS\u96FB\u5E73",
+    peakLevel: "\u5CF0\u503C\u96FB\u5E73",
     dominant: "\u4E3B\u983B",
     frequencyAnalysis: "\u983B\u7387\u5206\u6790",
     bands: "\u983B\u5E36",
@@ -1745,7 +1745,7 @@
           <strong class="brand">AudioLens</strong>
           <span id="fileMeta" class="muted" data-i18n="waitingAudioFile">Waiting for audio file</span>
         </div>
-        <div id="status" class="status" data-i18n="initializing">Initializing</div>
+        <div id="status" class="status" data-i18n="initializing" hidden>Initializing</div>
         <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="spectrogramSettings" data-i18n-aria="spectrogramSettings" title="Spectrogram settings" aria-label="Spectrogram settings">\u2699</button>
       </header>
 
@@ -1867,10 +1867,10 @@
           <label>
             <span data-i18n="amplitudeZoom">Amplitude zoom</span>
             <input id="amplitudeZoom" type="range" min="0.25" max="32" step="0.25" value="1" />
-            <small class="wheelHint"><kbd>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
+            <small class="wheelHint"><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
           </label>
-          <button id="analyze" class="primary" data-i18n="refreshSpectrogram">Refresh spectrogram</button>
           <button id="resetView" class="secondary" data-i18n="resetView">Reset view</button>
+          <button id="analyze" class="primary" data-i18n="refreshSpectrogram">Refresh spectrogram</button>
 
           <section class="selectionAnalysisPane" data-i18n-aria="selectionAnalysis" aria-label="Selection analysis">
             <div class="paneTitle" data-i18n="selectionAnalysis">Selection analysis</div>
@@ -1879,8 +1879,8 @@
                 <tr><th data-i18n="selectionStart">Start</th><td id="analysisStart">--</td></tr>
                 <tr><th data-i18n="selectionEnd">End</th><td id="analysisEnd">--</td></tr>
                 <tr><th data-i18n="selectionDuration">Duration</th><td id="analysisDuration">--</td></tr>
-                <tr><th data-i18n="rmsLevel">RMS Lev DB</th><td id="analysisRms">--</td></tr>
-                <tr><th data-i18n="peakLevel">Peak Lev DB</th><td id="analysisPeak">--</td></tr>
+                <tr><th data-i18n="rmsLevel">RMS Level</th><td id="analysisRms">--</td></tr>
+                <tr><th data-i18n="peakLevel">Peak Level</th><td id="analysisPeak">--</td></tr>
                 <tr><th data-i18n="dominant">Dominant</th><td id="analysisDominant">--</td></tr>
               </tbody>
             </table>
@@ -2074,15 +2074,20 @@
       });
     }
     syncPlatformShortcuts() {
-      const modifier = isMacPlatform() ? "\u2318" : "Ctrl";
+      const timeZoomModifier = isMacPlatform() ? "\u2318" : "Ctrl";
+      const amplitudeZoomModifier = isMacPlatform() ? "\u2325" : "Alt";
       document.querySelectorAll("[data-time-zoom-modifier]").forEach((element) => {
-        element.textContent = modifier;
+        element.textContent = timeZoomModifier;
+      });
+      document.querySelectorAll("[data-amplitude-zoom-modifier]").forEach((element) => {
+        element.textContent = amplitudeZoomModifier;
       });
     }
     applyLanguage(config) {
       const locale = resolveLocale(config.language, config.vscodeLanguage);
       this.messages = getMessages(locale);
       applyLocale(document, this.messages);
+      this.updateResetViewButtonState();
     }
     resetAnalysisWorker() {
       this.worker.terminate();
@@ -2357,6 +2362,7 @@
       this.elements.autoBrightness.checked = this.settings.autoBrightness;
       this.elements.frequencyScale.value = this.settings.frequencyScale;
       this.elements.palette.value = this.settings.palette;
+      this.updateResetViewButtonState();
     }
     analysisInputs() {
       return [
@@ -2550,6 +2556,7 @@
       this.elements.channel.value = String(this.settings.channel);
     }
     redrawVisuals() {
+      this.updateResetViewButtonState();
       this.drawWaveform();
       if (this.lastSpectrogram) {
         this.drawSpectrogramCanvas(this.lastSpectrogram);
@@ -2739,6 +2746,14 @@
     }
     setStatus(message) {
       this.elements.status.textContent = message;
+      this.elements.status.hidden = !this.shouldShowStatus(message);
+    }
+    shouldShowStatus(message) {
+      return !(!message || message === this.messages.initializing || message === this.messages.ready || message === this.messages.audioLoaded);
+    }
+    updateResetViewButtonState() {
+      const isDirty = Math.abs(this.settings.timeZoom - 1) > 1e-6 || Math.abs(this.settings.timeOffset) > 1e-6 || Math.abs(this.settings.amplitudeZoom - 1) > 1e-6 || Boolean(this.selection);
+      this.elements.resetView.classList.toggle("isProminent", isDirty);
     }
     getWaveformPeaks(startSample, endSample, width) {
       const cacheKey = `${this.settings.channel}:${startSample}:${endSample}:${width}`;
@@ -3431,6 +3446,9 @@
       color: var(--vscode-notificationsInfoIcon-foreground);
       white-space: nowrap;
     }
+    .status[hidden] {
+      display: none;
+    }
     .player {
       background: var(--vscode-editor-background);
     }
@@ -3534,6 +3552,10 @@
     .secondary {
       color: var(--vscode-button-secondaryForeground);
       background: var(--vscode-button-secondaryBackground);
+    }
+    .secondary.isProminent {
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
     }
     .wheelHint {
       color: var(--vscode-descriptionForeground);

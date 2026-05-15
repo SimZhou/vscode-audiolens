@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.14
+
+Marketplace search and UI polish update.
+
+- Improved Marketplace search metadata with more direct preview and viewer keywords.
+- Shortened selection analysis labels for RMS and peak levels across localized Webview UI.
+- Updated the macOS amplitude zoom hint to show the `Option` symbol instead of the `Alt` label.
+
 ## 0.2.13
 
 Spectrogram adaptive brightness update.
