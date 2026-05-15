@@ -1,7 +1,7 @@
 # AudioLens
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_transparent.png" alt="AudioLens" width="360">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo.black_background.png" alt="AudioLens" width="360">
 </p>
 
 AudioLens is a focused audio preview and analysis extension for Visual Studio Code. It is designed for speech, audio, and machine learning engineers who need to inspect audio files while staying inside their code workspace.
@@ -57,12 +57,24 @@ This keeps the extension usable for common speech and audio workflows where data
 
 AudioLens does not upload audio files to any third-party service. Audio content is read by the VS Code extension host and analyzed inside the VS Code webview/worker runtime.
 
+## Install
+
+Install from the Visual Studio Marketplace:
+
+https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
+
+Or install from the command line:
+
+```bash
+code --install-extension simzhou.audiolens
+```
+
 ## Install From VSIX
 
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-0.2.8.vsix
+code --install-extension dist/audiolens-0.2.9.vsix
 ```
 
 ## Development
@@ -75,6 +87,10 @@ npm run package
 ```
 
 Press `F5` in VS Code and choose the AudioLens extension launch configuration. Then open a supported audio file in the Extension Development Host.
+
+## Author
+
+SimZhou: https://simzhou.com/en/about/
 
 ## Copyright
 

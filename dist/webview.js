@@ -45,6 +45,32 @@
       parts.palette ?? "classic"
     ].join(":");
   }
+  function computeWaveformPeaks(samples, startSample, endSample, width) {
+    const min = new Float32Array(width);
+    const max = new Float32Array(width);
+    if (width <= 0 || samples.length === 0) {
+      return { min, max };
+    }
+    const start = clamp(Math.floor(startSample), 0, samples.length);
+    const end = clamp(Math.ceil(endSample), start, samples.length);
+    const sampleCount = Math.max(1, end - start);
+    for (let x = 0; x < width; x += 1) {
+      const sampleStart = Math.min(end - 1, start + Math.floor(x * sampleCount / width));
+      const sampleEnd = Math.min(end, Math.max(sampleStart + 1, start + Math.ceil((x + 1) * sampleCount / width)));
+      let minValue = 0;
+      let maxValue = 0;
+      let hasValue = false;
+      for (let index = sampleStart; index < sampleEnd; index += 1) {
+        const value = samples[index] ?? 0;
+        minValue = hasValue ? Math.min(minValue, value) : value;
+        maxValue = hasValue ? Math.max(maxValue, value) : value;
+        hasValue = true;
+      }
+      min[x] = minValue;
+      max[x] = maxValue;
+    }
+    return { min, max };
+  }
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -347,6 +373,7 @@
     constructor(vscode2, elements) {
       this.vscode = vscode2;
       this.elements = elements;
+      this.syncPlatformShortcuts();
       this.bindUi();
       this.updateSelectionAnalysis();
       this.bindWorker();
@@ -407,6 +434,12 @@
     bindWorker() {
       this.worker.addEventListener("message", (event) => {
         this.drawSpectrogramResult(event.data);
+      });
+    }
+    syncPlatformShortcuts() {
+      const modifier = isMacPlatform() ? "\u2318" : "Ctrl";
+      document.querySelectorAll("[data-time-zoom-modifier]").forEach((element) => {
+        element.textContent = modifier;
       });
     }
     resetAnalysisWorker() {
@@ -851,8 +884,13 @@
         const x = rect.left + i;
         const min = peaks.min[i] ?? 0;
         const max = peaks.max[i] ?? 0;
-        context.moveTo(x, clamp2(mid - max * this.settings.amplitudeZoom * rect.height * 0.5, rect.top, rect.bottom));
-        context.lineTo(x, clamp2(mid - min * this.settings.amplitudeZoom * rect.height * 0.5, rect.top, rect.bottom));
+        const minY = clamp2(mid - min * this.settings.amplitudeZoom * rect.height * 0.5, rect.top, rect.bottom);
+        const maxY = clamp2(mid - max * this.settings.amplitudeZoom * rect.height * 0.5, rect.top, rect.bottom);
+        const visibleTop = Math.min(minY, maxY);
+        const visibleBottom = Math.max(minY, maxY);
+        const halfPixel = deviceLineWidth() / 2;
+        context.moveTo(x, visibleTop - halfPixel);
+        context.lineTo(x, visibleBottom + halfPixel);
       }
       context.stroke();
       context.restore();
@@ -1007,27 +1045,10 @@
         return cached;
       }
       const samples = this.audioBuffer?.getChannelData(this.settings.channel);
-      const min = new Float32Array(width);
-      const max = new Float32Array(width);
       if (!samples || width <= 0) {
-        return { min, max };
+        return { min: new Float32Array(width), max: new Float32Array(width) };
       }
-      const samplesPerPixel = Math.max(1, Math.floor((endSample - startSample) / width));
-      for (let x = 0; x < width; x += 1) {
-        const sampleStart = startSample + x * samplesPerPixel;
-        let minValue = 0;
-        let maxValue = 0;
-        let hasValue = false;
-        for (let index = sampleStart; index < Math.min(sampleStart + samplesPerPixel, endSample); index += 1) {
-          const value = samples[index] ?? 0;
-          minValue = hasValue ? Math.min(minValue, value) : value;
-          maxValue = hasValue ? Math.max(maxValue, value) : value;
-          hasValue = true;
-        }
-        min[x] = minValue;
-        max[x] = maxValue;
-      }
-      const peaks = { min, max };
+      const peaks = computeWaveformPeaks(samples, startSample, endSample, width);
       this.waveformCache.set(cacheKey, peaks);
       return peaks;
     }
@@ -1775,6 +1796,26 @@
       color: var(--vscode-button-secondaryForeground);
       background: var(--vscode-button-secondaryBackground);
     }
+    .wheelHint {
+      color: var(--vscode-descriptionForeground);
+      font-size: 0.88em;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+    .wheelHint kbd {
+      display: inline-block;
+      min-width: 1.6em;
+      padding: 0 4px;
+      border: 1px solid var(--vscode-panel-border);
+      border-bottom-color: color-mix(in srgb, var(--vscode-panel-border) 65%, #000);
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      background: var(--vscode-input-background);
+      font-family: var(--vscode-editor-font-family), monospace;
+      font-size: 0.92em;
+      line-height: 1.4;
+      text-align: center;
+    }
     .figures {
       --waveform-height: 220px;
       --spectrogram-height: 360px;
@@ -2043,14 +2084,17 @@
           <label>
             <span>\u65F6\u95F4\u7F29\u653E</span>
             <input id="timeZoom" type="range" min="1" max="64" step="0.25" value="1" />
+            <small class="wheelHint"><kbd data-time-zoom-modifier>Ctrl</kbd> + \u6EDA\u8F6E</small>
           </label>
           <label>
             <span>\u65F6\u95F4\u4F4D\u7F6E</span>
             <input id="timeOffset" type="range" min="0" max="1" step="0.001" value="0" />
+            <small class="wheelHint"><kbd>Shift</kbd> + \u6EDA\u8F6E</small>
           </label>
           <label>
             <span>\u5E45\u5EA6\u7F29\u653E</span>
             <input id="amplitudeZoom" type="range" min="0.25" max="32" step="0.25" value="1" />
+            <small class="wheelHint"><kbd>Alt</kbd> + \u6EDA\u8F6E</small>
           </label>
           <button id="analyze" class="primary">\u5237\u65B0\u9891\u8C31</button>
           <button id="resetView" class="secondary">\u91CD\u7F6E\u89C6\u56FE</button>

@@ -1,4 +1,8 @@
 node_modules/
+target/
+crates/
+Cargo.toml
+Cargo.lock
 dist/*
 !dist/
 !dist/*.js

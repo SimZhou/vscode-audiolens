@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.9
+
+Marketplace asset and performance groundwork update.
+
+- Switched the README brand image to the black-background logo variant for dark editor themes.
+- Repackaged with the optimized Marketplace icon assets.
+- Fixed waveform rendering when sparse samples are visible at high time zoom levels.
+- Added compact mouse-wheel shortcut hints below the zoom controls with platform-specific `Command` / `Ctrl` labels.
+- Added the initial Rust audio analysis core for STFT spectrogram generation.
+
 ## 0.2.8
 
 Public preview packaging update.

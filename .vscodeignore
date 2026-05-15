@@ -1,6 +1,8 @@
 src/**
 scripts/**
 tests/**
+crates/**
+target/**
 node_modules/**
 .git/**
 .github/**
@@ -12,6 +14,8 @@ CLAUDE.md
 GEMINI.md
 docs/roadmap.md
 docs/**
+Cargo.toml
+Cargo.lock
 logo/AudioLens_logo*.png
 dist/*.map
 *.vsix
