@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.11
+
+Default spectrogram settings update.
+
+- Changed the default window size to `512`.
+- Changed the default window type to Hamming.
+- Changed the default zero padding factor to `2`.
+- Made `Esc` close the spectrogram settings menu before clearing playback or selection state.
+
 ## 0.2.10
 
 Interaction update.

@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens",
   "description": "Audio preview, waveform inspection, and spectrogram analysis for VS Code.",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
@@ -103,7 +103,7 @@
             "gaussian35",
             "gaussian45"
           ],
-          "default": "hann",
+          "default": "hamming",
           "description": "默认频谱窗函数。"
         },
         "audiolens.analysis.fftSize": {
@@ -123,8 +123,23 @@
             16384,
             32768
           ],
-          "default": 2048,
+          "default": 512,
           "description": "默认 FFT 长度。"
+        },
+        "audiolens.analysis.zeroPaddingFactor": {
+          "type": "number",
+          "enum": [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
+            64,
+            128
+          ],
+          "default": 2,
+          "description": "默认频谱零填充因子。"
         },
         "audiolens.maxFileSizeMB": {
           "type": "number",
@@ -147,7 +162,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-0.2.10.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-0.2.11.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

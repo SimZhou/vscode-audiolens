@@ -398,9 +398,9 @@
     worker = createAnalysisWorker();
     settings = {
       algorithm: "frequency",
-      windowFunction: "hann",
-      fftSize: 2048,
-      zeroPaddingFactor: 1,
+      windowFunction: "hamming",
+      fftSize: 512,
+      zeroPaddingFactor: 2,
       channel: 0,
       minDb: -96,
       maxDb: 0,
@@ -416,6 +416,7 @@
           this.config = message.config;
           this.settings.windowFunction = message.config.analysis.windowFunction;
           this.settings.fftSize = message.config.analysis.fftSize;
+          this.settings.zeroPaddingFactor = message.config.analysis.zeroPaddingFactor;
           this.applyPreferences(message.preferences);
           this.syncControls();
           await this.load(message.metadata);
@@ -669,6 +670,11 @@
       }
     }
     handleEscape() {
+      if (!this.elements.settingsPanel.hidden) {
+        this.elements.settingsPanel.hidden = true;
+        this.elements.settingsToggle.focus();
+        return;
+      }
       if (this.selection) {
         this.selection = void 0;
         this.selectionPlaybackEnd = void 0;

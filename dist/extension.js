@@ -229,8 +229,9 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
       autoAnalyze: config.get("autoAnalyze", true),
       maxFileSizeMB: config.get("maxFileSizeMB", 512),
       analysis: {
-        windowFunction: config.get("analysis.windowFunction", "hann"),
-        fftSize: config.get("analysis.fftSize", 2048)
+        windowFunction: config.get("analysis.windowFunction", "hamming"),
+        fftSize: config.get("analysis.fftSize", 512),
+        zeroPaddingFactor: config.get("analysis.zeroPaddingFactor", 2)
       }
     };
   }
