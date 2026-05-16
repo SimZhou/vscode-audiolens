@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.15
+
+Playback gain control update.
+
+- Added a playback gain control slider next to the spectrogram settings.
+- Allowed amplifying or attenuating playback from -12 dB to +24 dB using the Web Audio API GainNode.
+- Added a double-click interaction to quickly reset the playback gain to 0 dB.
+- Saved the selected playback gain value to workspace preferences for persistence across sessions.
+- Added localization for the gain control tooltip.
+
 ## 0.2.14
 
 Marketplace search and UI polish update.

@@ -29,6 +29,7 @@ Open an audio file and AudioLens gives you playback, waveform inspection, spectr
 | --- | --- |
 | Play or pause | `Space` |
 | Clear selection or playback cursor | `Esc` |
+| Reset playback gain | Double-click gain slider |
 | Time zoom on macOS | `Command` + mouse wheel |
 | Time zoom on Windows/Linux | `Ctrl` + mouse wheel |
 | Pan visible time range | `Shift` + mouse wheel |
@@ -104,3 +105,4 @@ SimZhou: https://simzhou.com/en/about/
 ## Copyright
 
 Copyright (c) 2026 SimZhou. All rights reserved.
+hou. All rights reserved.
