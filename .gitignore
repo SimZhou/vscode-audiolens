@@ -1,13 +1,9 @@
 node_modules/
 target/
-crates/
-Cargo.toml
-Cargo.lock
 dist/*
 !dist/
 !dist/*.js
 dist/*.map
-src/
 *.vsix
 .DS_Store
 .vscode-test/

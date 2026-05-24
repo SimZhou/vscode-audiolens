@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens",
   "description": "Audio preview and viewer with waveform inspection and spectrogram analysis for VS Code.",
-  "version": "0.2.15",
+  "version": "1.0.0",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
@@ -49,7 +49,9 @@
     "mp3",
     "flac",
     "ogg",
-    "remote-ssh"
+    "remote-ssh",
+    "pcm",
+    "raw-audio"
   ],
   "activationEvents": [
     "onCustomEditor:audiolens.audioPreview",
@@ -88,6 +90,12 @@
           },
           {
             "filenamePattern": "*.aac"
+          },
+          {
+            "filenamePattern": "*.pcm"
+          },
+          {
+            "filenamePattern": "*.raw"
           }
         ],
         "priority": "default"
@@ -219,7 +227,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-0.2.15.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.0.0.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

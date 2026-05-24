@@ -439,6 +439,8 @@
     waitingAudioFile: "Waiting for audio file",
     initializing: "Initializing",
     spectrogramSettings: "Spectrogram settings",
+    help: "Help",
+    settings: "Settings",
     playPause: "Play / pause",
     playbackPosition: "Playback position",
     closeSettings: "Close settings",
@@ -476,14 +478,53 @@
     mouseWheel: "Mouse wheel",
     refreshSpectrogram: "Refresh spectrogram",
     resetView: "Reset view",
+    pcmReadAs: "Read as PCM",
+    pcmParams: "PCM parameters",
+    wavPcmRead: "Read WAV as PCM",
+    currentFileOnly: "Current file only",
+    sampleRate: "Sample rate",
+    channels: "Channels",
+    startOffsetBytes: "Offset (B)",
+    bitDepth: "Bit depth (bit)",
+    sampleFormat: "Format",
+    endianness: "Endian",
+    read: "Read",
+    saveDefault: "Save default",
+    cancel: "Cancel",
+    defaultView: "Default view",
+    view: "View",
+    viewBoth: "Multi-view",
+    mute: "Mute",
+    solo: "Solo",
+    timeLabel: "Time",
+    helpTimeZoom: "Time zoom:",
+    helpTimePan: "Time pan:",
+    helpAmplitudeZoom: "Amplitude zoom:",
+    helpSelectionPlayback: "Drag to select a segment for playback; right-click to reset view.",
     selectionAnalysis: "Selection analysis",
+    selectionAnalysisHelp: "Selection analysis:\nQuickly analyzes the selected time range to help inspect recording level, dynamic range, clipping risk, noise floor, and frequency distribution.\n\nScope:\nResults are calculated for the active channel only; channels are not mixed.\n\nSwitch channel:\nClick a track to make it active. RMS, Peak, Dominant, and frequency analysis then use that channel.",
+    basicMetrics: "Basic metrics",
     selectionStart: "Start",
     selectionEnd: "End",
     selectionDuration: "Duration",
     rmsLevel: "RMS Level",
     peakLevel: "Peak Level",
     dominant: "Dominant",
+    crestFactor: "Crest",
+    clippingRatio: "Clipping",
+    noiseFloor: "Noise floor",
+    spectralCentroid: "Centroid",
+    zeroCrossingRate: "ZCR",
+    rmsLevelHelp: "RMS Level:\nCalculation:\nrms = sqrt(mean(sample\xB2))\nrmsDb = 20 \xD7 log10(rms)\n\nUse:\nShows average energy/loudness trend for the selected region. More stable than peak, useful for checking speech that is too quiet or too loud.\n\nLimit:\nRMS is not LUFS; it has no perceptual weighting or gating. Very long selections are sampled evenly to keep the UI responsive.\n\nReferences:\nMathWorks rms; librosa.feature.rms; Audacity Measure RMS.",
+    peakLevelHelp: "Peak Level:\nCalculation:\npeak = max(abs(sample))\npeakDb = 20 \xD7 log10(peak)\n\nUse:\nShows the highest instantaneous level in the selection. Useful for checking whether audio is close to 0 dBFS or at clipping risk.\n\nLimit:\nPeak only reflects the maximum instant, not overall loudness. Very long selections are sampled evenly to keep the UI responsive.\n\nReferences:\nAdobe Audition Amplitude Statistics; Audacity Amplify; AES17 0 dBFS.",
+    dominantHelp: "Dominant Frequency:\nThe FFT frequency bin with the highest accumulated power over the selected region.\n\nBin mapping:\nFor bin k:\nfreq = k \xD7 sampleRate / FFT size\n\nPower:\nFor each frame:\npower = re\xB2 + im\xB2\n\nSelection accumulation:\nbinPower[k] += power\n\nResult:\ndominantHz = k \xD7 sampleRate / FFT size, where k has max binPower.\n\nMeaning:\nIt is not necessarily the fundamental frequency or perceived pitch. Frequency resolution is sampleRate / FFT size.\n\nReferences:\nNumPy fftfreq; librosa spectral features.",
+    crestFactorHelp: "Crest Factor:\nThe ratio between peak and RMS.\n\nCalculation:\ncrest = peak / rms\ncrestDb = peakDb - rmsDb\n\nUse:\nShows dynamic range and transient strength. Larger values mean peaks stand out more from average energy.\n\nLimit:\nUnstable for silence or very low-level audio. It describes dynamics but does not directly judge quality.\n\nReferences:\nMathWorks peak2rms; Signal Processing Toolbox descriptive statistics.",
+    clippingRatioHelp: "Clipping Ratio:\nThe percentage of samples close to full scale.\n\nCalculation:\nclippingRatio = count(abs(sample) >= 0.999) / measuredSamples \xD7 100%\n\nUse:\nQuickly detects digital full-scale samples, recording overload, or hard clipping risk.\n\nLimit:\nAudio may already be limited or distorted before AudioLens; it can sound distorted even without full-scale samples.\n\nReferences:\nAudacity Find Clipping; Adobe Audition Amplitude Statistics; Netflix AudioClippingInspector.",
+    noiseFloorHelp: "Noise Floor:\nEstimated from a low percentile of short-time RMS levels in quieter parts of the selection.\n\nCalculation:\n1. Split the selection into about 20 ms windows with 50% overlap.\n2. Compute RMS for each window.\n3. Use the 10th percentile RMS and convert it to dBFS.\n\nUse:\nEstimates background noise, silence cleanliness, and recording environment noise.\n\nLimit:\nThis is an unsupervised estimate. If the selection is mostly speech or music, it may not equal the true noise floor.\n\nReferences:\nAdobe Audition Minimum RMS; librosa.feature.rms; Audacity Noise Reduction.",
+    spectralCentroidHelp: "Spectral Centroid:\nThe center of mass of spectral energy, in Hz.\n\nCalculation:\ncentroid = sum(freq[k] \xD7 power[k]) / sum(power[k])\n\nUse:\nIndicates whether the sound is brighter or darker. Speech with more high-frequency content usually has a higher centroid.\n\nLimit:\nAffected by noise, sibilance, and bandwidth. It is not pitch and cannot alone judge clarity.\n\nReferences:\nlibrosa.feature.spectral_centroid; MathWorks spectralCentroid.",
+    zeroCrossingRateHelp: "Zero Crossing Rate:\nThe rate at which the signal changes sign.\n\nCalculation:\nzeroCrossingRate = zeroCrossings / durationSeconds\n\nUse:\nA rough time-domain feature for high-frequency noise, unvoiced speech, and fricatives.\n\nLimit:\nSensitive to noise and DC offset. It is not the same as frequency or pitch.\n\nReferences:\nlibrosa.feature.zero_crossing_rate; librosa.zero_crossings.",
     frequencyAnalysis: "Frequency analysis",
+    frequencyAnalysisHelp: "Meaning:\nLinear energy percentage by frequency band. It is not RMS level and not dB.\n\nCalculation:\n1. Sample the active channel in the selection.\n2. Use the current window function and FFT size, split the full selection into frames with 50% overlap.\n3. Each bin power is re\xB2 + im\xB2.\n4. Accumulate bin power across all frames and assign bins into frequency bands.\n5. Display bandPower / totalPower \xD7 100%.\n\nNote:\nThis is a multi-frame spectral energy distribution for the whole selection; it is still not dB/RMS.",
     bands: "Bands",
     waveform: "Waveform",
     spectrogram: "Spectrogram",
@@ -495,6 +536,12 @@
     readingAudio: "Reading audio",
     readingAudioProgress: "Reading audio",
     decodingAudio: "Decoding audio",
+    waitingPcmParams: "Waiting for PCM parameters",
+    pcmUsedDefaultParams: "Loaded with default PCM parameters.",
+    pcmFillParams: "Fill PCM parameters, then click Read.",
+    wavPcmFillParams: "Fill parameters, then click Read to parse the current WAV as PCM.",
+    currentPcmFormat: "Current",
+    savedDefaultPcmFormat: "Saved default",
     audioLoaded: "Audio loaded",
     audioNotReady: "Audio is not ready",
     audioCannotPlay: "This audio cannot be played in the webview",
@@ -510,6 +557,7 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens initialization failed",
+    playbackGainLabel: "Gain",
     playbackGain: "Playback Gain (Double-click to reset)"
   };
 
@@ -1545,6 +1593,8 @@
     waitingAudioFile: "\u7B49\u5F85\u97F3\u9891\u6587\u4EF6",
     initializing: "\u6B63\u5728\u521D\u59CB\u5316",
     spectrogramSettings: "\u9891\u8C31\u56FE\u8BBE\u7F6E",
+    help: "\u5E2E\u52A9",
+    settings: "\u8BBE\u7F6E",
     playPause: "\u64AD\u653E / \u6682\u505C",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
     closeSettings: "\u5173\u95ED\u8BBE\u7F6E",
@@ -1582,14 +1632,53 @@
     mouseWheel: "\u9F20\u6807\u6EDA\u8F6E",
     refreshSpectrogram: "\u5237\u65B0\u9891\u8C31\u56FE",
     resetView: "\u91CD\u7F6E\u89C6\u56FE",
+    pcmReadAs: "\u6309 PCM \u8BFB\u53D6",
+    pcmParams: "PCM \u53C2\u6570",
+    wavPcmRead: "WAV \u6309 PCM \u8BFB\u53D6",
+    currentFileOnly: "\u4EC5\u5BF9\u5F53\u524D\u6587\u4EF6\u751F\u6548",
+    sampleRate: "\u91C7\u6837\u7387",
+    channels: "\u901A\u9053\u6570",
+    startOffsetBytes: "\u504F\u79FB(B)",
+    bitDepth: "\u4F4D\u6DF1(bit)",
+    sampleFormat: "\u683C\u5F0F",
+    endianness: "\u7AEF\u5E8F",
+    read: "\u8BFB\u53D6",
+    saveDefault: "\u4FDD\u5B58\u9ED8\u8BA4",
+    cancel: "\u53D6\u6D88",
+    defaultView: "\u9ED8\u8BA4\u89C6\u56FE",
+    view: "\u89C6\u56FE",
+    viewBoth: "\u591A\u89C6\u56FE",
+    mute: "\u9759\u97F3",
+    solo: "\u72EC\u594F",
+    timeLabel: "\u65F6\u95F4",
+    helpTimeZoom: "\u65F6\u95F4\u7F29\u653E\uFF1A",
+    helpTimePan: "\u65F6\u95F4\u5E73\u79FB\uFF1A",
+    helpAmplitudeZoom: "\u5E45\u503C\u7F29\u653E\uFF1A",
+    helpSelectionPlayback: "\u6846\u9009\u7247\u6BB5\u540E\u64AD\u653E\u53EF\u8BD5\u542C\u9009\u533A\uFF1B\u53F3\u952E\u91CD\u7F6E\u89C6\u56FE\u3002",
     selectionAnalysis: "\u9009\u533A\u5206\u6790",
+    selectionAnalysisHelp: "\u9009\u533A\u5206\u6790\uFF1A\n\u5BF9\u5F53\u524D\u6846\u9009\u7684\u65F6\u95F4\u8303\u56F4\u8FDB\u884C\u5FEB\u901F\u7EDF\u8BA1\uFF0C\u5E2E\u52A9\u5224\u65AD\u5F55\u97F3\u7535\u5E73\u3001\u52A8\u6001\u8303\u56F4\u3001\u524A\u6CE2\u98CE\u9669\u3001\u566A\u58F0\u5E95\u548C\u9891\u7387\u5206\u5E03\u3002\n\n\u5206\u6790\u5BF9\u8C61\uFF1A\n\u5F53\u524D\u7ED3\u679C\u53EA\u9488\u5BF9\u6FC0\u6D3B\u901A\u9053\uFF0C\u4E0D\u4F1A\u628A\u591A\u4E2A\u901A\u9053\u6DF7\u5408\u8BA1\u7B97\u3002\n\n\u5982\u4F55\u5207\u6362\uFF1A\n\u70B9\u51FB\u67D0\u4E00\u6761\u97F3\u8F68\u540E\uFF0C\u8BE5\u97F3\u8F68\u4F1A\u6210\u4E3A\u5F53\u524D\u6FC0\u6D3B\u901A\u9053\uFF1B\u4E4B\u540E\u7684 RMS\u3001Peak\u3001Dominant \u548C\u9891\u7387\u5206\u6790\u90FD\u4F1A\u4F7F\u7528\u8FD9\u4E2A\u901A\u9053\u7684\u6570\u636E\u3002",
+    basicMetrics: "\u57FA\u7840\u6307\u6807",
     selectionStart: "\u5F00\u59CB",
     selectionEnd: "\u7ED3\u675F",
     selectionDuration: "\u65F6\u957F",
     rmsLevel: "RMS\u7535\u5E73",
     peakLevel: "\u5CF0\u503C\u7535\u5E73",
     dominant: "\u4E3B\u9891",
+    crestFactor: "Crest",
+    clippingRatio: "\u524A\u6CE2\u6BD4\u4F8B",
+    noiseFloor: "\u566A\u58F0\u5E95",
+    spectralCentroid: "\u9891\u8C31\u8D28\u5FC3",
+    zeroCrossingRate: "\u8FC7\u96F6\u7387",
+    rmsLevelHelp: "RMS \u7535\u5E73\uFF08RMS Level\uFF09\uFF1A\n\u8BA1\u7B97\uFF1A\nrms = sqrt(mean(sample\xB2))\nrmsDb = 20 \xD7 log10(rms)\n\n\u7528\u9014\uFF1A\n\u53CD\u6620\u9009\u533A\u6574\u4F53\u80FD\u91CF/\u5E73\u5747\u54CD\u5EA6\u8D8B\u52BF\uFF0C\u6BD4\u5CF0\u503C\u66F4\u7A33\u5B9A\uFF0C\u9002\u5408\u89C2\u5BDF\u8BED\u97F3\u662F\u5426\u8FC7\u8F7B\u6216\u8FC7\u54CD\u3002\n\n\u9650\u5236\uFF1A\nRMS \u4E0D\u662F LUFS\uFF0C\u4E0D\u5305\u542B\u542C\u611F\u52A0\u6743\u548C\u95E8\u9650\u5904\u7406\uFF1B\u8D85\u957F\u9009\u533A\u4F1A\u7B49\u8DDD\u91C7\u6837\u4EE5\u4FDD\u6301\u754C\u9762\u54CD\u5E94\u3002\n\n\u53C2\u8003\uFF1A\nMathWorks rms\uFF1Blibrosa.feature.rms\uFF1BAudacity Measure RMS\u3002",
+    peakLevelHelp: "\u5CF0\u503C\u7535\u5E73\uFF08Peak Level\uFF09\uFF1A\n\u8BA1\u7B97\uFF1A\npeak = max(abs(sample))\npeakDb = 20 \xD7 log10(peak)\n\n\u7528\u9014\uFF1A\n\u53CD\u6620\u9009\u533A\u5185\u6700\u9AD8\u77AC\u65F6\u7535\u5E73\uFF0C\u9002\u5408\u68C0\u67E5\u662F\u5426\u63A5\u8FD1 0 dBFS \u6216\u5B58\u5728\u524A\u6CE2\u98CE\u9669\u3002\n\n\u9650\u5236\uFF1A\n\u5CF0\u503C\u53EA\u770B\u77AC\u65F6\u6700\u5927\u503C\uFF0C\u4E0D\u4EE3\u8868\u6574\u4F53\u54CD\u5EA6\uFF1B\u8D85\u957F\u9009\u533A\u4F1A\u7B49\u8DDD\u91C7\u6837\u4EE5\u4FDD\u6301\u754C\u9762\u54CD\u5E94\u3002\n\n\u53C2\u8003\uFF1A\nAdobe Audition Amplitude Statistics\uFF1BAudacity Amplify\uFF1BAES17 0 dBFS\u3002",
+    dominantHelp: "\u4E3B\u9891\uFF08Dominant Frequency\uFF09\uFF1A\n\u8868\u793A\u6574\u4E2A\u9009\u533A\u5185\u7D2F\u8BA1\u529F\u7387\u6700\u5927\u7684 FFT \u9891\u7387 bin\u3002\n\nBin \u5212\u5206\uFF1A\n\u7B2C k \u4E2A bin \u5BF9\u5E94\u9891\u7387\uFF1A\nfreq = k \xD7 sampleRate / FFT size\n\n\u529F\u7387\u8BA1\u7B97\uFF1A\n\u6BCF\u4E00\u5E27\u4E2D\uFF0C\u6BCF\u4E2A bin \u7684\u529F\u7387\u4E3A\uFF1A\npower = re\xB2 + im\xB2\n\n\u9009\u533A\u7D2F\u8BA1\uFF1A\n\u5BF9\u6574\u4E2A\u9009\u533A\u505A\u591A\u5E27 FFT\uFF0C\u9010\u5E27\u7D2F\u52A0\u540C\u4E00\u4E2A bin \u7684\u529F\u7387\uFF1A\nbinPower[k] += power\n\n\u6700\u7EC8\u7ED3\u679C\uFF1A\n\u53D6 binPower \u6700\u5927\u7684 k\uFF1A\ndominantHz = k \xD7 sampleRate / FFT size\n\n\u542B\u4E49\uFF1A\n\u5B83\u4E0D\u7B49\u540C\u4E8E\u57FA\u9891\uFF0C\u4E5F\u4E0D\u4E00\u5B9A\u7B49\u540C\u4E8E\u542C\u611F\u97F3\u9AD8\u3002\n\u9891\u7387\u5206\u8FA8\u7387\u7531 sampleRate / FFT size \u51B3\u5B9A\u3002\n\n\u53C2\u8003\uFF1A\nNumPy fftfreq\uFF1Blibrosa spectral features\u3002",
+    crestFactorHelp: "\u5CF0\u5747\u6BD4\uFF08Crest Factor\uFF09\uFF1A\n\u5CF0\u5747\u6BD4\uFF0C\u4E5F\u5C31\u662F\u5CF0\u503C\u4E0E RMS \u7684\u6BD4\u503C\u3002\n\n\u8BA1\u7B97\uFF1A\ncrest = peak / rms\ncrestDb = peakDb - rmsDb\n\n\u7528\u9014\uFF1A\n\u89C2\u5BDF\u52A8\u6001\u8303\u56F4\u548C\u77AC\u6001\u5F3A\u5EA6\u3002\u6570\u503C\u8D8A\u5927\uFF0C\u8868\u793A\u5CF0\u503C\u76F8\u5BF9\u5E73\u5747\u80FD\u91CF\u8D8A\u7A81\u51FA\u3002\n\n\u9650\u5236\uFF1A\n\u9759\u97F3\u6216\u6781\u4F4E\u7535\u5E73\u65F6\u4E0D\u7A33\u5B9A\uFF1B\u5B83\u4E0D\u80FD\u76F4\u63A5\u5224\u65AD\u97F3\u8D28\u597D\u574F\uFF0C\u53EA\u80FD\u63D0\u793A\u52A8\u6001\u7279\u5F81\u3002\n\n\u53C2\u8003\uFF1A\nMathWorks peak2rms\uFF1BSignal Processing Toolbox descriptive statistics\u3002",
+    clippingRatioHelp: "\u524A\u6CE2\u6BD4\u4F8B\uFF08Clipping Ratio\uFF09\uFF1A\n\u7EDF\u8BA1\u9009\u533A\u4E2D\u63A5\u8FD1\u6EE1\u5E45\u5EA6\u7684\u91C7\u6837\u70B9\u6BD4\u4F8B\u3002\n\n\u8BA1\u7B97\uFF1A\nclippingRatio = count(abs(sample) >= 0.999) / measuredSamples \xD7 100%\n\n\u7528\u9014\uFF1A\n\u5FEB\u901F\u53D1\u73B0\u6570\u5B57\u6EE1\u5E45\u3001\u5F55\u97F3\u8FC7\u8F7D\u6216\u786C\u524A\u6CE2\u98CE\u9669\u3002\n\n\u9650\u5236\uFF1A\n\u6709\u4E9B\u97F3\u9891\u5728\u8FDB\u5165 AudioLens \u524D\u5DF2\u7ECF\u88AB\u9650\u5E45\u6216\u6A21\u62DF\u5931\u771F\uFF0C\u5373\u4F7F\u6CA1\u6709\u6EE1\u5E45\u91C7\u6837\u4E5F\u53EF\u80FD\u542C\u8D77\u6765\u5931\u771F\u3002\n\n\u53C2\u8003\uFF1A\nAudacity Find Clipping\uFF1BAdobe Audition Amplitude Statistics\uFF1BNetflix AudioClippingInspector\u3002",
+    noiseFloorHelp: "\u566A\u58F0\u5E95\uFF08Noise Floor\uFF09\uFF1A\n\u7528\u77ED\u65F6 RMS \u7684\u4F4E\u5206\u4F4D\u6570\u4F30\u8BA1\u9009\u533A\u8F83\u5B89\u9759\u90E8\u5206\u7684\u7535\u5E73\u3002\n\n\u8BA1\u7B97\uFF1A\n1. \u5C06\u9009\u533A\u5207\u6210\u7EA6 20 ms \u7A97\u53E3\uFF0C50% overlap\u3002\n2. \u8BA1\u7B97\u6BCF\u4E2A\u7A97\u53E3 RMS\u3002\n3. \u53D6\u7B2C 10 \u767E\u5206\u4F4D RMS\uFF0C\u5E76\u6362\u7B97\u4E3A dBFS\u3002\n\n\u7528\u9014\uFF1A\n\u4F30\u8BA1\u5E95\u566A\u3001\u7A7A\u767D\u6BB5\u6D01\u51C0\u5EA6\u548C\u5F55\u97F3\u73AF\u5883\u566A\u58F0\u3002\n\n\u9650\u5236\uFF1A\n\u8FD9\u662F\u65E0\u76D1\u7763\u4F30\u8BA1\uFF1B\u5982\u679C\u9009\u533A\u51E0\u4E4E\u5168\u662F\u8BED\u97F3\u6216\u97F3\u4E50\uFF0C\u7ED3\u679C\u4E0D\u4E00\u5B9A\u7B49\u540C\u4E8E\u771F\u5B9E\u566A\u58F0\u5E95\u3002\n\n\u53C2\u8003\uFF1A\nAdobe Audition Minimum RMS\uFF1Blibrosa.feature.rms\uFF1BAudacity Noise Reduction\u3002",
+    spectralCentroidHelp: "\u9891\u8C31\u8D28\u5FC3\uFF08Spectral Centroid\uFF09\uFF1A\n\u9891\u8C31\u80FD\u91CF\u7684\u91CD\u5FC3\uFF0C\u5355\u4F4D Hz\u3002\n\n\u8BA1\u7B97\uFF1A\ncentroid = sum(freq[k] \xD7 power[k]) / sum(power[k])\n\n\u7528\u9014\uFF1A\n\u89C2\u5BDF\u58F0\u97F3\u504F\u4EAE\u8FD8\u662F\u504F\u95F7\uFF1B\u8BED\u97F3\u9AD8\u9891\u6210\u5206\u66F4\u591A\u65F6\u901A\u5E38\u4F1A\u66F4\u9AD8\u3002\n\n\u9650\u5236\uFF1A\n\u4F1A\u53D7\u566A\u58F0\u3001\u9F7F\u97F3\u548C\u5E26\u5BBD\u5F71\u54CD\uFF1B\u5B83\u4E0D\u662F\u97F3\u9AD8\uFF0C\u4E5F\u4E0D\u80FD\u5355\u72EC\u5224\u65AD\u6E05\u6670\u5EA6\u3002\n\n\u53C2\u8003\uFF1A\nlibrosa.feature.spectral_centroid\uFF1BMathWorks spectralCentroid\u3002",
+    zeroCrossingRateHelp: "\u8FC7\u96F6\u7387\uFF08Zero Crossing Rate\uFF09\uFF1A\n\u7EDF\u8BA1\u4FE1\u53F7\u6B63\u8D1F\u53F7\u53D8\u5316\u7684\u9891\u7387\u3002\n\n\u8BA1\u7B97\uFF1A\nzeroCrossingRate = zeroCrossings / durationSeconds\n\n\u7528\u9014\uFF1A\n\u7C97\u7565\u89C2\u5BDF\u9AD8\u9891\u566A\u58F0\u3001\u6E05\u97F3\u3001\u6469\u64E6\u97F3\u7B49\u6210\u5206\uFF1B\u8BED\u97F3\u5206\u6790\u4E2D\u5E38\u4F5C\u4E3A\u65F6\u57DF\u7279\u5F81\u3002\n\n\u9650\u5236\uFF1A\n\u5BB9\u6613\u53D7\u566A\u58F0\u548C DC offset \u5F71\u54CD\uFF1B\u5B83\u4E0D\u80FD\u76F4\u63A5\u4EE3\u8868\u9891\u7387\u6216\u97F3\u9AD8\u3002\n\n\u53C2\u8003\uFF1A\nlibrosa.feature.zero_crossing_rate\uFF1Blibrosa.zero_crossings\u3002",
     frequencyAnalysis: "\u9891\u7387\u5206\u6790",
+    frequencyAnalysisHelp: "\u542B\u4E49\uFF1A\n\u9891\u6BB5\u7EBF\u6027\u80FD\u91CF\u5360\u6BD4\uFF0C\u4E0D\u662F RMS level\uFF0C\u4E5F\u4E0D\u662F dB\u3002\n\n\u8BA1\u7B97\uFF1A\n1. \u5BF9\u9009\u533A\u5185\u5F53\u524D\u901A\u9053\u53D6\u6837\u3002\n2. \u4F7F\u7528\u5F53\u524D\u7A97\u53E3\u51FD\u6570\u548C FFT size\uFF0C\u628A\u6574\u4E2A\u9009\u533A\u6309 50% overlap \u5206\u6210\u591A\u5E27\u3002\n3. \u6BCF\u4E2A\u9891\u7387 bin \u7684\u529F\u7387\u4E3A re\xB2 + im\xB2\u3002\n4. \u7D2F\u8BA1\u6240\u6709\u5E27\u7684 bin \u529F\u7387\uFF0C\u5E76\u6309\u9891\u7387\u5F52\u5165\u5404\u9891\u6BB5\u3002\n5. \u663E\u793A bandPower / totalPower \xD7 100%\u3002\n\n\u6CE8\u610F\uFF1A\n\u8FD9\u662F\u6574\u4E2A\u9009\u533A\u7684\u591A\u5E27\u9891\u8C31\u80FD\u91CF\u5206\u5E03\uFF1B\u4ECD\u4E0D\u662F dB/RMS\u3002",
     bands: "\u9891\u6BB5",
     waveform: "\u6CE2\u5F62",
     spectrogram: "\u9891\u8C31\u56FE",
@@ -1601,6 +1690,12 @@
     readingAudio: "\u6B63\u5728\u8BFB\u53D6\u97F3\u9891",
     readingAudioProgress: "\u6B63\u5728\u8BFB\u53D6\u97F3\u9891",
     decodingAudio: "\u6B63\u5728\u89E3\u7801\u97F3\u9891",
+    waitingPcmParams: "\u7B49\u5F85 PCM \u53C2\u6570",
+    pcmUsedDefaultParams: "\u5DF2\u4F7F\u7528\u9ED8\u8BA4 PCM \u53C2\u6570\u8BFB\u53D6\u3002",
+    pcmFillParams: "\u8BF7\u586B\u5199 PCM \u53C2\u6570\uFF0C\u7136\u540E\u70B9\u51FB\u201C\u8BFB\u53D6\u201D\u3002",
+    wavPcmFillParams: "\u586B\u5199\u53C2\u6570\u540E\u70B9\u51FB\u201C\u8BFB\u53D6\u201D\uFF0C\u5C06\u6309 PCM \u91CD\u65B0\u89E3\u6790\u5F53\u524D WAV\u3002",
+    currentPcmFormat: "\u5F53\u524D",
+    savedDefaultPcmFormat: "\u5DF2\u4FDD\u5B58\u9ED8\u8BA4\u53C2\u6570",
     audioLoaded: "\u97F3\u9891\u5DF2\u52A0\u8F7D",
     audioNotReady: "\u97F3\u9891\u5C1A\u672A\u5C31\u7EEA",
     audioCannotPlay: "\u6B64\u97F3\u9891\u65E0\u6CD5\u5728 Webview \u4E2D\u64AD\u653E",
@@ -1616,6 +1711,7 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u8D25",
+    playbackGainLabel: "\u64AD\u653E\u589E\u76CA",
     playbackGain: "\u64AD\u653E\u589E\u76CA (\u53CC\u51FB\u91CD\u7F6E\u4E3A 0)"
   };
 
@@ -1719,7 +1815,7 @@
     vi: messages15
   };
   function getMessages(locale) {
-    return localeMessages[locale] ?? messages2;
+    return { ...messages2, ...localeMessages[locale] ?? {} };
   }
   function normalizeLocale(language) {
     const value = (language || "en").toLowerCase();
@@ -1752,6 +1848,92 @@
     return normalizeLocale(vscodeLanguage);
   }
 
+  // src/webview/pcm.ts
+  function decodePcm(bytes, format) {
+    const data = pcmPayloadBytes(bytes, format);
+    const bytesPerSample = getBytesPerSample(format);
+    const frameSize = getFrameSize(format);
+    if (bytesPerSample <= 0 || frameSize <= 0 || data.byteLength % frameSize !== 0) {
+      throw new Error("PCM parameters do not match the file size.");
+    }
+    const frames = data.byteLength / frameSize;
+    const channels = Array.from({ length: format.channels }, () => new Float32Array(frames));
+    for (let frame = 0; frame < frames; frame += 1) {
+      const frameOffset = frame * frameSize;
+      for (let channel = 0; channel < format.channels; channel += 1) {
+        const offset = frameOffset + channel * bytesPerSample;
+        channels[channel][frame] = readSample(data, offset, format);
+      }
+    }
+    return { sampleRate: format.sampleRate, channels };
+  }
+  function createAudioBufferFromChannels(audioContext, decoded) {
+    const frames = decoded.channels[0]?.length ?? 0;
+    const audioBuffer = audioContext.createBuffer(decoded.channels.length, frames, decoded.sampleRate);
+    decoded.channels.forEach((samples, channel) => audioBuffer.getChannelData(channel).set(samples));
+    return audioBuffer;
+  }
+  function validatePcmFormat(bytes, format) {
+    const startOffsetBytes = format.startOffsetBytes ?? 0;
+    if (!Number.isFinite(format.sampleRate) || format.sampleRate <= 0) {
+      return "PCM sample rate must be greater than 0.";
+    }
+    if (!Number.isInteger(format.channels) || format.channels <= 0) {
+      return "PCM channel count must be a positive integer.";
+    }
+    if (![8, 16, 24, 32].includes(format.bitDepth)) {
+      return "PCM bit depth must be 8/16/24/32-bit.";
+    }
+    if (format.sampleFormat === "float" && format.bitDepth !== 32) {
+      return "Float PCM currently supports 32-bit only.";
+    }
+    if (!Number.isInteger(startOffsetBytes) || startOffsetBytes < 0) {
+      return "PCM start offset must be a non-negative integer.";
+    }
+    if (startOffsetBytes >= bytes.byteLength) {
+      return `PCM start offset ${startOffsetBytes} bytes exceeds the file size.`;
+    }
+    const dataBytes = bytes.byteLength - startOffsetBytes;
+    const frameSize = getFrameSize(format);
+    if (frameSize <= 0 || dataBytes % frameSize !== 0) {
+      return `Data size after offset (${dataBytes} bytes) is not aligned to the current PCM parameters.`;
+    }
+    return void 0;
+  }
+  function pcmPayloadBytes(bytes, format) {
+    return bytes.subarray(format.startOffsetBytes ?? 0);
+  }
+  function readSample(bytes, offset, format) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, getBytesPerSample(format));
+    if (format.sampleFormat === "float") {
+      return clamp3(view.getFloat32(0, format.endianness === "little"), -1, 1);
+    }
+    if (format.bitDepth === 8) {
+      return view.getInt8(0) / 128;
+    }
+    if (format.bitDepth === 16) {
+      return view.getInt16(0, format.endianness === "little") / 32768;
+    }
+    if (format.bitDepth === 24) {
+      const little = format.endianness === "little";
+      const raw = little ? view.getUint8(0) | view.getUint8(1) << 8 | view.getUint8(2) << 16 : view.getUint8(2) | view.getUint8(1) << 8 | view.getUint8(0) << 16;
+      return signExtend24(raw) / 8388608;
+    }
+    return view.getInt32(0, format.endianness === "little") / 2147483648;
+  }
+  function signExtend24(value) {
+    return value & 8388608 ? value | ~16777215 : value;
+  }
+  function getBytesPerSample(format) {
+    return format.sampleFormat === "float" ? 4 : format.bitDepth / 8;
+  }
+  function getFrameSize(format) {
+    return getBytesPerSample(format) * format.channels;
+  }
+  function clamp3(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
   // src/webview/view.ts
   function renderShell(root2) {
     root2.innerHTML = /* html */
@@ -1761,14 +1943,115 @@
         <div class="identity">
           <strong class="brand">AudioLens</strong>
           <span id="fileMeta" class="muted" data-i18n="waitingAudioFile">Waiting for audio file</span>
+          <button id="pcmReveal" class="secondary pcmReveal" data-i18n="pcmReadAs" hidden>Read as PCM</button>
         </div>
         <div id="status" class="status" data-i18n="initializing" hidden>Initializing</div>
-        <div class="gainControl" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
-          <span id="gainLabel" class="gainLabel">0 dB</span>
-          <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" />
+        <section id="pcmPanel" class="pcmPanel topPcmPanel" hidden>
+          <div class="paneTitle" data-i18n="pcmParams">PCM parameters</div>
+          <label>
+            <span data-i18n="sampleRate">Sample rate</span>
+            <input id="pcmSampleRate" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="16000" />
+          </label>
+          <label>
+            <span data-i18n="channels">Channels</span>
+            <input id="pcmChannels" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="1" />
+          </label>
+          <label>
+            <span data-i18n="startOffsetBytes">Offset (B)</span>
+            <input id="pcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
+          </label>
+          <label>
+            <span data-i18n="bitDepth">Bit depth (bit)</span>
+            <select id="pcmBitDepth">
+              <option value="8">8</option>
+              <option value="16">16</option>
+              <option value="24">24</option>
+              <option value="32">32</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="sampleFormat">Format</span>
+            <select id="pcmSampleFormat">
+              <option value="signed-int">Int</option>
+              <option value="float">Float</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="endianness">Endian</span>
+            <select id="pcmEndianness">
+              <option value="little">LE</option>
+              <option value="big">BE</option>
+            </select>
+          </label>
+          <button id="pcmApply" class="secondary" data-i18n="read">Read</button>
+          <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
+          <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
+        </section>
+        <details id="helpMenu" class="helpMenu">
+          <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
+          <div class="helpPopover">
+            <div><span data-i18n="helpTimeZoom">Time zoom:</span> <kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></div>
+            <div><span data-i18n="helpTimePan">Time pan:</span> <kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></div>
+            <div><span data-i18n="helpAmplitudeZoom">Amplitude zoom:</span> <kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></div>
+            <div data-i18n="helpSelectionPlayback">Drag to select a segment for playback; right-click to reset view.</div>
+          </div>
+        </details>
+        <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
+          <span class="gainTitle" data-i18n="playbackGainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">Gain</span>
+          <span id="gainLabel" class="gainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">0 dB</span>
+          <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" />
         </div>
-        <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="spectrogramSettings" data-i18n-aria="spectrogramSettings" title="Spectrogram settings" aria-label="Spectrogram settings">\u2699</button>
+        <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">\u2699</span></button>
       </header>
+
+      <section id="wavPcmPanel" class="wavPcmPanel" role="dialog" data-i18n-aria="wavPcmRead" aria-label="Read WAV as PCM" hidden>
+        <div class="wavPcmHeader">
+          <strong data-i18n="wavPcmRead">Read WAV as PCM</strong>
+          <span class="muted" data-i18n="currentFileOnly">Current file only</span>
+        </div>
+        <div class="wavPcmGrid">
+          <label>
+            <span data-i18n="sampleRate">Sample rate</span>
+            <input id="wavPcmSampleRate" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="16000" />
+          </label>
+          <label>
+            <span data-i18n="channels">Channels</span>
+            <input id="wavPcmChannels" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="1" />
+          </label>
+          <label>
+            <span data-i18n="startOffsetBytes">Offset (B)</span>
+            <input id="wavPcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
+          </label>
+          <label>
+            <span data-i18n="bitDepth">Bit depth (bit)</span>
+            <select id="wavPcmBitDepth">
+              <option value="8">8</option>
+              <option value="16">16</option>
+              <option value="24">24</option>
+              <option value="32">32</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="sampleFormat">Format</span>
+            <select id="wavPcmSampleFormat">
+              <option value="signed-int">Int</option>
+              <option value="float">Float</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="endianness">Endian</span>
+            <select id="wavPcmEndianness">
+              <option value="little">LE</option>
+              <option value="big">BE</option>
+            </select>
+          </label>
+        </div>
+        <div class="wavPcmFooter">
+          <span id="wavPcmStatus" class="muted"></span>
+          <button id="wavPcmCancel" class="secondary" data-i18n="cancel">Cancel</button>
+          <button id="wavPcmApply" class="secondary" data-i18n="read">Read</button>
+        </div>
+      </section>
 
       <section class="player">
         <button id="play" class="iconButton" data-i18n-title="playPause" data-i18n-aria="playPause" title="Play / pause" aria-label="Play / pause">\u25B6</button>
@@ -1779,9 +2062,21 @@
 
       <aside id="settingsPanel" class="settingsPanel" hidden>
         <div class="settingsHeader">
-          <strong data-i18n="spectrogramDisplay">Spectrogram display</strong>
-          <button id="settingsClose" class="iconButton secondaryIcon" data-i18n-title="closeSettings" data-i18n-aria="closeSettings" title="Close settings" aria-label="Close settings">\xD7</button>
+          <strong data-i18n="settings">Settings</strong>
         </div>
+        <section class="settingsSection">
+          <strong data-i18n="defaultView">Default view</strong>
+          <label>
+            <span data-i18n="view">View</span>
+            <select id="defaultTrackMode">
+              <option value="both" data-i18n="viewBoth">Multi-view</option>
+              <option value="waveform" data-i18n="waveform">Waveform</option>
+              <option value="spectrogram" data-i18n="spectrogram">Spectrogram</option>
+            </select>
+          </label>
+        </section>
+        <section class="settingsSection">
+          <strong data-i18n="spectrogramDisplay">Spectrogram display</strong>
         <label>
           <span data-i18n="algorithm">Algorithm</span>
           <select id="algorithm">
@@ -1867,10 +2162,12 @@
           <span data-i18n="maxDb">Max dB (brightness)</span>
           <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
         </label>
+        </section>
       </aside>
 
-      <section class="workspace">
-        <aside class="controls">
+        <section class="workspace">
+        <aside class="controls" hidden>
+          <div class="controlInternals" hidden>
           <label>
             <span data-i18n="channel">Channel</span>
             <select id="channel"></select>
@@ -1892,46 +2189,180 @@
           </label>
           <button id="resetView" class="secondary" data-i18n="resetView">Reset view</button>
           <button id="analyze" class="primary" data-i18n="refreshSpectrogram">Refresh spectrogram</button>
+          </div>
 
-          <section class="selectionAnalysisPane" data-i18n-aria="selectionAnalysis" aria-label="Selection analysis">
-            <div class="paneTitle" data-i18n="selectionAnalysis">Selection analysis</div>
+        </aside>
+
+        <section id="figures" class="figures">
+          <div class="figureHeader timelineHeader">
+            <span id="viewRange" class="muted timelineRange" data-i18n="timeLabel">Time</span>
+            <div class="timelineCanvasWrap">
+              <canvas id="timeline" class="timelineCanvas"></canvas>
+            </div>
+          </div>
+          <div id="waveformPane" class="plotPane waveformPane legacyPlot" hidden>
+            <canvas id="waveform" class="waveform"></canvas>
+          </div>
+          <div id="trackList" class="trackList"></div>
+          <section class="selectionAnalysisPane" data-i18n-aria="selectionAnalysis" aria-label="Selection analysis" hidden>
+            <div class="paneTitleRow">
+              <div class="paneTitle" data-i18n="selectionAnalysis">Selection analysis</div>
+              <span
+                class="analysisHelp"
+                tabindex="0"
+                data-i18n-aria="selectionAnalysis"
+                aria-label="Selection analysis"
+                data-i18n-tooltip="selectionAnalysisHelp"
+                data-tooltip="Selection analysis help"
+              >?</span>
+            </div>
+            <div class="paneSubtitleRow">
+              <div class="paneSubtitle" data-i18n="basicMetrics">Basic metrics</div>
+            </div>
             <table class="analysisTable">
               <tbody>
                 <tr><th data-i18n="selectionStart">Start</th><td id="analysisStart">--</td></tr>
                 <tr><th data-i18n="selectionEnd">End</th><td id="analysisEnd">--</td></tr>
                 <tr><th data-i18n="selectionDuration">Duration</th><td id="analysisDuration">--</td></tr>
-                <tr><th data-i18n="rmsLevel">RMS Level</th><td id="analysisRms">--</td></tr>
-                <tr><th data-i18n="peakLevel">Peak Level</th><td id="analysisPeak">--</td></tr>
-                <tr><th data-i18n="dominant">Dominant</th><td id="analysisDominant">--</td></tr>
+                <tr>
+                  <th>
+                    <span data-i18n="rmsLevel">RMS Level</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="rmsLevel"
+                      aria-label="RMS Level"
+                      data-i18n-tooltip="rmsLevelHelp"
+                      data-tooltip="RMS level help"
+                    >?</span>
+                  </th>
+                  <td id="analysisRms">--</td>
+                </tr>
+                <tr>
+                  <th>
+                    <span data-i18n="peakLevel">Peak Level</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="peakLevel"
+                      aria-label="Peak Level"
+                      data-i18n-tooltip="peakLevelHelp"
+                      data-tooltip="Peak level help"
+                    >?</span>
+                  </th>
+                  <td id="analysisPeak">--</td>
+                </tr>
+                <tr>
+                  <th>
+                    <span data-i18n="dominant">Dominant</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="dominant"
+                      aria-label="Dominant"
+                      data-i18n-tooltip="dominantHelp"
+                      data-tooltip="Dominant frequency help"
+                    >?</span>
+                  </th>
+                  <td id="analysisDominant">--</td>
+                </tr>
+                <tr>
+                  <th>
+                    <span data-i18n="crestFactor">Crest</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="crestFactor"
+                      aria-label="Crest"
+                      data-i18n-tooltip="crestFactorHelp"
+                      data-tooltip="Crest factor help"
+                    >?</span>
+                  </th>
+                  <td id="analysisCrest">--</td>
+                </tr>
+                <tr>
+                  <th>
+                    <span data-i18n="clippingRatio">Clipping</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="clippingRatio"
+                      aria-label="Clipping"
+                      data-i18n-tooltip="clippingRatioHelp"
+                      data-tooltip="Clipping ratio help"
+                    >?</span>
+                  </th>
+                  <td id="analysisClipping">--</td>
+                </tr>
+                <tr>
+                  <th>
+                    <span data-i18n="noiseFloor">Noise floor</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="noiseFloor"
+                      aria-label="Noise floor"
+                      data-i18n-tooltip="noiseFloorHelp"
+                      data-tooltip="Noise floor help"
+                    >?</span>
+                  </th>
+                  <td id="analysisNoiseFloor">--</td>
+                </tr>
+                <tr>
+                  <th>
+                    <span data-i18n="spectralCentroid">Centroid</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="spectralCentroid"
+                      aria-label="Centroid"
+                      data-i18n-tooltip="spectralCentroidHelp"
+                      data-tooltip="Spectral centroid help"
+                    >?</span>
+                  </th>
+                  <td id="analysisCentroid">--</td>
+                </tr>
+                <tr>
+                  <th>
+                    <span data-i18n="zeroCrossingRate">ZCR</span>
+                    <span
+                      class="metricHelp"
+                      tabindex="0"
+                      data-i18n-aria="zeroCrossingRate"
+                      aria-label="ZCR"
+                      data-i18n-tooltip="zeroCrossingRateHelp"
+                      data-tooltip="Zero crossing rate help"
+                    >?</span>
+                  </th>
+                  <td id="analysisZcr">--</td>
+                </tr>
               </tbody>
             </table>
-            <div class="paneSubtitle" data-i18n="frequencyAnalysis">Frequency analysis</div>
+            <div class="paneSubtitleRow">
+              <div class="paneSubtitle" data-i18n="frequencyAnalysis">Frequency analysis</div>
+              <span
+                class="analysisHelp"
+                tabindex="0"
+                data-i18n-aria="frequencyAnalysis"
+                aria-label="Frequency analysis"
+                data-i18n-tooltip="frequencyAnalysisHelp"
+                data-tooltip="Frequency analysis help"
+              >?</span>
+            </div>
             <table class="analysisTable">
               <tbody id="analysisBands">
                 <tr><th data-i18n="bands">Bands</th><td>--</td></tr>
               </tbody>
             </table>
           </section>
-        </aside>
-
-        <section id="figures" class="figures">
-          <div class="figureHeader">
-            <span data-i18n="waveform">Waveform</span>
-            <span id="viewRange" class="muted">0.000s - 0.000s</span>
-          </div>
-          <div id="waveformPane" class="plotPane waveformPane">
-            <canvas id="waveform" class="waveform"></canvas>
-          </div>
-          <div id="waveformResize" class="plotResize" role="separator" aria-orientation="horizontal" data-i18n-title="adjustWaveformHeight" title="Adjust waveform height"></div>
-          <div class="figureHeader">
-            <span data-i18n="spectrogram">Spectrogram</span>
-            <span id="analysisMeta" class="muted"></span>
-          </div>
-          <div id="spectrogramPane" class="plotPane spectrogramPane">
+          <div id="waveformResize" class="plotResize legacyPlot" role="separator" aria-orientation="horizontal" data-i18n-title="adjustWaveformHeight" title="Adjust waveform height" hidden></div>
+          <span id="analysisMeta" class="muted legacyPlot" hidden></span>
+          <div id="spectrogramPane" class="plotPane spectrogramPane legacyPlot" hidden>
             <canvas id="spectrogram" class="spectrogram"></canvas>
           </div>
-          <div id="spectrogramResize" class="plotResize" role="separator" aria-orientation="horizontal" data-i18n-title="adjustSpectrogramHeight" title="Adjust spectrogram height"></div>
+          <div id="spectrogramResize" class="plotResize legacyPlot" role="separator" aria-orientation="horizontal" data-i18n-title="adjustSpectrogramHeight" title="Adjust spectrogram height" hidden></div>
           <div id="selectionBox" class="selectionBox" hidden></div>
+          <div id="floatingTooltip" class="floatingTooltip" hidden></div>
         </section>
       </section>
 
@@ -1945,15 +2376,38 @@
       seek: query("#seek", HTMLInputElement),
       audio: query("#audio", HTMLAudioElement),
       algorithm: query("#algorithm", HTMLSelectElement),
+      defaultTrackMode: query("#defaultTrackMode", HTMLSelectElement),
       zeroPaddingFactor: query("#zeroPaddingFactor", HTMLSelectElement),
       settingsToggle: query("#settingsToggle", HTMLButtonElement),
+      helpMenu: query("#helpMenu", HTMLElement),
       gainLabel: query("#gainLabel", HTMLSpanElement),
       playbackGain: query("#playbackGain", HTMLInputElement),
       settingsPanel: query("#settingsPanel", HTMLElement),
-      settingsClose: query("#settingsClose", HTMLButtonElement),
       windowFunction: query("#windowFunction", HTMLSelectElement),
       fftSize: query("#fftSize", HTMLSelectElement),
       channel: query("#channel", HTMLSelectElement),
+      pcmPanel: query("#pcmPanel", HTMLElement),
+      pcmReveal: query("#pcmReveal", HTMLButtonElement),
+      pcmSampleRate: query("#pcmSampleRate", HTMLInputElement),
+      pcmChannels: query("#pcmChannels", HTMLInputElement),
+      pcmStartOffset: query("#pcmStartOffset", HTMLInputElement),
+      pcmBitDepth: query("#pcmBitDepth", HTMLSelectElement),
+      pcmSampleFormat: query("#pcmSampleFormat", HTMLSelectElement),
+      pcmEndianness: query("#pcmEndianness", HTMLSelectElement),
+      pcmApply: query("#pcmApply", HTMLButtonElement),
+      pcmSaveDefault: query("#pcmSaveDefault", HTMLButtonElement),
+      pcmStatus: query("#pcmStatus", HTMLSpanElement),
+      pcmStatusText: query("#pcmStatusText", HTMLSpanElement),
+      wavPcmPanel: query("#wavPcmPanel", HTMLElement),
+      wavPcmSampleRate: query("#wavPcmSampleRate", HTMLInputElement),
+      wavPcmChannels: query("#wavPcmChannels", HTMLInputElement),
+      wavPcmStartOffset: query("#wavPcmStartOffset", HTMLInputElement),
+      wavPcmBitDepth: query("#wavPcmBitDepth", HTMLSelectElement),
+      wavPcmSampleFormat: query("#wavPcmSampleFormat", HTMLSelectElement),
+      wavPcmEndianness: query("#wavPcmEndianness", HTMLSelectElement),
+      wavPcmApply: query("#wavPcmApply", HTMLButtonElement),
+      wavPcmCancel: query("#wavPcmCancel", HTMLButtonElement),
+      wavPcmStatus: query("#wavPcmStatus", HTMLSpanElement),
       timeZoom: query("#timeZoom", HTMLInputElement),
       timeOffset: query("#timeOffset", HTMLInputElement),
       amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
@@ -1965,6 +2419,7 @@
       analyze: query("#analyze", HTMLButtonElement),
       resetView: query("#resetView", HTMLButtonElement),
       viewRange: query("#viewRange", HTMLSpanElement),
+      timeline: query("#timeline", HTMLCanvasElement),
       analysisMeta: query("#analysisMeta", HTMLSpanElement),
       analysisStart: query("#analysisStart", HTMLElement),
       analysisEnd: query("#analysisEnd", HTMLElement),
@@ -1972,15 +2427,22 @@
       analysisRms: query("#analysisRms", HTMLElement),
       analysisPeak: query("#analysisPeak", HTMLElement),
       analysisDominant: query("#analysisDominant", HTMLElement),
+      analysisCrest: query("#analysisCrest", HTMLElement),
+      analysisClipping: query("#analysisClipping", HTMLElement),
+      analysisNoiseFloor: query("#analysisNoiseFloor", HTMLElement),
+      analysisCentroid: query("#analysisCentroid", HTMLElement),
+      analysisZcr: query("#analysisZcr", HTMLElement),
       analysisBands: query("#analysisBands", HTMLElement),
       figures: query("#figures", HTMLElement),
+      trackList: query("#trackList", HTMLElement),
       waveformPane: query("#waveformPane", HTMLElement),
       spectrogramPane: query("#spectrogramPane", HTMLElement),
       waveformResize: query("#waveformResize", HTMLDivElement),
       spectrogramResize: query("#spectrogramResize", HTMLDivElement),
       waveform: query("#waveform", HTMLCanvasElement),
       spectrogram: query("#spectrogram", HTMLCanvasElement),
-      selectionBox: query("#selectionBox", HTMLDivElement)
+      selectionBox: query("#selectionBox", HTMLDivElement),
+      floatingTooltip: query("#floatingTooltip", HTMLDivElement)
     };
   }
   function applyLocale(root2, messages18) {
@@ -1996,6 +2458,12 @@
         element.title = messages18[key];
       }
     });
+    root2.querySelectorAll("[data-i18n-tooltip]").forEach((element) => {
+      const key = element.dataset.i18nTooltip;
+      if (key && messages18[key]) {
+        element.dataset.tooltip = messages18[key];
+      }
+    });
     root2.querySelectorAll("[data-i18n-aria]").forEach((element) => {
       const key = element.dataset.i18nAria;
       if (key && messages18[key]) {
@@ -2007,7 +2475,9 @@
   // src/webview/app.ts
   var MIN_DRAG_PIXELS = 6;
   var PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
+  var TRACK_AXIS_WIDTH = 78;
   var AXIS_FONT_SIZE = 13;
+  var WAVEFORM_AMPLITUDE_SCALE = 0.45;
   var PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
   var BAND_LIMITS = [
     { labelKey: "frequencyBand0To250", min: 0, max: 250 },
@@ -2030,10 +2500,12 @@
     config;
     audioBuffer;
     audioBytes;
+    trackViews = [];
+    defaultPcmFormat;
+    currentFileName = "";
     objectUrl;
     requestSeq = 1;
-    pendingAnalysisKey;
-    lastSpectrogram;
+    pendingAnalysisKeys = /* @__PURE__ */ new Set();
     playheadTime;
     sourceSampleRate;
     selection;
@@ -2044,13 +2516,20 @@
     playbackAudioContext;
     playbackGainNode;
     playbackSourceNode;
+    playbackSplitterNode;
+    playbackMergerNode;
+    playbackChannelGains = [];
     pendingChunks = /* @__PURE__ */ new Map();
     spectrogramCache = /* @__PURE__ */ new Map();
+    spectrogramBitmapCache = /* @__PURE__ */ new Map();
+    spectrogramRangeCache = /* @__PURE__ */ new Map();
+    lastSpectrogramByChannel = /* @__PURE__ */ new Map();
     waveformCache = /* @__PURE__ */ new Map();
     worker = createAnalysisWorker();
     messages = getMessages("en");
     settings = {
       algorithm: "frequency",
+      defaultTrackMode: "both",
       windowFunction: "hamming",
       fftSize: 512,
       zeroPaddingFactor: 2,
@@ -2115,13 +2594,30 @@
       this.messages = getMessages(locale);
       applyLocale(document, this.messages);
       this.updateResetViewButtonState();
+      this.updateTrackLabels();
+      this.redrawVisuals();
     }
     resetAnalysisWorker() {
       this.worker.terminate();
       this.worker = createAnalysisWorker();
       this.bindWorker();
     }
+    clearDecodedAudio() {
+      this.audioBuffer = void 0;
+      this.sourceSampleRate = void 0;
+      this.spectrogramCache.clear();
+      this.spectrogramBitmapCache.clear();
+      this.spectrogramRangeCache.clear();
+      this.lastSpectrogramByChannel.clear();
+      this.waveformCache.clear();
+      this.pendingAnalysisKeys.clear();
+      this.trackViews = [];
+      this.elements.trackList.replaceChildren();
+      this.elements.seek.value = "0";
+      this.updateClock();
+    }
     async load(metadata) {
+      this.currentFileName = metadata.fileName;
       this.elements.fileMeta.textContent = `${metadata.fileName} \xB7 ${formatBytes(metadata.size)}`;
       if (!metadata.trusted) {
         this.setStatus(this.messages.workspaceNotTrusted);
@@ -2137,28 +2633,68 @@
       }
       this.setStatus(this.messages.readingAudio);
       this.audioBytes = await this.readAll(metadata.size);
-      const facts = readAudioFileFacts(this.audioBytes, metadata.fileName);
-      this.setStatus(this.messages.decodingAudio);
+      this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
+      this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav";
+      this.elements.wavPcmPanel.hidden = true;
       this.stopPlaybackTicker();
-      const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
-      this.audioBuffer = await audioContext.decodeAudioData(toArrayBuffer(this.audioBytes));
-      this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
-      await audioContext.close();
+      if (metadata.kind === "pcm") {
+        const loaded = await this.loadPcm(metadata);
+        if (!loaded) {
+          return;
+        }
+      } else {
+        await this.loadEncoded(metadata.fileName);
+      }
+      this.settings.channel = 0;
+      this.applyAutoAmplitudeZoom();
       this.spectrogramCache.clear();
+      this.spectrogramBitmapCache.clear();
+      this.spectrogramRangeCache.clear();
+      this.lastSpectrogramByChannel.clear();
       this.waveformCache.clear();
-      this.lastSpectrogram = void 0;
       this.selection = void 0;
       this.playheadTime = void 0;
       this.selectionPlaybackEnd = void 0;
       this.updateSelectionAnalysis();
-      this.installAudioElement(metadata.fileName);
       this.populateChannels();
+      this.renderTrackList();
       this.applyAutoBrightness();
       this.redrawVisuals();
       if (this.config.autoAnalyze) {
         this.analyze();
       }
       this.setStatus(this.messages.ready);
+    }
+    async loadEncoded(fileName) {
+      if (!this.audioBytes) {
+        return;
+      }
+      const facts = readAudioFileFacts(this.audioBytes, fileName);
+      this.elements.pcmPanel.hidden = true;
+      this.elements.wavPcmPanel.hidden = true;
+      const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
+      this.audioBuffer = await audioContext.decodeAudioData(toArrayBuffer(this.audioBytes));
+      this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
+      await audioContext.close();
+      this.installAudioElementFromBytes(fileName);
+    }
+    async loadPcm(_metadata) {
+      if (!this.audioBytes) {
+        return false;
+      }
+      this.elements.pcmPanel.hidden = false;
+      this.elements.pcmReveal.hidden = true;
+      this.elements.wavPcmPanel.hidden = true;
+      this.clearDecodedAudio();
+      if (this.defaultPcmFormat) {
+        this.writePcmControls(this.defaultPcmFormat);
+        this.setPcmStatus(this.elements.pcmStatus, this.messages.pcmUsedDefaultParams);
+        await this.applyPcmFormat(this.defaultPcmFormat);
+        return true;
+      }
+      this.writePcmControls(this.readPcmControls());
+      this.setPcmStatus(this.elements.pcmStatus, this.messages.pcmFillParams);
+      return false;
     }
     bindUi() {
       this.elements.play.addEventListener("click", () => {
@@ -2208,14 +2744,36 @@
       });
       this.elements.settingsToggle.addEventListener("click", () => {
         this.elements.settingsPanel.hidden = !this.elements.settingsPanel.hidden;
+        if (!this.elements.settingsPanel.hidden) {
+          this.helpMenuElement().open = false;
+        }
       });
-      this.elements.settingsClose.addEventListener("click", () => {
-        this.elements.settingsPanel.hidden = true;
+      this.elements.helpMenu.addEventListener("toggle", () => {
+        if (this.helpMenuElement().open) {
+          this.elements.settingsPanel.hidden = true;
+        }
+      });
+      this.elements.pcmReveal.addEventListener("click", () => {
+        this.showWavPcmPanel();
+      });
+      this.elements.wavPcmApply.addEventListener("click", () => {
+        void this.applyWavPcmFormat();
+      });
+      this.elements.wavPcmCancel.addEventListener("click", () => {
+        this.hideWavPcmPanel();
+      });
+      document.addEventListener("pointerdown", (event) => {
+        this.closeFloatingMenusFromPointer(event);
       });
       this.elements.algorithm.addEventListener("change", () => {
         this.settings.algorithm = this.elements.algorithm.value;
         this.savePreferencesSoon();
         this.analyze();
+      });
+      this.elements.defaultTrackMode.addEventListener("change", () => {
+        this.settings.defaultTrackMode = this.elements.defaultTrackMode.value;
+        this.applyDefaultTrackModeToCurrentTracks();
+        this.savePreferencesSoon();
       });
       this.elements.windowFunction.addEventListener("change", () => {
         this.settings.windowFunction = this.elements.windowFunction.value;
@@ -2240,7 +2798,21 @@
         this.analyze();
         this.updateSelectionAnalysis();
         this.redrawVisuals();
+        this.renderTrackSelection();
       });
+      this.elements.pcmApply.addEventListener("click", () => {
+        void this.applyPcmFormat(this.readPcmControls());
+      });
+      this.elements.pcmSaveDefault.addEventListener("click", () => {
+        this.saveDefaultPcmFormat();
+      });
+      this.elements.pcmStatus.addEventListener("mouseenter", () => {
+        this.positionPcmStatusTooltip();
+      });
+      this.elements.pcmStatus.addEventListener("focusin", () => {
+        this.positionPcmStatusTooltip();
+      });
+      this.bindAnalysisTooltips();
       this.elements.frequencyScale.addEventListener("change", () => {
         this.settings.frequencyScale = this.elements.frequencyScale.value;
         this.savePreferencesSoon();
@@ -2269,6 +2841,10 @@
       this.bindPlotResizer(this.elements.spectrogramResize, this.elements.spectrogramPane, "--spectrogram-height", PLOT_HEIGHT_LIMITS.spectrogramMin, PLOT_HEIGHT_LIMITS.spectrogramMax);
       window.addEventListener("keydown", (event) => this.onKeyDown(event));
       window.addEventListener("resize", () => {
+        if (!this.elements.wavPcmPanel.hidden) {
+          this.positionWavPcmPanel();
+        }
+        this.positionPcmStatusTooltip();
         this.redrawVisuals();
         this.scheduleAnalyze();
       });
@@ -2281,6 +2857,7 @@
       try {
         if (this.elements.audio.paused) {
           this.preparePlaybackStart();
+          this.updateGainNode();
           if (this.playbackAudioContext?.state === "suspended") {
             await this.playbackAudioContext.resume();
           }
@@ -2349,12 +2926,38 @@
       if (!Number.isNaN(audio.duration) && audio.duration > 0) {
         this.elements.seek.value = String(audio.currentTime / audio.duration * 1e3);
       }
+      this.followPlayheadDuringPlayback();
       if (options.redraw) {
         this.redrawVisuals();
       }
     }
+    followPlayheadDuringPlayback() {
+      if (!this.audioBuffer || this.playheadTime === void 0 || this.elements.audio.paused) {
+        return;
+      }
+      const range = this.visibleRange();
+      const duration = this.audioBuffer.duration;
+      const viewDuration = range.endTime - range.startTime;
+      if (viewDuration <= 0 || viewDuration >= duration) {
+        return;
+      }
+      const margin = viewDuration * 0.12;
+      if (this.playheadTime <= range.endTime - margin && this.playheadTime >= range.startTime + margin) {
+        return;
+      }
+      const maxStart = Math.max(0, duration - viewDuration);
+      const targetStart = clamp2(this.playheadTime - viewDuration * 0.78, 0, maxStart);
+      this.settings.timeOffset = maxStart === 0 ? 0 : targetStart / maxStart;
+      this.syncControls();
+      this.scheduleAnalyze(0);
+    }
     onKeyDown(event) {
       if (isEditableTarget(event.target)) {
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        this.resetTimeZoom();
         return;
       }
       if (event.code === "Space") {
@@ -2372,6 +2975,11 @@
         this.elements.settingsToggle.focus();
         return;
       }
+      if (this.helpMenuElement().open) {
+        this.helpMenuElement().open = false;
+        this.elements.helpMenu.querySelector("summary")?.focus();
+        return;
+      }
       if (this.selection) {
         this.selection = void 0;
         this.selectionPlaybackEnd = void 0;
@@ -2387,6 +2995,56 @@
       this.updateClock();
       this.redrawVisuals();
     }
+    closeFloatingMenusFromPointer(event) {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (!this.elements.settingsPanel.hidden && !this.elements.settingsPanel.contains(target) && !this.elements.settingsToggle.contains(target)) {
+        this.elements.settingsPanel.hidden = true;
+      }
+      if (this.helpMenuElement().open && !this.elements.helpMenu.contains(target)) {
+        this.helpMenuElement().open = false;
+      }
+      this.hideFloatingTooltip();
+      if (!this.elements.wavPcmPanel.hidden && !this.elements.wavPcmPanel.contains(target) && !this.elements.pcmReveal.contains(target)) {
+        this.hideWavPcmPanel();
+      }
+    }
+    helpMenuElement() {
+      return this.elements.helpMenu;
+    }
+    bindAnalysisTooltips() {
+      document.querySelectorAll(".analysisHelp, .metricHelp").forEach((trigger) => {
+        trigger.addEventListener("mouseenter", () => this.showFloatingTooltip(trigger));
+        trigger.addEventListener("focusin", () => this.showFloatingTooltip(trigger));
+        trigger.addEventListener("mouseleave", () => this.hideFloatingTooltip());
+        trigger.addEventListener("focusout", () => this.hideFloatingTooltip());
+      });
+    }
+    showFloatingTooltip(trigger) {
+      const text = trigger.dataset.tooltip;
+      if (!text) {
+        return;
+      }
+      const tooltip = this.elements.floatingTooltip;
+      tooltip.textContent = text;
+      tooltip.hidden = false;
+      tooltip.style.width = "";
+      const margin = 12;
+      const triggerRect = trigger.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const tooltipWidth = Math.min(tooltipRect.width || 380, window.innerWidth - margin * 2);
+      const left = clamp2(triggerRect.left - tooltipWidth - 10, margin, Math.max(margin, window.innerWidth - tooltipWidth - margin));
+      const preferredTop = triggerRect.top + triggerRect.height * 0.45 - tooltipRect.height * 0.45;
+      const top = clamp2(preferredTop, margin, Math.max(margin, window.innerHeight - tooltipRect.height - margin));
+      tooltip.style.width = `${tooltipWidth}px`;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    }
+    hideFloatingTooltip() {
+      this.elements.floatingTooltip.hidden = true;
+    }
     reportPlaybackError(message) {
       const detail = `${this.messages.playbackFailed}: ${message}`;
       this.setStatus(detail);
@@ -2394,6 +3052,7 @@
     }
     syncControls() {
       this.elements.algorithm.value = this.settings.algorithm;
+      this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
       this.elements.windowFunction.value = this.settings.windowFunction;
       this.elements.fftSize.value = String(this.settings.fftSize);
       this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
@@ -2444,6 +3103,9 @@
       if (preferences.algorithm) {
         this.settings.algorithm = preferences.algorithm;
       }
+      if (preferences.defaultTrackMode) {
+        this.settings.defaultTrackMode = preferences.defaultTrackMode;
+      }
       if (preferences.windowFunction) {
         this.settings.windowFunction = preferences.windowFunction;
       }
@@ -2467,14 +3129,14 @@
       if (preferences.autoBrightness !== void 0) {
         this.settings.autoBrightness = preferences.autoBrightness;
       }
-      if (preferences.amplitudeZoom !== void 0) {
-        this.settings.amplitudeZoom = clamp2(preferences.amplitudeZoom, 0.25, 32);
-      }
       if (preferences.waveformHeight !== void 0) {
         this.setPlotHeight("--waveform-height", preferences.waveformHeight, PLOT_HEIGHT_LIMITS.waveformMin, PLOT_HEIGHT_LIMITS.waveformMax);
       }
       if (preferences.spectrogramHeight !== void 0) {
         this.setPlotHeight("--spectrogram-height", preferences.spectrogramHeight, PLOT_HEIGHT_LIMITS.spectrogramMin, PLOT_HEIGHT_LIMITS.spectrogramMax);
+      }
+      if (preferences.defaultPcmFormat) {
+        this.defaultPcmFormat = preferences.defaultPcmFormat;
       }
     }
     savePreferencesSoon() {
@@ -2489,6 +3151,7 @@
     collectPreferences() {
       return {
         algorithm: this.settings.algorithm,
+        defaultTrackMode: this.settings.defaultTrackMode,
         windowFunction: this.settings.windowFunction,
         fftSize: this.settings.fftSize,
         zeroPaddingFactor: this.settings.zeroPaddingFactor,
@@ -2497,10 +3160,10 @@
         minDb: this.settings.minDb,
         maxDb: this.settings.maxDb,
         autoBrightness: this.settings.autoBrightness,
-        amplitudeZoom: this.settings.amplitudeZoom,
         playbackGain: this.settings.playbackGain,
         waveformHeight: this.getPlotHeight(this.elements.waveformPane),
-        spectrogramHeight: this.getPlotHeight(this.elements.spectrogramPane)
+        spectrogramHeight: this.getPlotHeight(this.elements.spectrogramPane),
+        defaultPcmFormat: this.defaultPcmFormat
       };
     }
     applyAutoBrightness() {
@@ -2518,31 +3181,76 @@
       if (!this.audioBuffer) {
         return { minDb: -96, maxDb: 0 };
       }
-      const samples = this.audioBuffer.getChannelData(this.settings.channel);
-      const stride = Math.max(1, Math.ceil(samples.length / 2e6));
+      const stride = Math.max(1, Math.ceil(this.audioBuffer.length / 2e6));
       let sumSquares = 0;
       let peak = 0;
       let measured = 0;
-      for (let i = 0; i < samples.length; i += stride) {
-        const v = samples[i] ?? 0;
-        sumSquares += v * v;
-        peak = Math.max(peak, Math.abs(v));
-        measured += 1;
+      for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
+        const samples = this.audioBuffer.getChannelData(channel);
+        let channelSquares = 0;
+        let channelPeak = 0;
+        let channelMeasured = 0;
+        for (let i = 0; i < samples.length; i += stride) {
+          const v = samples[i] ?? 0;
+          channelSquares += v * v;
+          channelPeak = Math.max(channelPeak, Math.abs(v));
+          channelMeasured += 1;
+        }
+        const channelRms = Math.sqrt(channelSquares / Math.max(1, channelMeasured));
+        if (channelRms < 1e-8 && channelPeak < 1e-8) {
+          continue;
+        }
+        sumSquares += channelSquares;
+        peak = Math.max(peak, channelPeak);
+        measured += channelMeasured;
+      }
+      if (measured === 0) {
+        return { minDb: -96, maxDb: 0 };
       }
       const rmsDb = amplitudeToDb(Math.sqrt(sumSquares / Math.max(1, measured)));
       const peakDb = amplitudeToDb(peak);
       return normalizeDbRange(rmsDb - 72, peakDb - 27);
     }
+    applyAutoAmplitudeZoom() {
+      const peak = this.computeAudioPeak();
+      if (peak <= 1e-6) {
+        this.settings.amplitudeZoom = 1;
+        return;
+      }
+      const target = peak < 0.95 ? 0.95 : 1.05;
+      this.settings.amplitudeZoom = clamp2(target / peak, 0.25, 32);
+    }
+    computeAudioPeak() {
+      if (!this.audioBuffer) {
+        return 0;
+      }
+      let peak = 0;
+      for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
+        const samples = this.audioBuffer.getChannelData(channel);
+        for (let index = 0; index < samples.length; index += 1) {
+          peak = Math.max(peak, Math.abs(samples[index] ?? 0));
+        }
+      }
+      return peak;
+    }
     resetView() {
       this.settings.timeZoom = 1;
       this.settings.timeOffset = 0;
-      this.settings.amplitudeZoom = 1;
+      this.applyAutoAmplitudeZoom();
       this.selection = void 0;
       this.selectionPlaybackEnd = void 0;
       this.hideSelectionBox();
       this.syncControls();
       this.savePreferencesSoon();
       this.updateSelectionAnalysis();
+      this.redrawVisuals();
+      this.analyze();
+    }
+    resetTimeZoom() {
+      this.settings.timeZoom = 1;
+      this.settings.timeOffset = 0;
+      this.syncControls();
+      this.savePreferencesSoon();
       this.redrawVisuals();
       this.analyze();
     }
@@ -2572,7 +3280,7 @@
       }
       return target;
     }
-    installAudioElement(fileName) {
+    installAudioElementFromBytes(fileName) {
       if (!this.audioBytes) {
         return;
       }
@@ -2584,6 +3292,185 @@
       this.elements.audio.load();
       this.elements.seek.value = "0";
       this.updateClock();
+    }
+    installAudioElementFromBuffer(fileName) {
+      if (!this.audioBuffer) {
+        return;
+      }
+      if (this.objectUrl) {
+        URL.revokeObjectURL(this.objectUrl);
+      }
+      this.objectUrl = URL.createObjectURL(new Blob([encodeWav(this.audioBuffer)], { type: "audio/wav" }));
+      this.elements.audio.src = this.objectUrl;
+      this.elements.audio.load();
+      this.elements.seek.value = "0";
+      this.updateClock();
+      this.elements.fileMeta.textContent = `${fileName} \xB7 ${this.audioBuffer.numberOfChannels}ch \xB7 ${this.audioBuffer.sampleRate} Hz`;
+    }
+    async applyPcmFormat(format, statusElement = this.elements.pcmStatus) {
+      if (!this.audioBytes) {
+        return;
+      }
+      const error = validatePcmFormat(this.audioBytes, format);
+      if (error) {
+        this.setPcmStatus(statusElement, error);
+        this.setStatus(error);
+        return;
+      }
+      this.writePcmControls(format);
+      const decoded = decodePcm(this.audioBytes, format);
+      const audioContext = new AudioContext({ sampleRate: decoded.sampleRate });
+      this.audioBuffer = createAudioBufferFromChannels(audioContext, decoded);
+      this.sourceSampleRate = decoded.sampleRate;
+      await audioContext.close();
+      this.settings.channel = 0;
+      this.applyAutoAmplitudeZoom();
+      this.spectrogramCache.clear();
+      this.spectrogramBitmapCache.clear();
+      this.spectrogramRangeCache.clear();
+      this.lastSpectrogramByChannel.clear();
+      this.waveformCache.clear();
+      this.selection = void 0;
+      this.selectionPlaybackEnd = void 0;
+      this.playheadTime = void 0;
+      this.installAudioElementFromBuffer(this.currentFileName);
+      this.populateChannels();
+      this.renderTrackList();
+      this.applyAutoBrightness();
+      this.redrawVisuals();
+      if (this.config?.autoAnalyze) {
+        this.analyze();
+      }
+      this.setPcmStatus(statusElement, `${this.messages.currentPcmFormat}: ${formatPcmFormat(format)}`);
+      this.setStatus(this.messages.ready);
+    }
+    showWavPcmPanel() {
+      if (!this.audioBytes) {
+        return;
+      }
+      this.elements.wavPcmPanel.hidden = false;
+      this.elements.pcmReveal.hidden = true;
+      this.writeWavPcmControls(this.suggestPcmFormatForCurrentFile());
+      this.setPcmStatus(this.elements.wavPcmStatus, this.messages.wavPcmFillParams);
+      this.positionWavPcmPanel();
+    }
+    async applyWavPcmFormat() {
+      await this.applyPcmFormat(this.readWavPcmControls(), this.elements.wavPcmStatus);
+      if (this.elements.wavPcmStatus.textContent?.startsWith(`${this.messages.currentPcmFormat}:`)) {
+        this.hideWavPcmPanel();
+      }
+    }
+    hideWavPcmPanel() {
+      this.elements.wavPcmPanel.hidden = true;
+      this.elements.pcmReveal.hidden = false;
+    }
+    positionWavPcmPanel() {
+      const anchor = this.elements.pcmReveal.getBoundingClientRect();
+      const panel = this.elements.wavPcmPanel;
+      const margin = 12;
+      const panelWidth = Math.min(520, window.innerWidth - margin * 2);
+      const left = clamp2(anchor.left, margin, Math.max(margin, window.innerWidth - panelWidth - margin));
+      panel.style.width = `${panelWidth}px`;
+      panel.style.left = `${left}px`;
+      panel.style.top = `${anchor.bottom + 8}px`;
+    }
+    suggestPcmFormatForCurrentFile() {
+      const current = this.readPcmControls();
+      return {
+        sampleRate: Math.max(1, Math.floor(this.audioBuffer?.sampleRate ?? current.sampleRate)),
+        channels: Math.max(1, Math.floor(this.audioBuffer?.numberOfChannels ?? current.channels)),
+        bitDepth: current.bitDepth,
+        sampleFormat: current.sampleFormat,
+        endianness: current.endianness,
+        startOffsetBytes: this.findWaveDataOffset() ?? current.startOffsetBytes ?? 0
+      };
+    }
+    findWaveDataOffset() {
+      const bytes = this.audioBytes;
+      if (!bytes || bytes.byteLength < 12 || asciiAt(bytes, 0, 4) !== "RIFF" || asciiAt(bytes, 8, 4) !== "WAVE") {
+        return void 0;
+      }
+      let offset = 12;
+      while (offset + 8 <= bytes.byteLength) {
+        const chunkId = asciiAt(bytes, offset, 4);
+        const chunkSize = readUint32Le(bytes, offset + 4);
+        const payloadOffset = offset + 8;
+        if (chunkId === "data") {
+          return payloadOffset;
+        }
+        offset = payloadOffset + chunkSize + chunkSize % 2;
+      }
+      return void 0;
+    }
+    saveDefaultPcmFormat() {
+      const format = this.readPcmControls();
+      if (this.audioBytes) {
+        const error = validatePcmFormat(this.audioBytes, format);
+        if (error) {
+          this.setPcmStatus(this.elements.pcmStatus, error);
+          this.setStatus(error);
+          return;
+        }
+      }
+      this.defaultPcmFormat = format;
+      this.vscode.postMessage({ type: "updatePreferences", preferences: this.collectPreferences() });
+      this.setPcmStatus(this.elements.pcmStatus, `${this.messages.savedDefaultPcmFormat}: ${formatPcmFormat(format)}`);
+    }
+    setPcmStatus(element, message) {
+      if (element === this.elements.pcmStatus) {
+        this.elements.pcmStatusText.textContent = message;
+        this.positionPcmStatusTooltip();
+      } else {
+        element.textContent = message;
+      }
+      element.dataset.tooltip = message;
+    }
+    positionPcmStatusTooltip() {
+      const rect = this.elements.pcmStatus.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        return;
+      }
+      const margin = 12;
+      const tooltipWidth = Math.min(520, window.innerWidth - margin * 2);
+      const left = clamp2(rect.left, margin, Math.max(margin, window.innerWidth - tooltipWidth - margin));
+      this.elements.pcmStatus.style.setProperty("--pcm-status-tooltip-left", `${left}px`);
+      this.elements.pcmStatus.style.setProperty("--pcm-status-tooltip-top", `${rect.bottom + 8}px`);
+    }
+    readPcmControls() {
+      return {
+        sampleRate: Math.max(1, Math.floor(Number(this.elements.pcmSampleRate.value) || 16e3)),
+        channels: Math.max(1, Math.floor(Number(this.elements.pcmChannels.value) || 1)),
+        bitDepth: Number(this.elements.pcmBitDepth.value),
+        sampleFormat: this.elements.pcmSampleFormat.value,
+        endianness: this.elements.pcmEndianness.value,
+        startOffsetBytes: Math.max(0, Math.floor(Number(this.elements.pcmStartOffset.value) || 0))
+      };
+    }
+    writePcmControls(format) {
+      this.elements.pcmSampleRate.value = String(format.sampleRate);
+      this.elements.pcmChannels.value = String(format.channels);
+      this.elements.pcmStartOffset.value = String(format.startOffsetBytes ?? 0);
+      this.elements.pcmBitDepth.value = String(format.bitDepth);
+      this.elements.pcmSampleFormat.value = format.sampleFormat;
+      this.elements.pcmEndianness.value = format.endianness;
+    }
+    readWavPcmControls() {
+      return {
+        sampleRate: Math.max(1, Math.floor(Number(this.elements.wavPcmSampleRate.value) || 16e3)),
+        channels: Math.max(1, Math.floor(Number(this.elements.wavPcmChannels.value) || 1)),
+        bitDepth: Number(this.elements.wavPcmBitDepth.value),
+        sampleFormat: this.elements.wavPcmSampleFormat.value,
+        endianness: this.elements.wavPcmEndianness.value,
+        startOffsetBytes: Math.max(0, Math.floor(Number(this.elements.wavPcmStartOffset.value) || 0))
+      };
+    }
+    writeWavPcmControls(format) {
+      this.elements.wavPcmSampleRate.value = String(format.sampleRate);
+      this.elements.wavPcmChannels.value = String(format.channels);
+      this.elements.wavPcmStartOffset.value = String(format.startOffsetBytes ?? 0);
+      this.elements.wavPcmBitDepth.value = String(format.bitDepth);
+      this.elements.wavPcmSampleFormat.value = format.sampleFormat;
+      this.elements.wavPcmEndianness.value = format.endianness;
     }
     populateChannels() {
       if (!this.audioBuffer) {
@@ -2599,68 +3486,309 @@
       this.settings.channel = Math.min(this.settings.channel, this.audioBuffer.numberOfChannels - 1);
       this.elements.channel.value = String(this.settings.channel);
     }
-    redrawVisuals() {
-      this.updateResetViewButtonState();
-      this.drawWaveform();
-      if (this.lastSpectrogram) {
-        this.drawSpectrogramCanvas(this.lastSpectrogram);
-      } else {
-        this.drawEmptySpectrogram();
+    renderTrackList() {
+      this.elements.trackList.replaceChildren();
+      this.trackViews = [];
+      if (!this.audioBuffer) {
+        this.elements.trackList.hidden = true;
+        return;
+      }
+      this.elements.trackList.hidden = false;
+      for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
+        this.addTrackRow(channel);
+      }
+      this.renderTrackSelection();
+    }
+    addTrackRow(channel) {
+      const row = document.createElement("div");
+      row.className = "trackRow";
+      row.dataset.channel = String(channel);
+      const sidebar = document.createElement("div");
+      sidebar.className = "trackSidebar";
+      const title = document.createElement("div");
+      title.className = "trackTitle";
+      title.textContent = `CH ${channel + 1}`;
+      const mute = document.createElement("button");
+      mute.type = "button";
+      mute.className = "trackToggle trackMute";
+      mute.textContent = this.messages.mute;
+      const solo = document.createElement("button");
+      solo.type = "button";
+      solo.className = "trackToggle trackSolo";
+      solo.textContent = this.messages.solo;
+      const mode = document.createElement("select");
+      mode.className = "trackMode";
+      this.populateTrackModeOptions(mode);
+      mode.value = this.settings.defaultTrackMode;
+      sidebar.append(title, mute, solo, mode);
+      const body = document.createElement("div");
+      body.className = "trackBody";
+      const waveformWrap = document.createElement("div");
+      waveformWrap.className = "trackCanvasWrap trackWaveformWrap";
+      const waveform = document.createElement("canvas");
+      waveform.className = "trackWaveform";
+      waveform.dataset.channel = String(channel);
+      waveformWrap.append(waveform);
+      const spectrogramWrap = document.createElement("div");
+      spectrogramWrap.className = "trackCanvasWrap trackSpectrogramWrap";
+      const spectrogram = document.createElement("canvas");
+      spectrogram.className = "trackSpectrogram";
+      spectrogram.dataset.channel = String(channel);
+      spectrogramWrap.append(spectrogram);
+      body.append(waveformWrap, spectrogramWrap);
+      row.append(sidebar, body);
+      const view = {
+        channel,
+        row,
+        waveform,
+        spectrogram,
+        mode: this.settings.defaultTrackMode,
+        muted: false,
+        solo: false
+      };
+      const select = () => this.selectChannel(channel);
+      waveform.addEventListener("click", select);
+      spectrogram.addEventListener("click", select);
+      mute.addEventListener("click", () => {
+        this.toggleMute(view);
+      });
+      solo.addEventListener("click", () => {
+        this.toggleSolo(view);
+      });
+      mode.addEventListener("change", () => {
+        view.mode = mode.value;
+        this.applyTrackMode(view);
+        this.redrawVisuals();
+        this.analyze();
+      });
+      this.bindFigureInteraction(waveform);
+      this.bindFigureInteraction(spectrogram);
+      this.elements.trackList.append(row);
+      this.trackViews.push(view);
+      this.applyTrackMode(view);
+    }
+    toggleSolo(target) {
+      const enabled = !target.solo;
+      for (const view of this.trackViews) {
+        view.solo = enabled && view === target;
+      }
+      this.syncAllTrackToggleButtons();
+      this.updatePlaybackChannelGains();
+    }
+    toggleMute(target) {
+      target.muted = !target.muted;
+      for (const view of this.trackViews) {
+        view.solo = false;
+      }
+      this.syncAllTrackToggleButtons();
+      this.updatePlaybackChannelGains();
+    }
+    syncAllTrackToggleButtons() {
+      for (const view of this.trackViews) {
+        this.syncTrackToggleButtons(view);
       }
     }
-    drawWaveform() {
+    updateTrackLabels() {
+      for (const view of this.trackViews) {
+        view.row.querySelector(".trackMute")?.replaceChildren(document.createTextNode(this.messages.mute));
+        view.row.querySelector(".trackSolo")?.replaceChildren(document.createTextNode(this.messages.solo));
+        const modeSelect = view.row.querySelector(".trackMode");
+        if (modeSelect) {
+          const value = modeSelect.value;
+          this.populateTrackModeOptions(modeSelect);
+          modeSelect.value = value;
+        }
+      }
+    }
+    populateTrackModeOptions(select) {
+      const options = [
+        ["both", this.messages.viewBoth],
+        ["waveform", this.messages.waveform],
+        ["spectrogram", this.messages.spectrogram]
+      ];
+      select.replaceChildren();
+      for (const [value, label] of options) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.appendChild(option);
+      }
+    }
+    syncTrackToggleButtons(view) {
+      const hasSolo = this.trackViews.some((item) => item.solo);
+      const effectiveMuted = hasSolo ? !view.solo : view.muted;
+      view.row.querySelector(".trackSolo")?.classList.toggle("isActive", view.solo);
+      view.row.querySelector(".trackMute")?.classList.toggle("isActive", effectiveMuted);
+    }
+    selectChannel(channel) {
+      this.settings.channel = clamp2(channel, 0, Math.max(0, (this.audioBuffer?.numberOfChannels ?? 1) - 1));
+      this.elements.channel.value = String(this.settings.channel);
+      this.renderTrackSelection();
+      this.updateSelectionAnalysis();
+      this.redrawVisuals();
+      this.analyze();
+    }
+    renderTrackSelection() {
+      this.trackViews.forEach((view) => {
+        view.row.classList.toggle("isSelected", view.channel === this.settings.channel);
+      });
+    }
+    applyTrackMode(view) {
+      view.row.dataset.mode = view.mode;
+    }
+    applyDefaultTrackModeToCurrentTracks() {
+      for (const view of this.trackViews) {
+        view.mode = this.settings.defaultTrackMode;
+        const modeSelect = view.row.querySelector(".trackMode");
+        if (modeSelect) {
+          modeSelect.value = view.mode;
+        }
+        this.applyTrackMode(view);
+      }
+      this.redrawVisuals();
+      this.analyze();
+    }
+    samplesForActiveTrack() {
+      return this.samplesForChannel(this.settings.channel);
+    }
+    samplesForChannel(channel) {
+      if (!this.audioBuffer) {
+        return void 0;
+      }
+      return this.audioBuffer.getChannelData(clamp2(channel, 0, this.audioBuffer.numberOfChannels - 1));
+    }
+    redrawVisuals() {
+      this.updateResetViewButtonState();
+      const range = this.visibleRange();
+      this.elements.viewRange.textContent = this.messages.timeLabel;
+      this.elements.viewRange.title = `${range.startTime.toFixed(3)}s - ${range.endTime.toFixed(3)}s`;
+      this.drawTimeline();
+      this.drawTrackVisuals();
+    }
+    drawTimeline() {
+      const canvas = this.elements.timeline;
+      const context = resizeCanvas(canvas);
+      const range = this.visibleRange();
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = canvasBackgroundColor();
+      context.fillRect(0, 0, canvas.width, canvas.height);
       if (!this.audioBuffer) {
         return;
       }
-      const canvas = this.elements.waveform;
+      const ratio = window.devicePixelRatio || 1;
+      const left = TRACK_AXIS_WIDTH * ratio;
+      const right = Math.max(left + 1, canvas.width - 10 * ratio);
+      const rect = { left, top: 0, right, bottom: canvas.height, width: right - left, height: canvas.height };
+      context.save();
+      context.fillStyle = axisTextColor();
+      context.font = axisFont();
+      context.textBaseline = "middle";
+      const baseline = canvas.height - 7 * ratio;
+      const textY = Math.max(9 * ratio, baseline - 18 * ratio);
+      const visibleDuration = Math.max(1e-3, range.endTime - range.startTime);
+      const majorStep = chooseTimelineStep(visibleDuration, rect.width / ratio, 92);
+      const minorStep = chooseTimelineMinorStep(majorStep);
+      context.strokeStyle = timelineMajorColor();
+      context.lineWidth = deviceLineWidth();
+      context.beginPath();
+      context.moveTo(rect.left, baseline);
+      context.lineTo(rect.right, baseline);
+      context.stroke();
+      const minorStart = Math.ceil(range.startTime / minorStep) * minorStep;
+      for (let time = minorStart; time <= range.endTime + minorStep * 0.5; time += minorStep) {
+        const x = this.timeToX(time, rect, range);
+        const isMajor = isTimelineMajorTick(time, majorStep);
+        context.strokeStyle = isMajor ? timelineMajorColor() : timelineMinorColor();
+        context.lineWidth = isMajor ? deviceLineWidth() : Math.max(1, deviceLineWidth() * 0.75);
+        context.beginPath();
+        context.moveTo(x, baseline - (isMajor ? 9 : 4) * ratio);
+        context.lineTo(x, baseline);
+        context.stroke();
+        if (!isMajor) {
+          continue;
+        }
+        context.fillStyle = axisTextColor();
+        context.textAlign = rect.right - x < 40 * ratio ? "right" : "center";
+        context.fillText(formatTimelineTick(time, majorStep), x, textY);
+      }
+      this.drawTimelinePlayhead(context, rect, range);
+      context.restore();
+    }
+    drawTimelinePlayhead(context, rect, range) {
+      if (this.playheadTime === void 0 || this.playheadTime < range.startTime || this.playheadTime > range.endTime) {
+        return;
+      }
+      const x = this.timeToX(this.playheadTime, rect, range);
+      context.strokeStyle = "#ffcc66";
+      context.fillStyle = "#ffcc66";
+      context.lineWidth = 2 * deviceLineWidth();
+      context.beginPath();
+      context.moveTo(x, rect.top);
+      context.lineTo(x, rect.bottom);
+      context.stroke();
+    }
+    drawTrackVisuals() {
+      if (!this.audioBuffer) {
+        return;
+      }
+      for (const view of this.trackViews) {
+        if (view.mode !== "spectrogram") {
+          this.drawChannelWaveform(view.waveform, view.channel);
+        }
+        if (view.mode !== "waveform") {
+          const cached = this.spectrogramCache.get(this.createSpectrogramCacheKey(view.channel, view.spectrogram));
+          if (cached) {
+            this.drawSpectrogramCanvas(view.spectrogram, cached);
+          } else {
+            const last = this.lastSpectrogramByChannel.get(view.channel);
+            if (last) {
+              this.drawSpectrogramCanvas(view.spectrogram, last);
+            } else {
+              this.drawEmptySpectrogram(view.spectrogram);
+            }
+          }
+        }
+      }
+    }
+    drawChannelWaveform(canvas, channel) {
+      if (!this.audioBuffer) {
+        return;
+      }
+      const samples = this.samplesForChannel(channel);
+      if (!samples) {
+        return;
+      }
       const context = resizeCanvas(canvas);
       const range = this.visibleRange();
       const rect = this.getPlotRect(canvas);
-      const width = canvas.width;
-      const height = canvas.height;
-      context.clearRect(0, 0, width, height);
-      context.fillStyle = "#101318";
-      context.fillRect(0, 0, width, height);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = canvasBackgroundColor();
+      context.fillRect(0, 0, canvas.width, canvas.height);
       this.drawPlotFrame(context, rect);
-      this.drawTimeAxis(context, rect, range);
       this.drawWaveformAxis(context, rect);
-      const peaks = this.getWaveformPeaks(range.startSample, range.endSample, Math.max(1, Math.floor(rect.width)));
+      const peaks = this.getWaveformPeaks(channel, range.startSample, range.endSample, Math.max(1, Math.floor(rect.width)));
       const mid = rect.top + rect.height / 2;
-      context.save();
-      context.beginPath();
-      context.rect(rect.left, rect.top, rect.width, rect.height);
-      context.clip();
-      context.strokeStyle = "#62d6a4";
+      context.strokeStyle = "#8cc8ff";
       context.lineWidth = deviceLineWidth();
       context.beginPath();
       for (let i = 0; i < peaks.min.length; i += 1) {
-        const x = rect.left + i;
         const min = peaks.min[i] ?? 0;
         const max = peaks.max[i] ?? 0;
-        const minY = clamp2(mid - min * this.settings.amplitudeZoom * rect.height * 0.5, rect.top, rect.bottom);
-        const maxY = clamp2(mid - max * this.settings.amplitudeZoom * rect.height * 0.5, rect.top, rect.bottom);
-        const visibleTop = Math.min(minY, maxY);
-        const visibleBottom = Math.max(minY, maxY);
-        const halfPixel = deviceLineWidth() / 2;
-        context.moveTo(x, visibleTop - halfPixel);
-        context.lineTo(x, visibleBottom + halfPixel);
+        const x = rect.left + i;
+        context.moveTo(x, clamp2(mid - min * this.settings.amplitudeZoom * rect.height * WAVEFORM_AMPLITUDE_SCALE, rect.top, rect.bottom));
+        context.lineTo(x, clamp2(mid - max * this.settings.amplitudeZoom * rect.height * WAVEFORM_AMPLITUDE_SCALE, rect.top, rect.bottom));
       }
       context.stroke();
-      context.restore();
       this.drawSelectionOverlay(context, rect, range);
       this.drawPlayheadOverlay(context, rect, range);
-      this.elements.viewRange.textContent = `${range.startTime.toFixed(3)}s - ${range.endTime.toFixed(3)}s`;
     }
-    drawEmptySpectrogram() {
-      const canvas = this.elements.spectrogram;
+    drawEmptySpectrogram(canvas) {
       const context = resizeCanvas(canvas);
       const rect = this.getPlotRect(canvas);
-      const range = this.visibleRange();
       context.clearRect(0, 0, canvas.width, canvas.height);
-      context.fillStyle = "#101318";
+      context.fillStyle = canvasBackgroundColor();
       context.fillRect(0, 0, canvas.width, canvas.height);
       this.drawPlotFrame(context, rect);
-      this.drawTimeAxis(context, rect, range);
       this.drawFrequencyAxis(context, rect);
     }
     scheduleAnalyze(delay = 80) {
@@ -2676,41 +3804,42 @@
       if (!this.audioBuffer) {
         return;
       }
-      const { startSample, endSample } = this.visibleRange();
-      const spectrogramRect = this.getPlotRect(this.elements.spectrogram);
-      const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
-      const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
-      const cacheKey = createAnalysisCacheKey({
-        channel: this.settings.channel,
-        startSample,
-        endSample,
-        fftSize: this.settings.fftSize,
-        windowFunction: this.settings.windowFunction,
-        algorithm: this.settings.algorithm,
-        zeroPaddingFactor: this.settings.zeroPaddingFactor,
-        outputBins,
-        targetFrames,
-        minDb: this.settings.minDb,
-        maxDb: this.settings.maxDb,
-        frequencyScale: this.settings.frequencyScale,
-        palette: this.settings.palette
-      });
-      const cached = this.spectrogramCache.get(cacheKey);
-      if (cached) {
-        this.drawSpectrogramResult(cached);
-        return;
-      }
       if (this.analysisTimer !== void 0) {
         window.clearTimeout(this.analysisTimer);
         this.analysisTimer = void 0;
       }
-      if (this.pendingAnalysisKey) {
+      if (this.pendingAnalysisKeys.size > 0) {
         this.resetAnalysisWorker();
+        this.pendingAnalysisKeys.clear();
       }
-      const source = this.audioBuffer.getChannelData(this.settings.channel).slice(startSample, endSample);
+      const visibleTracks = this.trackViews.filter((view) => view.mode !== "waveform");
+      if (visibleTracks.length === 0) {
+        return;
+      }
+      for (const view of visibleTracks) {
+        this.analyzeChannel(view);
+      }
+    }
+    analyzeChannel(view) {
+      const { startSample, endSample } = this.visibleRange();
+      const spectrogramRect = this.getPlotRect(view.spectrogram);
+      const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
+      const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
+      const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, outputBins, targetFrames);
+      const cached = this.spectrogramCache.get(cacheKey);
+      if (cached) {
+        this.drawSpectrogramCanvas(view.spectrogram, cached);
+        return;
+      }
+      const samples = this.samplesForChannel(view.channel);
+      if (!samples) {
+        return;
+      }
+      const source = samples.slice(startSample, endSample);
       const windowSize = Math.min(this.settings.fftSize, Math.max(1, source.length));
       const hopSize = Math.max(1, Math.floor(Math.max(1, source.length - windowSize) / targetFrames));
-      this.pendingAnalysisKey = cacheKey;
+      this.pendingAnalysisKeys.add(cacheKey);
+      this.spectrogramRangeCache.set(cacheKey, { startSample, endSample });
       this.setStatus(this.messages.analyzingSpectrogram);
       this.worker.postMessage(
         {
@@ -2735,42 +3864,99 @@
       );
       this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} \xB7 ${formatWindowFunction(this.settings.windowFunction, this.messages)} \xB7 ${this.settings.fftSize} \xB7 ${this.messages.pad} ${this.settings.zeroPaddingFactor} \xB7 ${this.settings.frequencyScale} \xB7 ${this.messages.hop} ${hopSize}`;
     }
+    createSpectrogramCacheKey(channel, canvas, outputBins, targetFrames) {
+      const rect = this.getPlotRect(canvas);
+      const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
+      const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));
+      const { startSample, endSample } = this.visibleRange();
+      return createAnalysisCacheKey({
+        channel,
+        startSample,
+        endSample,
+        fftSize: this.settings.fftSize,
+        windowFunction: this.settings.windowFunction,
+        algorithm: this.settings.algorithm,
+        zeroPaddingFactor: this.settings.zeroPaddingFactor,
+        outputBins: bins,
+        targetFrames: frames,
+        minDb: this.settings.minDb,
+        maxDb: this.settings.maxDb,
+        frequencyScale: this.settings.frequencyScale,
+        palette: this.settings.palette
+      });
+    }
     drawSpectrogramResult(result) {
-      if (this.pendingAnalysisKey && result.requestId !== this.pendingAnalysisKey && !this.spectrogramCache.has(result.requestId)) {
+      if (!this.pendingAnalysisKeys.has(result.requestId) && !this.spectrogramCache.has(result.requestId)) {
         return;
       }
-      if (result.requestId === this.pendingAnalysisKey) {
-        this.spectrogramCache.set(result.requestId, result);
-        this.pendingAnalysisKey = void 0;
+      this.spectrogramCache.set(result.requestId, result);
+      this.pendingAnalysisKeys.delete(result.requestId);
+      for (const view of this.trackViews) {
+        const key = this.createSpectrogramCacheKey(view.channel, view.spectrogram);
+        if (key === result.requestId) {
+          this.lastSpectrogramByChannel.set(view.channel, result);
+          this.drawSpectrogramCanvas(view.spectrogram, result);
+        }
       }
-      this.lastSpectrogram = result;
-      this.drawSpectrogramCanvas(result);
-      this.setStatus(this.messages.ready);
+      if (this.pendingAnalysisKeys.size === 0) {
+        this.setStatus(this.messages.ready);
+      }
     }
-    drawSpectrogramCanvas(result) {
-      const canvas = this.elements.spectrogram;
+    drawSpectrogramCanvas(canvas, result) {
       const context = resizeCanvas(canvas);
       const rect = this.getPlotRect(canvas);
-      const range = this.visibleRange();
-      const image = new ImageData(new Uint8ClampedArray(result.pixels), result.width, result.height);
-      const bufferCanvas = document.createElement("canvas");
-      bufferCanvas.width = result.width;
-      bufferCanvas.height = result.height;
-      const bufferContext = bufferCanvas.getContext("2d", { alpha: false });
-      if (!bufferContext) {
+      const bitmap = this.spectrogramBitmapForResult(result);
+      if (!bitmap) {
         return;
       }
-      bufferContext.putImageData(image, 0, 0);
       context.imageSmoothingEnabled = false;
       context.clearRect(0, 0, canvas.width, canvas.height);
-      context.fillStyle = "#101318";
+      context.fillStyle = canvasBackgroundColor();
       context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(bufferCanvas, rect.left, rect.top, rect.width, rect.height);
+      this.drawSpectrogramBitmap(context, bitmap, rect, result);
       this.drawPlotFrame(context, rect);
-      this.drawTimeAxis(context, rect, range);
       this.drawFrequencyAxis(context, rect);
+      const range = this.visibleRange();
       this.drawSelectionOverlay(context, rect, range);
       this.drawPlayheadOverlay(context, rect, range);
+    }
+    drawSpectrogramBitmap(context, bitmap, rect, result) {
+      const sourceRange = this.spectrogramRangeCache.get(result.requestId);
+      const currentRange = this.visibleRange();
+      if (!sourceRange) {
+        context.drawImage(bitmap, rect.left, rect.top, rect.width, rect.height);
+        return;
+      }
+      const sourceDuration = Math.max(1, sourceRange.endSample - sourceRange.startSample);
+      const currentDuration = Math.max(1, currentRange.endSample - currentRange.startSample);
+      const overlapStart = Math.max(sourceRange.startSample, currentRange.startSample);
+      const overlapEnd = Math.min(sourceRange.endSample, currentRange.endSample);
+      if (overlapEnd <= overlapStart) {
+        context.drawImage(bitmap, rect.left, rect.top, rect.width, rect.height);
+        return;
+      }
+      const sourceX = (overlapStart - sourceRange.startSample) / sourceDuration * bitmap.width;
+      const sourceWidth = Math.max(1, (overlapEnd - overlapStart) / sourceDuration * bitmap.width);
+      const targetX = rect.left + (overlapStart - currentRange.startSample) / currentDuration * rect.width;
+      const targetWidth = Math.max(1, (overlapEnd - overlapStart) / currentDuration * rect.width);
+      context.drawImage(bitmap, sourceX, 0, sourceWidth, bitmap.height, targetX, rect.top, targetWidth, rect.height);
+    }
+    spectrogramBitmapForResult(result) {
+      const cached = this.spectrogramBitmapCache.get(result.requestId);
+      if (cached) {
+        return cached;
+      }
+      const bitmap = document.createElement("canvas");
+      bitmap.width = result.width;
+      bitmap.height = result.height;
+      const bitmapContext = bitmap.getContext("2d", { alpha: false });
+      if (!bitmapContext) {
+        return void 0;
+      }
+      const image = new ImageData(new Uint8ClampedArray(result.pixels), result.width, result.height);
+      bitmapContext.putImageData(image, 0, 0);
+      this.spectrogramBitmapCache.set(result.requestId, bitmap);
+      return bitmap;
     }
     visibleRange() {
       if (!this.audioBuffer) {
@@ -2804,21 +3990,52 @@
         this.playbackAudioContext = new AudioContext();
         this.playbackSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
         this.playbackGainNode = this.playbackAudioContext.createGain();
-        this.playbackSourceNode.connect(this.playbackGainNode);
-        this.playbackGainNode.connect(this.playbackAudioContext.destination);
       }
+      this.rebuildPlaybackChannelGraph();
       if (this.playbackGainNode) {
         const multiplier = Math.pow(10, this.settings.playbackGain / 20);
         this.playbackGainNode.gain.value = multiplier;
       }
+      this.updatePlaybackChannelGains();
     }
-    getWaveformPeaks(startSample, endSample, width) {
-      const cacheKey = `${this.settings.channel}:${startSample}:${endSample}:${width}`;
+    rebuildPlaybackChannelGraph() {
+      if (!this.playbackAudioContext || !this.playbackSourceNode || !this.playbackGainNode || !this.audioBuffer) {
+        return;
+      }
+      this.playbackSourceNode.disconnect();
+      this.playbackSplitterNode?.disconnect();
+      this.playbackMergerNode?.disconnect();
+      this.playbackGainNode.disconnect();
+      for (const gain of this.playbackChannelGains) {
+        gain.disconnect();
+      }
+      const channels = this.audioBuffer.numberOfChannels;
+      this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
+      this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(channels);
+      this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext.createGain());
+      this.playbackSourceNode.connect(this.playbackSplitterNode);
+      this.playbackChannelGains.forEach((gain, channel) => {
+        this.playbackSplitterNode?.connect(gain, channel);
+        gain.connect(this.playbackMergerNode, 0, channel);
+      });
+      this.playbackMergerNode.connect(this.playbackGainNode);
+      this.playbackGainNode.connect(this.playbackAudioContext.destination);
+    }
+    updatePlaybackChannelGains() {
+      const hasSolo = this.trackViews.some((view) => view.solo);
+      this.playbackChannelGains.forEach((gain, channel) => {
+        const view = this.trackViews.find((item) => item.channel === channel);
+        const enabled = view ? hasSolo ? view.solo : !view.muted : true;
+        gain.gain.value = enabled ? 1 : 0;
+      });
+    }
+    getWaveformPeaks(channel, startSample, endSample, width) {
+      const cacheKey = `ch-${channel}:${startSample}:${endSample}:${width}`;
       const cached = this.waveformCache.get(cacheKey);
       if (cached) {
         return cached;
       }
-      const samples = this.audioBuffer?.getChannelData(this.settings.channel);
+      const samples = this.samplesForChannel(channel);
       if (!samples || width <= 0) {
         return { min: new Float32Array(width), max: new Float32Array(width) };
       }
@@ -2948,18 +4165,38 @@
     }
     updateSelectionBox(canvas, fromX, toX) {
       const canvasRect = canvas.getBoundingClientRect();
-      const shellRect = this.elements.selectionBox.parentElement?.getBoundingClientRect();
-      if (!shellRect) {
-        return;
-      }
       const plot = this.getCssPlotRect(canvas);
+      const visiblePlots = this.visibleSelectionPlotRects();
       const from = clamp2(fromX - canvasRect.left, plot.left, plot.right);
       const to = clamp2(toX - canvasRect.left, plot.left, plot.right);
+      const top = visiblePlots.length > 0 ? Math.min(...visiblePlots.map((rect) => rect.top)) : canvasRect.top + plot.top;
+      const bottom = visiblePlots.length > 0 ? Math.max(...visiblePlots.map((rect) => rect.bottom)) : canvasRect.top + plot.bottom;
       this.elements.selectionBox.hidden = false;
-      this.elements.selectionBox.style.left = `${canvasRect.left - shellRect.left + Math.min(from, to)}px`;
-      this.elements.selectionBox.style.top = `${canvasRect.top - shellRect.top + plot.top}px`;
+      this.elements.selectionBox.style.left = `${canvasRect.left + Math.min(from, to)}px`;
+      this.elements.selectionBox.style.top = `${top}px`;
       this.elements.selectionBox.style.width = `${Math.abs(from - to)}px`;
-      this.elements.selectionBox.style.height = `${plot.height}px`;
+      this.elements.selectionBox.style.height = `${Math.max(1, bottom - top)}px`;
+    }
+    visibleSelectionPlotRects() {
+      const rects = [];
+      for (const view of this.trackViews) {
+        const canvases = [view.waveform, view.spectrogram];
+        for (const canvas of canvases) {
+          if (canvas.offsetParent === null) {
+            continue;
+          }
+          const canvasRect = canvas.getBoundingClientRect();
+          if (canvasRect.width <= 0 || canvasRect.height <= 0) {
+            continue;
+          }
+          const plot = this.getCssPlotRect(canvas);
+          rects.push({
+            top: canvasRect.top + plot.top,
+            bottom: canvasRect.top + plot.bottom
+          });
+        }
+      }
+      return rects;
     }
     hideSelectionBox() {
       this.elements.selectionBox.hidden = true;
@@ -3014,36 +4251,41 @@
     }
     updateSelectionAnalysis() {
       if (!this.audioBuffer || !this.selection) {
+        this.elements.analysisStart.closest(".selectionAnalysisPane")?.setAttribute("hidden", "");
         this.elements.analysisStart.textContent = "--";
         this.elements.analysisEnd.textContent = "--";
         this.elements.analysisDuration.textContent = "--";
         this.elements.analysisRms.textContent = "--";
         this.elements.analysisPeak.textContent = "--";
         this.elements.analysisDominant.textContent = "--";
+        this.elements.analysisCrest.textContent = "--";
+        this.elements.analysisClipping.textContent = "--";
+        this.elements.analysisNoiseFloor.textContent = "--";
+        this.elements.analysisCentroid.textContent = "--";
+        this.elements.analysisZcr.textContent = "--";
         this.renderFrequencyRows([]);
         return;
       }
-      const samples = this.audioBuffer.getChannelData(this.settings.channel);
+      this.elements.analysisStart.closest(".selectionAnalysisPane")?.removeAttribute("hidden");
+      const samples = this.samplesForActiveTrack();
+      if (!samples) {
+        return;
+      }
       const startSample = Math.floor(this.selection.start * this.audioBuffer.sampleRate);
       const endSample = Math.min(samples.length, Math.ceil(this.selection.end * this.audioBuffer.sampleRate));
-      const count = Math.max(1, endSample - startSample);
-      const stride = Math.max(1, Math.ceil(count / 2e6));
-      let sumSquares = 0;
-      let peak = 0;
-      let measured = 0;
-      for (let index = startSample; index < endSample; index += stride) {
-        const value = samples[index] ?? 0;
-        sumSquares += value * value;
-        peak = Math.max(peak, Math.abs(value));
-        measured += 1;
-      }
+      const timeMetrics = computeTimeSelectionMetrics(samples, startSample, endSample, this.audioBuffer.sampleRate);
       const spectrum = computeSpectrum(samples, startSample, endSample, this.analysisSampleRate(), this.settings.fftSize, this.settings.windowFunction, this.messages);
       this.elements.analysisStart.textContent = `${this.selection.start.toFixed(3)}s`;
       this.elements.analysisEnd.textContent = `${this.selection.end.toFixed(3)}s`;
       this.elements.analysisDuration.textContent = `${(this.selection.end - this.selection.start).toFixed(3)}s`;
-      this.elements.analysisRms.textContent = formatDb(amplitudeToDb(Math.sqrt(sumSquares / Math.max(1, measured))));
-      this.elements.analysisPeak.textContent = formatDb(amplitudeToDb(peak));
+      this.elements.analysisRms.textContent = formatDb(amplitudeToDb(timeMetrics.rms));
+      this.elements.analysisPeak.textContent = formatDb(amplitudeToDb(timeMetrics.peak));
       this.elements.analysisDominant.textContent = formatHz(spectrum.dominantHz);
+      this.elements.analysisCrest.textContent = Number.isFinite(timeMetrics.crestDb) ? `${timeMetrics.crestDb.toFixed(1)} dB` : "--";
+      this.elements.analysisClipping.textContent = `${timeMetrics.clippingPercent.toFixed(3)}%`;
+      this.elements.analysisNoiseFloor.textContent = formatDb(timeMetrics.noiseFloorDb);
+      this.elements.analysisCentroid.textContent = formatHz(spectrum.centroidHz);
+      this.elements.analysisZcr.textContent = `${timeMetrics.zeroCrossingRate.toFixed(1)}/s`;
       this.renderFrequencyRows(spectrum.bands);
     }
     renderFrequencyRows(bands) {
@@ -3063,6 +4305,14 @@
       return this.sourceSampleRate ?? this.audioBuffer?.sampleRate ?? 1;
     }
     getPlotRect(canvas) {
+      if (canvas.classList.contains("trackWaveform") || canvas.classList.contains("trackSpectrogram")) {
+        const ratio2 = window.devicePixelRatio || 1;
+        const left2 = TRACK_AXIS_WIDTH * ratio2;
+        const top2 = 0;
+        const right2 = Math.max(left2 + 1, canvas.width - 10 * ratio2);
+        const bottom2 = Math.max(top2 + 1, canvas.height);
+        return { left: left2, top: top2, right: right2, bottom: bottom2, width: right2 - left2, height: bottom2 - top2 };
+      }
       const ratio = window.devicePixelRatio || 1;
       const left = PLOT_MARGIN.left * ratio;
       const top = PLOT_MARGIN.top * ratio;
@@ -3080,45 +4330,37 @@
       return { left, top, right, bottom, width: right - left, height: bottom - top };
     }
     drawPlotFrame(context, rect) {
-      context.strokeStyle = "#2d3540";
+      context.strokeStyle = axisFrameColor();
       context.lineWidth = deviceLineWidth();
       context.strokeRect(rect.left, rect.top, rect.width, rect.height);
     }
-    drawTimeAxis(context, rect, range) {
-      context.save();
-      context.fillStyle = "#9aa7b4";
-      context.strokeStyle = "#25303a";
-      context.font = axisFont();
-      context.textAlign = "center";
-      context.textBaseline = "top";
-      const ticks = 5;
-      for (let index = 0; index <= ticks; index += 1) {
-        const ratio = index / ticks;
-        const x = rect.left + ratio * rect.width;
-        const time = range.startTime + ratio * (range.endTime - range.startTime);
-        context.beginPath();
-        context.moveTo(x, rect.top);
-        context.lineTo(x, rect.bottom);
-        context.stroke();
-        context.fillText(`${time.toFixed(2)}s`, x, rect.bottom + devicePx(10));
-      }
-      context.restore();
-    }
     drawWaveformAxis(context, rect) {
       context.save();
-      context.fillStyle = "#9aa7b4";
-      context.strokeStyle = "#35414d";
+      context.fillStyle = axisTextColor();
+      context.strokeStyle = axisGridColor();
       context.font = axisFont();
       context.textAlign = "right";
-      context.textBaseline = "middle";
-      const values = [1 / this.settings.amplitudeZoom, 0, -1 / this.settings.amplitudeZoom];
-      for (const value of values) {
-        const y = rect.top + (0.5 - value * this.settings.amplitudeZoom * 0.5) * rect.height;
+      const visibleAmplitude = 0.5 / Math.max(1e-6, this.settings.amplitudeZoom * WAVEFORM_AMPLITUDE_SCALE);
+      const mid = rect.top + rect.height / 2;
+      for (const { value, y } of [
+        { value: visibleAmplitude, y: rect.top },
+        { value: 0, y: mid },
+        { value: -visibleAmplitude, y: rect.bottom }
+      ]) {
         context.beginPath();
         context.moveTo(rect.left, y);
         context.lineTo(rect.right, y);
         context.stroke();
-        context.fillText(value.toFixed(2), rect.left - devicePx(10), y);
+        if (value > 0) {
+          context.textBaseline = "top";
+          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), rect.top + devicePx(2));
+        } else if (value < 0) {
+          context.textBaseline = "bottom";
+          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), rect.bottom - devicePx(2));
+        } else {
+          context.textBaseline = "middle";
+          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), y);
+        }
       }
       context.restore();
     }
@@ -3127,22 +4369,30 @@
         return;
       }
       context.save();
-      context.fillStyle = "#9aa7b4";
-      context.strokeStyle = "#25303a";
+      context.fillStyle = axisTextColor();
+      context.strokeStyle = axisGridColor();
       context.font = axisFont();
       context.textAlign = "right";
-      context.textBaseline = "middle";
       const nyquist = this.analysisSampleRate() / 2;
       const ticks = 5;
       for (let index = 0; index <= ticks; index += 1) {
         const ratio = index / ticks;
-        const y = rect.bottom - ratio * rect.height;
         const frequency = frequencyFromRatio(ratio, this.settings.frequencyScale, nyquist);
+        const y = rect.bottom - ratio * rect.height;
         context.beginPath();
         context.moveTo(rect.left, y);
         context.lineTo(rect.right, y);
         context.stroke();
-        context.fillText(formatHz(frequency), rect.left - devicePx(10), y);
+        if (index === ticks) {
+          context.textBaseline = "top";
+          context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), rect.top + devicePx(2));
+        } else if (index === 0) {
+          context.textBaseline = "bottom";
+          context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), rect.bottom - devicePx(2));
+        } else {
+          context.textBaseline = "middle";
+          context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), y);
+        }
       }
       context.restore();
     }
@@ -3217,14 +4467,132 @@
     new Uint8Array(buffer).set(bytes);
     return buffer;
   }
+  function encodeWav(audioBuffer) {
+    const channels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const frames = audioBuffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = channels * bytesPerSample;
+    const dataSize = frames * blockAlign;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+    writeAscii(view, 0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeAscii(view, 8, "WAVE");
+    writeAscii(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeAscii(view, 36, "data");
+    view.setUint32(40, dataSize, true);
+    const channelData = Array.from({ length: channels }, (_, channel) => audioBuffer.getChannelData(channel));
+    let offset = 44;
+    for (let frame = 0; frame < frames; frame += 1) {
+      for (let channel = 0; channel < channels; channel += 1) {
+        const value = clamp2(channelData[channel][frame] ?? 0, -1, 1);
+        view.setInt16(offset, value < 0 ? value * 32768 : value * 32767, true);
+        offset += bytesPerSample;
+      }
+    }
+    return buffer;
+  }
+  function writeAscii(view, offset, value) {
+    for (let index = 0; index < value.length; index += 1) {
+      view.setUint8(offset + index, value.charCodeAt(index));
+    }
+  }
   function axisFont() {
     return `${Math.round(AXIS_FONT_SIZE * (window.devicePixelRatio || 1))}px system-ui, sans-serif`;
+  }
+  function cssColor(name, fallback) {
+    const value = getComputedStyle(document.body).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+  function colorMix(foreground, background, foregroundRatio) {
+    const fg = parseCssRgb(foreground);
+    const bg = parseCssRgb(background);
+    if (!fg || !bg) {
+      return foreground;
+    }
+    const ratio = clamp2(foregroundRatio, 0, 1);
+    const red = Math.round(fg.red * ratio + bg.red * (1 - ratio));
+    const green = Math.round(fg.green * ratio + bg.green * (1 - ratio));
+    const blue = Math.round(fg.blue * ratio + bg.blue * (1 - ratio));
+    return `rgb(${red} ${green} ${blue})`;
+  }
+  function parseCssRgb(value) {
+    const trimmed = value.trim();
+    const hex = /^#([0-9a-f]{6})$/i.exec(trimmed);
+    if (hex) {
+      const number = Number.parseInt(hex[1], 16);
+      return { red: number >> 16 & 255, green: number >> 8 & 255, blue: number & 255 };
+    }
+    const rgb = /^rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/i.exec(trimmed);
+    if (rgb) {
+      return { red: Number(rgb[1]), green: Number(rgb[2]), blue: Number(rgb[3]) };
+    }
+    return void 0;
+  }
+  function canvasBackgroundColor() {
+    return cssColor("--vscode-editor-background", "#1e1e1e");
+  }
+  function axisTextColor() {
+    return cssColor("--vscode-descriptionForeground", "#9aa7b4");
+  }
+  function axisGridColor() {
+    return cssColor("--vscode-panel-border", "#25303a");
+  }
+  function timelineMajorColor() {
+    return cssColor("--vscode-descriptionForeground", "#9aa7b4");
+  }
+  function timelineMinorColor() {
+    return colorMix(cssColor("--vscode-descriptionForeground", "#9aa7b4"), cssColor("--vscode-editor-background", "#1e1e1e"), 0.58);
+  }
+  function axisFrameColor() {
+    return cssColor("--vscode-panel-border", "#2d3540");
   }
   function deviceLineWidth() {
     return window.devicePixelRatio || 1;
   }
   function devicePx(value) {
     return value * (window.devicePixelRatio || 1);
+  }
+  function chooseTimelineStep(duration, widthCssPx, minLabelPx) {
+    const targetTicks = Math.max(1, Math.floor(widthCssPx / minLabelPx));
+    return niceTimeStep(duration / targetTicks);
+  }
+  function chooseTimelineMinorStep(majorStep) {
+    const exponent = Math.floor(Math.log10(majorStep));
+    const base = majorStep / Math.pow(10, exponent);
+    const divisions = base === 2 ? 4 : 5;
+    return majorStep / divisions;
+  }
+  function niceTimeStep(rawStep) {
+    const safeStep = Math.max(1e-3, rawStep);
+    const exponent = Math.floor(Math.log10(safeStep));
+    const base = safeStep / Math.pow(10, exponent);
+    const niceBase = base <= 1 ? 1 : base <= 2 ? 2 : base <= 5 ? 5 : 10;
+    return niceBase * Math.pow(10, exponent);
+  }
+  function isTimelineMajorTick(time, majorStep) {
+    const nearest = Math.round(time / majorStep) * majorStep;
+    return Math.abs(time - nearest) <= majorStep * 1e-4;
+  }
+  function formatTimelineTick(time, step) {
+    if (step >= 10) {
+      return `${Math.round(time)}s`;
+    }
+    if (step >= 1) {
+      return `${time.toFixed(1)}s`;
+    }
+    if (step >= 0.01) {
+      return `${time.toFixed(2)}s`;
+    }
+    return `${time.toFixed(3)}s`;
   }
   function isTimeZoomModifier(event) {
     return isMacPlatform() ? event.metaKey : event.ctrlKey;
@@ -3291,6 +4659,38 @@
     }
     return `${Math.round(value)} Hz`;
   }
+  function formatAxisHz(value) {
+    return `${Math.round(value)} Hz`;
+  }
+  function formatAmplitudeAxis(value) {
+    const magnitude = Math.abs(value);
+    if (magnitude === 0) {
+      return "0.0";
+    }
+    if (magnitude >= 1) {
+      return value.toFixed(1);
+    }
+    if (magnitude >= 0.1) {
+      return value.toFixed(2);
+    }
+    return value.toFixed(3);
+  }
+  function formatPcmFormat(format) {
+    const sampleFormat = format.sampleFormat === "float" ? "f" : "s";
+    const endian = format.endianness === "little" ? "le" : "be";
+    const offset = format.startOffsetBytes ? ` \xB7 offset ${format.startOffsetBytes}B` : "";
+    return `${format.sampleRate} Hz \xB7 ${format.channels}ch \xB7 ${sampleFormat}${format.bitDepth}${endian}${offset}`;
+  }
+  function asciiAt(bytes, offset, length) {
+    let value = "";
+    for (let index = 0; index < length; index += 1) {
+      value += String.fromCharCode(bytes[offset + index] ?? 0);
+    }
+    return value;
+  }
+  function readUint32Le(bytes, offset) {
+    return ((bytes[offset] ?? 0) | (bytes[offset + 1] ?? 0) << 8 | (bytes[offset + 2] ?? 0) << 16 | (bytes[offset + 3] ?? 0) << 24) >>> 0;
+  }
   function frequencyFromRatio(ratio, scale, nyquist) {
     const r = clamp2(ratio, 0, 1);
     const top = Math.max(1, nyquist);
@@ -3334,40 +4734,136 @@
     const available = Math.max(0, endSample - startSample);
     const fftSize = largestPowerOfTwo(Math.min(requestedSize, available));
     if (fftSize < 64) {
-      return { dominantHz: 0, bands: BAND_LIMITS.map((band) => ({ label: messages18[band.labelKey], percent: 0 })) };
+      return { dominantHz: 0, centroidHz: 0, bands: BAND_LIMITS.map((band) => ({ label: messages18[band.labelKey], percent: 0 })) };
     }
     const re = new Float32Array(fftSize);
     const im = new Float32Array(fftSize);
     const window2 = createWindow(windowFunction, fftSize);
-    const offset = startSample + Math.max(0, Math.floor((available - fftSize) / 2));
-    for (let index = 0; index < fftSize; index += 1) {
-      re[index] = (samples[offset + index] ?? 0) * window2[index];
-    }
-    fft(re, im);
     let dominantBin = 1;
     let dominantPower = 0;
     let totalPower = 0;
+    let weightedFrequencySum = 0;
     const bandPower = new Float64Array(BAND_LIMITS.length);
-    for (let bin = 1; bin < fftSize / 2; bin += 1) {
-      const power = re[bin] * re[bin] + im[bin] * im[bin];
-      const frequency = bin * sampleRate / fftSize;
-      totalPower += power;
-      if (power > dominantPower) {
-        dominantPower = power;
-        dominantBin = bin;
+    const binPower = new Float64Array(Math.floor(fftSize / 2));
+    const hopSize = Math.max(1, Math.floor(fftSize / 2));
+    const lastFrameStart = Math.max(0, available - fftSize);
+    let relativeStart = 0;
+    while (relativeStart <= lastFrameStart) {
+      const offset = startSample + relativeStart;
+      im.fill(0);
+      for (let index = 0; index < fftSize; index += 1) {
+        re[index] = (samples[offset + index] ?? 0) * window2[index];
       }
-      const bandIndex = BAND_LIMITS.findIndex((band) => frequency >= band.min && frequency < band.max);
-      if (bandIndex >= 0) {
-        bandPower[bandIndex] += power;
+      fft(re, im);
+      for (let bin = 1; bin < fftSize / 2; bin += 1) {
+        const power = re[bin] * re[bin] + im[bin] * im[bin];
+        const frequency = bin * sampleRate / fftSize;
+        totalPower += power;
+        weightedFrequencySum += frequency * power;
+        binPower[bin] += power;
+        const bandIndex = BAND_LIMITS.findIndex((band) => frequency >= band.min && frequency < band.max);
+        if (bandIndex >= 0) {
+          bandPower[bandIndex] += power;
+        }
+      }
+      if (relativeStart === lastFrameStart) {
+        break;
+      }
+      relativeStart = Math.min(relativeStart + hopSize, lastFrameStart);
+    }
+    for (let bin = 1; bin < binPower.length; bin += 1) {
+      if (binPower[bin] > dominantPower) {
+        dominantPower = binPower[bin];
+        dominantBin = bin;
       }
     }
     return {
       dominantHz: dominantBin * sampleRate / fftSize,
+      centroidHz: totalPower <= 0 ? 0 : weightedFrequencySum / totalPower,
       bands: BAND_LIMITS.map((band, index) => ({
         label: messages18[band.labelKey],
         percent: totalPower <= 0 ? 0 : bandPower[index] / totalPower * 100
       }))
     };
+  }
+  function computeTimeSelectionMetrics(samples, startSample, endSample, sampleRate) {
+    const count = Math.max(0, endSample - startSample);
+    if (count <= 0) {
+      return { rms: 0, peak: 0, crestDb: Number.NaN, clippingPercent: 0, noiseFloorDb: amplitudeToDb(0), zeroCrossingRate: 0 };
+    }
+    const stride = Math.max(1, Math.ceil(count / 2e6));
+    let sumSquares = 0;
+    let peak = 0;
+    let clipped = 0;
+    let zeroCrossings = 0;
+    let measured = 0;
+    let previousSign = 0;
+    for (let index = startSample; index < endSample; index += stride) {
+      const value = samples[index] ?? 0;
+      const abs = Math.abs(value);
+      const sign = value > 0 ? 1 : value < 0 ? -1 : previousSign;
+      sumSquares += value * value;
+      peak = Math.max(peak, abs);
+      if (abs >= 0.999) {
+        clipped += 1;
+      }
+      if (previousSign !== 0 && sign !== 0 && sign !== previousSign) {
+        zeroCrossings += 1;
+      }
+      if (sign !== 0) {
+        previousSign = sign;
+      }
+      measured += 1;
+    }
+    const rms = Math.sqrt(sumSquares / Math.max(1, measured));
+    const peakDb = amplitudeToDb(peak);
+    const rmsDb = amplitudeToDb(rms);
+    const durationSeconds = count / Math.max(1, sampleRate);
+    return {
+      rms,
+      peak,
+      crestDb: rms <= 0 ? Number.NaN : peakDb - rmsDb,
+      clippingPercent: clipped / Math.max(1, measured) * 100,
+      noiseFloorDb: computeNoiseFloorDb(samples, startSample, endSample, sampleRate),
+      zeroCrossingRate: zeroCrossings / Math.max(1e-9, durationSeconds)
+    };
+  }
+  function computeNoiseFloorDb(samples, startSample, endSample, sampleRate) {
+    const count = Math.max(0, endSample - startSample);
+    if (count <= 0) {
+      return amplitudeToDb(0);
+    }
+    const windowSize = Math.max(32, Math.floor(sampleRate * 0.02));
+    const hopSize = Math.max(1, Math.floor(windowSize / 2));
+    if (count < windowSize) {
+      let sumSquares = 0;
+      for (let index = startSample; index < endSample; index += 1) {
+        const value = samples[index] ?? 0;
+        sumSquares += value * value;
+      }
+      return amplitudeToDb(Math.sqrt(sumSquares / Math.max(1, count)));
+    }
+    const lastFrameStart = count - windowSize;
+    const maxFrames = 4096;
+    const frameStride = Math.max(hopSize, Math.ceil((lastFrameStart + 1) / maxFrames));
+    const rmsValues = [];
+    let relativeStart = 0;
+    while (relativeStart <= lastFrameStart) {
+      const offset = startSample + relativeStart;
+      let sumSquares = 0;
+      for (let index = 0; index < windowSize; index += 1) {
+        const value = samples[offset + index] ?? 0;
+        sumSquares += value * value;
+      }
+      rmsValues.push(Math.sqrt(sumSquares / windowSize));
+      if (relativeStart === lastFrameStart) {
+        break;
+      }
+      relativeStart = Math.min(relativeStart + frameStride, lastFrameStart);
+    }
+    rmsValues.sort((a, b) => a - b);
+    const percentileIndex = Math.min(rmsValues.length - 1, Math.max(0, Math.floor((rmsValues.length - 1) * 0.1)));
+    return amplitudeToDb(rmsValues[percentileIndex] ?? 0);
   }
   function largestPowerOfTwo(value) {
     let size = 1;
@@ -3483,6 +4979,9 @@
       border-bottom: 1px solid var(--vscode-panel-border);
       background: var(--vscode-sideBar-background);
     }
+    .topbar {
+      flex-wrap: wrap;
+    }
     .identity {
       min-width: 0;
       display: flex;
@@ -3491,20 +4990,65 @@
       flex: 1;
     }
     .gainControl {
-      display: flex;
+      position: relative;
+      display: grid;
+      grid-template-columns: 6ch 80px;
+      grid-template-rows: 14px 22px;
       align-items: center;
-      gap: 8px;
+      column-gap: 8px;
+      row-gap: 2px;
       margin-right: 8px;
+    }
+    .gainControl::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 8px);
+      right: 0;
+      width: max-content;
+      max-width: min(280px, calc(100vw - 24px));
+      padding: 6px 8px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+      box-shadow: 0 8px 22px rgb(0 0 0 / 24%);
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-2px);
+      transition: opacity 90ms ease, transform 90ms ease;
+    }
+    .gainControl:hover::after,
+    .gainControl:has(:focus-visible)::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .gainTitle {
+      grid-column: 1 / -1;
+      color: var(--vscode-descriptionForeground);
+      font-size: 12px;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
     }
     .gainLabel {
       font-variant-numeric: tabular-nums;
-      min-width: 4ch;
+      flex: 0 0 6ch;
+      width: 6ch;
       text-align: right;
       font-size: 12px;
       color: var(--vscode-descriptionForeground);
     }
     .gainSlider {
       width: 80px;
+      margin: 0;
+    }
+    .gainSlider:focus,
+    .gainSlider:focus-visible {
+      outline: none;
     }
     .brand {
       letter-spacing: 0;
@@ -3541,8 +5085,48 @@
       color: var(--vscode-button-secondaryForeground);
       background: var(--vscode-button-secondaryBackground);
     }
+    #settingsToggle {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      font-size: 20px;
+      line-height: 1;
+      padding-bottom: 0;
+    }
+    .settingsGlyph {
+      display: block;
+      line-height: 1;
+      transform: translateY(-1px);
+    }
     .iconButton:hover, .primary:hover, .secondary:hover {
       background: var(--vscode-button-hoverBackground);
+    }
+    .secondaryIcon[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      z-index: 45;
+      top: calc(100% + 8px);
+      right: 0;
+      padding: 5px 7px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      background: color-mix(in srgb, var(--vscode-editor-background) 90%, transparent);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 20px rgb(0 0 0 / 24%);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.2;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-2px);
+      transition: opacity 90ms ease, transform 90ms ease;
+    }
+    .secondaryIcon[data-tooltip]:hover::after,
+    .secondaryIcon[data-tooltip]:focus-visible::after {
+      opacity: 1;
+      transform: translateY(0);
     }
     .clock {
       min-width: 150px;
@@ -3556,7 +5140,7 @@
     .workspace {
       min-height: 0;
       display: grid;
-      grid-template-columns: minmax(190px, 220px) 1fr;
+      grid-template-columns: 1fr;
     }
     .controls, .settingsPanel {
       display: flex;
@@ -3568,22 +5152,34 @@
     .controls {
       border-right: 1px solid var(--vscode-panel-border);
       overflow: auto;
+      padding: 8px;
     }
-    .controls label, .settingsPanel label {
+    .controls[hidden] {
+      display: none;
+    }
+    .controls label, .settingsPanel label, .pcmPanel label {
       display: grid;
       gap: 5px;
+    }
+    .controlInternals[hidden] {
+      display: none;
     }
     .settingsPanel .checkboxLabel {
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .controls label span, .settingsPanel label span {
+    .controls label span, .settingsPanel label span, .pcmPanel label span {
       color: var(--vscode-descriptionForeground);
     }
     .controls select,
+    .controls input[type="number"],
+    .controls input[type="text"],
     .settingsPanel select,
-    .settingsPanel input[type="number"] {
+    .settingsPanel input[type="number"],
+    .pcmPanel select,
+    .pcmPanel input[type="number"],
+    .pcmPanel input[type="text"] {
       width: 100%;
       min-height: 28px;
       color: var(--vscode-input-foreground);
@@ -3591,6 +5187,11 @@
       border: 1px solid var(--vscode-input-border, transparent);
       border-radius: 4px;
       padding: 3px 6px;
+    }
+    .numericText {
+      direction: ltr;
+      text-align: left;
+      font-variant-numeric: tabular-nums;
     }
     .settingsPanel {
       position: absolute;
@@ -3611,6 +5212,16 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+    }
+    .settingsSection {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 4px;
+    }
+    .settingsSection + .settingsSection {
+      padding-top: 12px;
+      border-top: 1px solid var(--vscode-panel-border);
     }
     .primary, .secondary {
       min-height: 32px;
@@ -3657,7 +5268,7 @@
       min-width: 0;
       min-height: 0;
       display: grid;
-      grid-template-rows: auto var(--waveform-height) 12px auto var(--spectrogram-height) 12px;
+      grid-template-rows: auto minmax(0, 1fr);
       gap: 8px;
       padding: 12px;
       overflow: auto;
@@ -3671,6 +5282,33 @@
       gap: 12px;
       color: var(--vscode-foreground);
     }
+    .timelineHeader {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 0;
+      min-height: 34px;
+      align-items: stretch;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--vscode-editor-background);
+    }
+    .timelineRange {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      border-right: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-editor-background);
+      font-variant-numeric: tabular-nums;
+      min-width: 0;
+    }
+    .timelineCanvasWrap {
+      position: relative;
+      min-width: 0;
+      min-height: 32px;
+      background: var(--vscode-editor-background);
+    }
     .plotPane {
       position: relative;
       min-width: 0;
@@ -3681,7 +5319,336 @@
       overflow: hidden;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
-      background: #101318;
+      background: var(--vscode-editor-background);
+    }
+    .trackList {
+      display: grid;
+      gap: 10px;
+    }
+    .trackRow {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      min-height: 280px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--vscode-editor-background);
+    }
+    .trackRow[data-mode="waveform"] {
+      min-height: 132px;
+    }
+    .trackRow[data-mode="spectrogram"] {
+      min-height: 220px;
+    }
+    .trackRow.isSelected {
+      border-color: var(--vscode-focusBorder);
+      box-shadow: 0 0 0 1px var(--vscode-focusBorder) inset;
+    }
+    .trackSidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px;
+      border: 0;
+      border-right: 1px solid var(--vscode-panel-border);
+      color: var(--vscode-descriptionForeground);
+      background: var(--vscode-editor-background);
+    }
+    .trackTitle, .trackToggle, .trackMode {
+      font: inherit;
+    }
+    .trackToggle {
+      min-height: 26px;
+      border: 1px solid var(--vscode-button-border, transparent);
+      border-radius: 4px;
+      color: var(--vscode-button-secondaryForeground);
+      background: var(--vscode-button-secondaryBackground);
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+    }
+    .trackTitle {
+      min-height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      background: transparent;
+      font-weight: 600;
+    }
+    .trackToggle.isActive {
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
+      border-color: var(--vscode-focusBorder);
+      box-shadow: 0 0 0 1px var(--vscode-focusBorder) inset;
+      font-weight: 600;
+    }
+    .trackMute.isActive {
+      color: #ffffff;
+      text-shadow: 0 1px 1px rgb(0 0 0 / 55%);
+      background: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 88%, #00345f);
+      border-color: var(--vscode-charts-blue, #3794ff);
+      box-shadow: 0 0 0 1px var(--vscode-charts-blue, #3794ff) inset;
+    }
+    .trackSolo.isActive {
+      color: #1f1300;
+      text-shadow: 0 1px 0 rgb(255 255 255 / 32%);
+      background: color-mix(in srgb, var(--vscode-charts-orange, #d18616) 86%, #ffdf9b);
+      border-color: var(--vscode-charts-orange, #d18616);
+      box-shadow: 0 0 0 1px var(--vscode-charts-orange, #d18616) inset;
+    }
+    .trackMode {
+      min-height: 26px;
+      color: var(--vscode-input-foreground);
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border, transparent);
+      border-radius: 4px;
+    }
+    .trackBody,
+    .trackCanvasWrap {
+      background: var(--vscode-editor-background);
+    }
+    .trackBody {
+      display: grid;
+      grid-template-rows: minmax(90px, 0.38fr) minmax(160px, 0.62fr);
+      min-width: 0;
+      min-height: 0;
+      gap: 0;
+    }
+    .trackRow[data-mode="waveform"] .trackBody,
+    .trackRow[data-mode="spectrogram"] .trackBody {
+      grid-template-rows: 1fr;
+    }
+    .trackRow[data-mode="waveform"] .trackSpectrogramWrap,
+    .trackRow[data-mode="spectrogram"] .trackWaveformWrap {
+      display: none;
+    }
+    .trackCanvasWrap {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+    .trackWaveformWrap {
+      margin-bottom: -1px;
+    }
+    .trackCanvasWrap:last-child {
+      border-bottom: 0;
+    }
+    .pcmPanel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 8px;
+      padding: 6px 8px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      background: var(--vscode-editor-background);
+    }
+    .pcmReveal {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+    .topPcmPanel {
+      flex: 1 1 620px;
+      min-width: min(560px, 100%);
+      max-width: 100%;
+      overflow: visible;
+    }
+    .topPcmPanel .paneTitle {
+      align-self: center;
+      white-space: nowrap;
+    }
+    .topPcmPanel label {
+      display: grid;
+      grid-template-rows: 15px 26px;
+      min-width: auto;
+      gap: 3px;
+      justify-items: center;
+      align-items: center;
+    }
+    .topPcmPanel label span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 15px;
+      text-align: center;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    .topPcmPanel input,
+    .topPcmPanel select {
+      height: 26px;
+      min-height: 26px;
+      padding-top: 2px;
+      padding-bottom: 2px;
+      text-align: center;
+    }
+    .topPcmPanel button {
+      min-height: 28px;
+      white-space: nowrap;
+      padding: 0 9px;
+    }
+    .topPcmPanel #pcmSampleRate {
+      width: 8ch;
+    }
+    .topPcmPanel #pcmChannels {
+      width: 4ch;
+    }
+    .topPcmPanel #pcmStartOffset {
+      width: 8ch;
+    }
+    .topPcmPanel #pcmBitDepth {
+      width: 6ch;
+    }
+    .topPcmPanel #pcmSampleFormat {
+      width: 8ch;
+    }
+    .topPcmPanel #pcmEndianness {
+      width: 6ch;
+    }
+    .topPcmPanel #pcmStatus {
+      position: relative;
+      align-self: center;
+      flex: 1 1 140px;
+      min-width: 0;
+      max-width: 260px;
+      white-space: nowrap;
+      overflow: visible;
+      line-height: 1.3;
+    }
+    .topPcmPanel #pcmStatusText {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .topPcmPanel #pcmStatus::after {
+      content: attr(data-tooltip);
+      position: fixed;
+      z-index: 45;
+      top: var(--pcm-status-tooltip-top, 52px);
+      left: var(--pcm-status-tooltip-left, 12px);
+      width: max-content;
+      max-width: min(520px, calc(100vw - 36px));
+      padding: 8px 10px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 5px;
+      color: var(--vscode-foreground);
+      background: color-mix(in srgb, var(--vscode-editor-background) 90%, transparent);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 24px rgb(0 0 0 / 28%);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.45;
+      white-space: normal;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-2px);
+      transition: opacity 90ms ease, transform 90ms ease;
+    }
+    .topPcmPanel #pcmStatus:hover::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .wavPcmPanel {
+      position: fixed;
+      z-index: 40;
+      top: 58px;
+      left: 12px;
+      width: min(520px, calc(100vw - 36px));
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--vscode-editor-background) 90%, transparent);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 36px rgb(0 0 0 / 28%);
+    }
+    .wavPcmPanel[hidden] {
+      display: none;
+    }
+    .wavPcmHeader {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .wavPcmGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .wavPcmGrid label {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+    .wavPcmGrid label span {
+      color: var(--vscode-descriptionForeground);
+      font-size: 12px;
+      text-align: center;
+    }
+    .wavPcmGrid input,
+    .wavPcmGrid select {
+      width: 100%;
+      height: 28px;
+      text-align: center;
+    }
+    .wavPcmFooter {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .wavPcmFooter #wavPcmStatus {
+      min-width: 0;
+      white-space: normal;
+      line-height: 1.35;
+    }
+    .pcmPanel[hidden] {
+      display: none;
+    }
+    .helpMenu {
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .helpMenu summary {
+      position: relative;
+      list-style: none;
+    }
+    .helpMenu summary::-webkit-details-marker {
+      display: none;
+    }
+    .helpMenu .iconButton {
+      font-size: 18px;
+      line-height: 1;
+    }
+    .helpPopover {
+      position: absolute;
+      z-index: 30;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(360px, calc(100vw - 24px));
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      color: var(--vscode-foreground);
+      background: var(--vscode-editor-background);
+      box-shadow: 0 12px 30px rgb(0 0 0 / 24%);
+      line-height: 1.45;
+    }
+    .helpPopover kbd {
+      padding: 0 4px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      background: var(--vscode-input-background);
+      font-family: var(--vscode-editor-font-family), monospace;
     }
     canvas {
       position: absolute;
@@ -3692,7 +5659,7 @@
       min-height: 0;
       display: block;
       border: 0;
-      background: #101318;
+      background: var(--vscode-editor-background);
       cursor: crosshair;
     }
     .plotResize {
@@ -3726,36 +5693,112 @@
       background: color-mix(in srgb, var(--vscode-focusBorder) 72%, var(--vscode-panel-border));
     }
     .selectionBox {
-      position: absolute;
+      position: fixed;
       border: 1px solid rgba(88, 166, 255, 0.85);
       background: rgba(88, 166, 255, 0.18);
       pointer-events: none;
+      z-index: 20;
+    }
+    .selectionBox::before {
+      content: "";
+      position: absolute;
+      left: -1px;
+      top: -1px;
+      bottom: -1px;
+      width: 2px;
+      background: #ffcc66;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
     }
     .selectionAnalysisPane {
-      margin-top: auto;
+      position: fixed;
+      z-index: 25;
+      right: 18px;
+      top: 112px;
+      width: min(220px, calc(100vw - 36px));
       display: grid;
       gap: 8px;
-      padding: 10px;
+      padding: 8px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
-      background: var(--vscode-editor-background);
+      background: color-mix(in srgb, var(--vscode-editor-background) 76%, transparent);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 12px 28px rgb(0 0 0 / 22%);
       color: var(--vscode-descriptionForeground);
       font-variant-numeric: tabular-nums;
+    }
+    .selectionAnalysisPane[hidden] {
+      display: none;
     }
     .paneTitle {
       color: var(--vscode-foreground);
       font-weight: 600;
     }
-    .paneSubtitle {
+    .paneTitleRow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .paneSubtitleRow {
       margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .paneSubtitle {
       color: var(--vscode-foreground);
       font-size: 0.92em;
       font-weight: 600;
     }
+    .analysisHelp,
+    .metricHelp {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 50%;
+      color: var(--vscode-descriptionForeground);
+      background: color-mix(in srgb, var(--vscode-editor-background) 72%, transparent);
+      font-size: 11px;
+      line-height: 1;
+      cursor: help;
+    }
+    .metricHelp {
+      width: 14px;
+      height: 14px;
+      margin-left: 4px;
+      font-size: 10px;
+      vertical-align: text-top;
+    }
+    .floatingTooltip {
+      position: fixed;
+      z-index: 45;
+      left: 12px;
+      top: 12px;
+      width: min(380px, calc(100vw - 36px));
+      padding: 8px 10px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 5px;
+      color: var(--vscode-foreground);
+      background: color-mix(in srgb, var(--vscode-editor-background) 86%, transparent);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 24px rgb(0 0 0 / 28%);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-shadow: 0 1px 1px rgb(0 0 0 / 28%);
+      white-space: pre-line;
+      pointer-events: none;
+    }
+    .floatingTooltip[hidden] {
+      display: none;
+    }
     .analysisTable {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: auto;
       line-height: 1.35;
     }
     .analysisTable th,
@@ -3769,8 +5812,8 @@
       border-top: 0;
     }
     .analysisTable th {
-      width: 86px;
-      padding-right: 8px;
+      width: 1%;
+      padding-right: 10px;
       color: var(--vscode-descriptionForeground);
       font-weight: 400;
       text-align: left;
@@ -3791,9 +5834,12 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      .controls[hidden] {
+        display: none;
+      }
       .selectionAnalysisPane {
-        grid-column: 1 / -1;
-        margin-top: 0;
+        right: 12px;
+        top: 104px;
       }
     }
   `;
@@ -3815,7 +5861,7 @@
     vscode.postMessage({ type: "ready" });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    root.textContent = `AudioLens \u521D\u59CB\u5316\u5931\u8D25\uFF1A${message}`;
-    vscode.postMessage({ type: "showError", message: `AudioLens \u521D\u59CB\u5316\u5931\u8D25\uFF1A${message}` });
+    root.textContent = `AudioLens initialization failed: ${message}`;
+    vscode.postMessage({ type: "showError", message: `AudioLens initialization failed: ${message}` });
   }
 })();

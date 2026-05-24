@@ -181,7 +181,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
           break;
         case "readChunk": {
           if (!vscode.workspace.isTrusted) {
-            throw new Error("\u5F53\u524D\u5DE5\u4F5C\u533A\u672A\u53D7\u4FE1\u4EFB\uFF0CAudioLens \u4E0D\u4F1A\u4F20\u8F93\u97F3\u9891\u5185\u5BB9\u3002");
+            throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
           }
           const length = Math.min(message.length, DEFAULT_CHUNK_SIZE);
           const bytes = await document.readRange(message.offset, length);
@@ -207,11 +207,15 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     }
   }
   createMetadata(document) {
+    const fileName = path.basename(document.uri.fsPath || document.uri.path);
+    const extension = path.extname(fileName).toLowerCase().replace(/^\./, "");
     return {
-      fileName: path.basename(document.uri.fsPath || document.uri.path),
+      fileName,
       uri: document.uri.toString(),
       size: document.size,
-      trusted: vscode.workspace.isTrusted
+      trusted: vscode.workspace.isTrusted,
+      extension,
+      kind: extension === "pcm" || extension === "raw" ? "pcm" : "encoded"
     };
   }
   readPreferences() {
@@ -223,13 +227,17 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
       windowFunction: value.windowFunction,
       fftSize: value.fftSize,
       zeroPaddingFactor: value.zeroPaddingFactor,
+      defaultTrackMode: value.defaultTrackMode,
       frequencyScale: value.frequencyScale,
       palette: value.palette,
       minDb: value.minDb,
       maxDb: value.maxDb,
+      autoBrightness: value.autoBrightness,
       amplitudeZoom: value.amplitudeZoom,
       waveformHeight: value.waveformHeight,
-      spectrogramHeight: value.spectrogramHeight
+      spectrogramHeight: value.spectrogramHeight,
+      playbackGain: value.playbackGain,
+      defaultPcmFormat: value.defaultPcmFormat
     };
   }
   readConfig() {

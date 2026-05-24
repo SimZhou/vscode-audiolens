@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.0.0
+
+First full AudioLens release.
+
+- Rebuilt the editor around multi-channel audio tracks with one real track per channel.
+- Added per-channel waveform, spectrogram, and combined view modes.
+- Added a saved default track view setting.
+- Added clearer per-track mute and solo controls with corrected playback logic.
+- Added a shared top timeline with adaptive tick density for zoomed views.
+- Improved playback cursor tracking while playing beyond the visible time range.
+- Improved selection rendering across waveform and spectrogram views.
+- Added raw PCM support for `.pcm` and `.raw` files with manual sample rate, channel count, bit depth, sample format, byte order, and offset settings.
+- Added saved default PCM parameters for faster repeated PCM inspection.
+- Added one-time WAV-as-PCM rereading for inspecting WAV payloads with explicit PCM parameters and byte offsets.
+- Moved PCM controls into the top workspace area and made the PCM layout more compact.
+- Reworked selection analysis as a translucent overlay so tracks have more horizontal space.
+- Added selection metrics for crest factor, clipping ratio, noise floor, spectral centroid, and zero-crossing rate.
+- Expanded RMS level, peak level, dominant frequency, and frequency-band analysis tooltips with calculation notes, usage guidance, and references.
+- Changed frequency-band analysis to aggregate frames across the full selected region.
+- Added waveform amplitude auto-scaling for quiet files without clipping the display.
+- Added corrected waveform and spectrogram y-axis labels, including Nyquist-based frequency bounds.
+- Improved spectrogram redraw behavior during playback panning and zooming.
+- Added `Ctrl` / `Command` + `F` to reset time zoom.
+- Added a playback gain control with stable layout and persisted gain value.
+- Improved top menu, tooltip, settings, help, and track-sidebar UX.
+- Added English fallback for incomplete locale strings and updated the Webview i18n contract.
+- Added Rust PCM parsing groundwork and regression coverage for key UI and decoding paths.
+
 ## 0.2.15
 
 Playback gain control update.
