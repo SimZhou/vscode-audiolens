@@ -65,11 +65,14 @@ export type ExtensionMessage =
   | { type: "configChanged"; config: AudioLensConfig }
   | { type: "fileChanged"; metadata: AudioMetadata }
   | { type: "chunk"; requestId: number; offset: number; total: number; bytes: ArrayBuffer }
+  | { type: "transcodedAudio"; requestId: number; bytes: ArrayBuffer }
+  | { type: "transcodeError"; requestId: number; message: string }
   | { type: "error"; message: string };
 
 export type WebviewMessage =
   | { type: "ready" }
   | { type: "readChunk"; requestId: number; offset: number; length: number }
+  | { type: "transcodeAudio"; requestId: number }
   | { type: "downloadAudio" }
   | { type: "updatePreferences"; preferences: AudioLensPreferences }
   | { type: "showError"; message: string };

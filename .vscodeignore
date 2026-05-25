@@ -20,6 +20,15 @@ Cargo.lock
 logo/AudioLens_logo*.png
 dist/*.map
 *.vsix
+*.aac
+*.m4a
+*.mp3
+*.ogg
+*.opus
+*.flac
+*.pcm
+*.raw
+*.wav
 tsconfig.json
 
 AudioLens_logo.v1.png

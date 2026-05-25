@@ -121,6 +121,8 @@ export interface LocaleMessages {
   readingAudio: string;
   readingAudioProgress: string;
   decodingAudio: string;
+  transcodingAudio: string;
+  encodedPlaybackOnly: string;
   waitingPcmParams: string;
   pcmUsedDefaultParams: string;
   pcmFillParams: string;

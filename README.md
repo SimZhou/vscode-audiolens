@@ -161,7 +161,7 @@ code --install-extension simzhou.audiolens
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-1.0.1.vsix
+code --install-extension dist/audiolens-1.0.2.vsix
 ```
 
 ## Development
@@ -179,6 +179,20 @@ Press `F5` in VS Code and choose the AudioLens extension launch configuration. T
 ## Author
 
 SimZhou: https://simzhou.com/en/about/
+
+## Support AudioLens
+
+If AudioLens helps with your speech, audio, or data annotation workflow, you are welcome to support its ongoing development.
+
+Your support helps with feature work, compatibility testing, and long-term maintenance. Thank you for the encouragement.
+
+如果 AudioLens 对你的语音、音频或数据标注工作有帮助，欢迎通过赞赏支持这个项目的持续维护。
+
+你的支持会用于后续功能开发、兼容性测试和长期维护。感谢每一份鼓励。
+
+<p align="center">
+  <img src="logo/wechat_support.jpeg" alt="WeChat appreciation code" width="240">
+</p>
 
 ## Copyright
 

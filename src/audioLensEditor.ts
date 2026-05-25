@@ -1,4 +1,6 @@
-import { open } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { mkdtemp, open, rm, writeFile } from "node:fs/promises";
+import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import {
@@ -187,6 +189,9 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
         case "downloadAudio":
           await this.downloadAudio(document);
           break;
+        case "transcodeAudio":
+          await this.transcodeAudio(message.requestId, document, webview);
+          break;
         case "showError":
           vscode.window.showErrorMessage(message.message);
           break;
@@ -228,6 +233,35 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     const bytes = await document.readRange(0, document.size);
     await vscode.workspace.fs.writeFile(destination, bytes);
     vscode.window.showInformationMessage(`AudioLens saved ${fileName}.`);
+  }
+
+  private async transcodeAudio(requestId: number, document: AudioLensDocument, webview: vscode.Webview): Promise<void> {
+    try {
+      if (!vscode.workspace.isTrusted) {
+        throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+      }
+      const bytes = await this.transcodeDocumentToWav(document);
+      this.postMessage(webview, { type: "transcodedAudio", requestId, bytes: toArrayBuffer(bytes) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.postMessage(webview, { type: "transcodeError", requestId, message });
+    }
+  }
+
+  private async transcodeDocumentToWav(document: AudioLensDocument): Promise<Uint8Array> {
+    if (document.uri.scheme === "file") {
+      return runFfmpegToWav(document.uri.fsPath);
+    }
+
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "audiolens-"));
+    const extension = path.extname(document.uri.path || document.uri.fsPath) || ".audio";
+    const inputPath = path.join(tempDir, `input${extension}`);
+    try {
+      await writeFile(inputPath, await document.readRange(0, document.size));
+      return await runFfmpegToWav(inputPath);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   }
 
   private readPreferences(): AudioLensPreferences {
@@ -315,4 +349,46 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
+}
+
+async function runFfmpegToWav(inputPath: string): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("ffmpeg", [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      inputPath,
+      "-vn",
+      "-f",
+      "wav",
+      "-acodec",
+      "pcm_s16le",
+      "pipe:1"
+    ]);
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+
+    child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => {
+      if (Buffer.concat(stderr).byteLength < 8192) {
+        stderr.push(chunk);
+      }
+    });
+    child.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") {
+        reject(new Error("FFmpeg is required to open this encoded audio format, but the ffmpeg command was not found."));
+      } else {
+        reject(error);
+      }
+    });
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve(new Uint8Array(Buffer.concat(stdout)));
+        return;
+      }
+      const detail = Buffer.concat(stderr).toString("utf8").trim();
+      reject(new Error(detail || `FFmpeg exited with code ${code ?? "unknown"}.`));
+    });
+  });
 }

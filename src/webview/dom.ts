@@ -54,14 +54,20 @@ export function guessMime(fileName: string): string {
   if (extension === "mp3") {
     return "audio/mpeg";
   }
-  if (extension === "ogg" || extension === "opus") {
+  if (extension === "ogg") {
     return "audio/ogg";
+  }
+  if (extension === "opus") {
+    return "audio/ogg; codecs=opus";
   }
   if (extension === "flac") {
     return "audio/flac";
   }
-  if (extension === "m4a" || extension === "aac") {
+  if (extension === "m4a") {
     return "audio/mp4";
+  }
+  if (extension === "aac") {
+    return "audio/aac";
   }
   return "audio/wav";
 }

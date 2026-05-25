@@ -37,7 +37,9 @@ module.exports = __toCommonJS(extension_exports);
 var vscode2 = __toESM(require("vscode"));
 
 // src/audioLensEditor.ts
+var import_node_child_process = require("node:child_process");
 var import_promises = require("node:fs/promises");
+var os = __toESM(require("node:os"));
 var path = __toESM(require("node:path"));
 var vscode = __toESM(require("vscode"));
 
@@ -200,6 +202,9 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
         case "downloadAudio":
           await this.downloadAudio(document);
           break;
+        case "transcodeAudio":
+          await this.transcodeAudio(message.requestId, document, webview);
+          break;
         case "showError":
           vscode.window.showErrorMessage(message.message);
           break;
@@ -237,6 +242,32 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     const bytes = await document.readRange(0, document.size);
     await vscode.workspace.fs.writeFile(destination, bytes);
     vscode.window.showInformationMessage(`AudioLens saved ${fileName}.`);
+  }
+  async transcodeAudio(requestId, document, webview) {
+    try {
+      if (!vscode.workspace.isTrusted) {
+        throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+      }
+      const bytes = await this.transcodeDocumentToWav(document);
+      this.postMessage(webview, { type: "transcodedAudio", requestId, bytes: toArrayBuffer(bytes) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.postMessage(webview, { type: "transcodeError", requestId, message });
+    }
+  }
+  async transcodeDocumentToWav(document) {
+    if (document.uri.scheme === "file") {
+      return runFfmpegToWav(document.uri.fsPath);
+    }
+    const tempDir = await (0, import_promises.mkdtemp)(path.join(os.tmpdir(), "audiolens-"));
+    const extension = path.extname(document.uri.path || document.uri.fsPath) || ".audio";
+    const inputPath = path.join(tempDir, `input${extension}`);
+    try {
+      await (0, import_promises.writeFile)(inputPath, await document.readRange(0, document.size));
+      return await runFfmpegToWav(inputPath);
+    } finally {
+      await (0, import_promises.rm)(tempDir, { recursive: true, force: true });
+    }
   }
   readPreferences() {
     return this.normalizePreferences(this.context.globalState.get(PREFERENCES_KEY, {}));
@@ -318,6 +349,46 @@ function toArrayBuffer(bytes) {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
+}
+async function runFfmpegToWav(inputPath) {
+  return new Promise((resolve, reject) => {
+    const child = (0, import_node_child_process.spawn)("ffmpeg", [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      inputPath,
+      "-vn",
+      "-f",
+      "wav",
+      "-acodec",
+      "pcm_s16le",
+      "pipe:1"
+    ]);
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on("data", (chunk) => stdout.push(chunk));
+    child.stderr.on("data", (chunk) => {
+      if (Buffer.concat(stderr).byteLength < 8192) {
+        stderr.push(chunk);
+      }
+    });
+    child.on("error", (error) => {
+      if (error.code === "ENOENT") {
+        reject(new Error("FFmpeg is required to open this encoded audio format, but the ffmpeg command was not found."));
+      } else {
+        reject(error);
+      }
+    });
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve(new Uint8Array(Buffer.concat(stdout)));
+        return;
+      }
+      const detail = Buffer.concat(stderr).toString("utf8").trim();
+      reject(new Error(detail || `FFmpeg exited with code ${code ?? "unknown"}.`));
+    });
+  });
 }
 
 // src/extension.ts

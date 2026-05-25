@@ -103,6 +103,7 @@ interface TrackView {
 }
 
 const MIN_DRAG_PIXELS = 6;
+const ENCODED_DECODE_TIMEOUT_MS = 8000;
 const PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
 const TRACK_AXIS_WIDTH = 78;
 const AXIS_FONT_SIZE = 13;
@@ -142,6 +143,11 @@ export class AudioLensApp {
   private playbackMergerNode: ChannelMergerNode | undefined;
   private playbackChannelGains: GainNode[] = [];
   private readonly pendingChunks = new Map<number, (message: Extract<ExtensionMessage, { type: "chunk" }>) => void>();
+  private readonly pendingTranscodes = new Map<number, {
+    resolve: (message: Extract<ExtensionMessage, { type: "transcodedAudio" }>) => void;
+    reject: (error: Error) => void;
+  }>();
+  private readonly pendingAnalysisTargets = new Map<string, number>();
   private readonly spectrogramCache = new Map<string, SpectrogramResult>();
   private readonly spectrogramBitmapCache = new Map<string, HTMLCanvasElement>();
   private readonly spectrogramRangeCache = new Map<string, SpectrogramRangeState>();
@@ -202,6 +208,12 @@ export class AudioLensApp {
       case "chunk":
         this.resolveChunk(message);
         break;
+      case "transcodedAudio":
+        this.resolveTranscode(message);
+        break;
+      case "transcodeError":
+        this.rejectTranscode(message);
+        break;
       case "error":
         this.setStatus(message.message);
         break;
@@ -243,16 +255,28 @@ export class AudioLensApp {
   private clearDecodedAudio(): void {
     this.audioBuffer = undefined;
     this.sourceSampleRate = undefined;
+    this.clearAudioElement();
     this.spectrogramCache.clear();
     this.spectrogramBitmapCache.clear();
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
     this.waveformCache.clear();
     this.pendingAnalysisKeys.clear();
+    this.pendingAnalysisTargets.clear();
     this.trackViews = [];
     this.elements.trackList.replaceChildren();
     this.elements.seek.value = "0";
     this.updateClock();
+  }
+
+  private clearAudioElement(): void {
+    this.elements.audio.pause();
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = undefined;
+    }
+    this.elements.audio.removeAttribute("src");
+    this.elements.audio.load();
   }
 
   private async load(metadata: AudioFileMetadata): Promise<void> {
@@ -287,6 +311,15 @@ export class AudioLensApp {
       }
     } else {
       await this.loadEncoded(metadata.fileName);
+      if (!this.audioBuffer) {
+        this.settings.channel = 0;
+        this.selection = undefined;
+        this.playheadTime = undefined;
+        this.selectionPlaybackEnd = undefined;
+        this.updateSelectionAnalysis();
+        this.redrawVisuals();
+        return;
+      }
     }
     this.settings.channel = 0;
     this.applyAutoAmplitudeZoom();
@@ -305,7 +338,7 @@ export class AudioLensApp {
     this.applyAutoBrightness();
     this.redrawVisuals();
     if (this.config.autoAnalyze) {
-      this.analyze();
+      this.scheduleAnalyze(0);
     }
     this.setStatus(this.messages.ready);
   }
@@ -318,10 +351,38 @@ export class AudioLensApp {
     this.elements.pcmPanel.hidden = true;
     this.elements.wavPcmPanel.hidden = true;
     const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
-    this.audioBuffer = await audioContext.decodeAudioData(toArrayBuffer(this.audioBytes));
-    this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
-    await audioContext.close();
-    this.installAudioElementFromBytes(fileName);
+    try {
+      this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, this.audioBytes, ENCODED_DECODE_TIMEOUT_MS);
+      this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
+      this.installAudioElementFromBytes(fileName);
+    } catch (error) {
+      console.warn("AudioLens encoded decode fallback:", error);
+      await audioContext.close().catch(() => undefined);
+      await this.loadEncodedViaFfmpeg(fileName);
+      return;
+    } finally {
+      await audioContext.close().catch(() => undefined);
+    }
+  }
+
+  private async loadEncodedViaFfmpeg(fileName: string): Promise<void> {
+    this.setStatus(this.messages.transcodingAudio);
+    try {
+      const bytes = await this.requestTranscodedAudio();
+      const audioContext = new AudioContext();
+      try {
+        this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, bytes, ENCODED_DECODE_TIMEOUT_MS);
+        this.sourceSampleRate = this.audioBuffer.sampleRate;
+      } finally {
+        await audioContext.close().catch(() => undefined);
+      }
+      this.installAudioElementFromBytes(`${fileName}.wav`, bytes, "audio/wav");
+    } catch (error) {
+      console.warn("AudioLens FFmpeg fallback failed:", error);
+      this.clearDecodedAudio();
+      const detail = error instanceof Error ? error.message : String(error);
+      this.setStatus(`${this.messages.encodedPlaybackOnly} ${detail}`);
+    }
   }
 
   private async loadPcm(_metadata: AudioFileMetadata): Promise<boolean> {
@@ -956,6 +1017,24 @@ export class AudioLensApp {
     resolve(message);
   }
 
+  private resolveTranscode(message: Extract<ExtensionMessage, { type: "transcodedAudio" }>): void {
+    const pending = this.pendingTranscodes.get(message.requestId);
+    if (!pending) {
+      return;
+    }
+    this.pendingTranscodes.delete(message.requestId);
+    pending.resolve(message);
+  }
+
+  private rejectTranscode(message: Extract<ExtensionMessage, { type: "transcodeError" }>): void {
+    const pending = this.pendingTranscodes.get(message.requestId);
+    if (!pending) {
+      return;
+    }
+    this.pendingTranscodes.delete(message.requestId);
+    pending.reject(new Error(message.message));
+  }
+
   private async readAll(size: number): Promise<Uint8Array> {
     const target = new Uint8Array(size);
     let offset = 0;
@@ -975,14 +1054,24 @@ export class AudioLensApp {
     return target;
   }
 
-  private installAudioElementFromBytes(fileName: string): void {
-    if (!this.audioBytes) {
+  private async requestTranscodedAudio(): Promise<Uint8Array> {
+    const requestId = this.requestSeq;
+    this.requestSeq += 1;
+    const message = await new Promise<Extract<ExtensionMessage, { type: "transcodedAudio" }>>((resolve, reject) => {
+      this.pendingTranscodes.set(requestId, { resolve, reject });
+      this.vscode.postMessage({ type: "transcodeAudio", requestId });
+    });
+    return new Uint8Array(message.bytes);
+  }
+
+  private installAudioElementFromBytes(fileName: string, bytes = this.audioBytes, mime = guessMime(fileName)): void {
+    if (!bytes) {
       return;
     }
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
     }
-    this.objectUrl = URL.createObjectURL(new Blob([toArrayBuffer(this.audioBytes)], { type: guessMime(fileName) }));
+    this.objectUrl = URL.createObjectURL(new Blob([toArrayBuffer(bytes)], { type: mime }));
     this.elements.audio.src = this.objectUrl;
     this.elements.audio.load();
     this.elements.seek.value = "0";
@@ -1036,7 +1125,7 @@ export class AudioLensApp {
     this.applyAutoBrightness();
     this.redrawVisuals();
     if (this.config?.autoAnalyze) {
-      this.analyze();
+      this.scheduleAnalyze(0);
     }
     this.setPcmStatus(statusElement, `${this.messages.currentPcmFormat}: ${formatPcmFormat(format)}`);
     this.setStatus(this.messages.ready);
@@ -1556,6 +1645,7 @@ export class AudioLensApp {
     if (this.pendingAnalysisKeys.size > 0) {
       this.resetAnalysisWorker();
       this.pendingAnalysisKeys.clear();
+      this.pendingAnalysisTargets.clear();
     }
 
     const visibleTracks = this.trackViews.filter((view) => view.mode !== "waveform");
@@ -1587,6 +1677,7 @@ export class AudioLensApp {
     const windowSize = Math.min(this.settings.fftSize, Math.max(1, source.length));
     const hopSize = Math.max(1, Math.floor(Math.max(1, source.length - windowSize) / targetFrames));
     this.pendingAnalysisKeys.add(cacheKey);
+    this.pendingAnalysisTargets.set(cacheKey, view.channel);
     this.spectrogramRangeCache.set(cacheKey, { startSample, endSample });
     this.setStatus(this.messages.analyzingSpectrogram);
     this.worker.postMessage(
@@ -1641,11 +1732,15 @@ export class AudioLensApp {
     }
     this.spectrogramCache.set(result.requestId, result);
     this.pendingAnalysisKeys.delete(result.requestId);
+    const targetChannel = this.pendingAnalysisTargets.get(result.requestId);
+    this.pendingAnalysisTargets.delete(result.requestId);
     for (const view of this.trackViews) {
       const key = this.createSpectrogramCacheKey(view.channel, view.spectrogram);
-      if (key === result.requestId) {
+      if (key === result.requestId || view.channel === targetChannel) {
         this.lastSpectrogramByChannel.set(view.channel, result);
-        this.drawSpectrogramCanvas(view.spectrogram, result);
+        if (view.mode !== "waveform") {
+          this.drawSpectrogramCanvas(view.spectrogram, result);
+        }
       }
     }
     if (this.pendingAnalysisKeys.size === 0) {
@@ -1769,7 +1864,7 @@ export class AudioLensApp {
   }
 
   private rebuildPlaybackChannelGraph(): void {
-    if (!this.playbackAudioContext || !this.playbackSourceNode || !this.playbackGainNode || !this.audioBuffer) {
+    if (!this.playbackAudioContext || !this.playbackSourceNode || !this.playbackGainNode) {
       return;
     }
     this.playbackSourceNode.disconnect();
@@ -1778,6 +1873,14 @@ export class AudioLensApp {
     this.playbackGainNode.disconnect();
     for (const gain of this.playbackChannelGains) {
       gain.disconnect();
+    }
+    if (!this.audioBuffer) {
+      this.playbackSourceNode.connect(this.playbackGainNode);
+      this.playbackGainNode.connect(this.playbackAudioContext.destination);
+      this.playbackChannelGains = [];
+      this.playbackSplitterNode = undefined;
+      this.playbackMergerNode = undefined;
+      return;
     }
     const channels = this.audioBuffer.numberOfChannels;
     this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
@@ -2279,6 +2382,24 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
+}
+
+async function decodeAudioDataWithTimeout(audioContext: AudioContext, bytes: Uint8Array, timeoutMs: number): Promise<AudioBuffer> {
+  let timeoutId: number | undefined;
+  try {
+    return await Promise.race([
+      audioContext.decodeAudioData(toArrayBuffer(bytes)),
+      new Promise<AudioBuffer>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error(`decodeAudioData timed out after ${timeoutMs} ms`));
+        }, timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 }
 
 function encodeWav(audioBuffer: AudioBuffer): ArrayBuffer {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+Encoded audio fallback update.
+
+- Added a bounded decode path for encoded audio so unsupported or stalled codecs no longer leave the editor stuck on decoding.
+- Added extension-host FFmpeg fallback decoding for encoded files that the VS Code Webview cannot demux or decode.
+- Corrected MIME types for ADTS AAC and Ogg Opus blobs.
+
 ## 1.0.1
 
 Playback routing and remote-file convenience update.

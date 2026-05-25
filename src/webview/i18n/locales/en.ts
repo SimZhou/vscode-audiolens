@@ -102,6 +102,8 @@ export const messages = {
   readingAudio: "Reading audio",
   readingAudioProgress: "Reading audio",
   decodingAudio: "Decoding audio",
+  transcodingAudio: "Transcoding audio with FFmpeg",
+  encodedPlaybackOnly: "This encoded audio format is not supported by the VS Code Webview decoder. Install FFmpeg on the extension host machine to enable fallback decoding.",
   waitingPcmParams: "Waiting for PCM parameters",
   pcmUsedDefaultParams: "Loaded with default PCM parameters.",
   pcmFillParams: "Fill PCM parameters, then click Read.",

@@ -343,14 +343,20 @@
     if (extension === "mp3") {
       return "audio/mpeg";
     }
-    if (extension === "ogg" || extension === "opus") {
+    if (extension === "ogg") {
       return "audio/ogg";
+    }
+    if (extension === "opus") {
+      return "audio/ogg; codecs=opus";
     }
     if (extension === "flac") {
       return "audio/flac";
     }
-    if (extension === "m4a" || extension === "aac") {
+    if (extension === "m4a") {
       return "audio/mp4";
+    }
+    if (extension === "aac") {
+      return "audio/aac";
     }
     return "audio/wav";
   }
@@ -537,6 +543,8 @@
     readingAudio: "Reading audio",
     readingAudioProgress: "Reading audio",
     decodingAudio: "Decoding audio",
+    transcodingAudio: "Transcoding audio with FFmpeg",
+    encodedPlaybackOnly: "This encoded audio format is not supported by the VS Code Webview decoder. Install FFmpeg on the extension host machine to enable fallback decoding.",
     waitingPcmParams: "Waiting for PCM parameters",
     pcmUsedDefaultParams: "Loaded with default PCM parameters.",
     pcmFillParams: "Fill PCM parameters, then click Read.",
@@ -1692,6 +1700,8 @@
     readingAudio: "\u6B63\u5728\u8BFB\u53D6\u97F3\u9891",
     readingAudioProgress: "\u6B63\u5728\u8BFB\u53D6\u97F3\u9891",
     decodingAudio: "\u6B63\u5728\u89E3\u7801\u97F3\u9891",
+    transcodingAudio: "\u6B63\u5728\u4F7F\u7528 FFmpeg \u8F6C\u7801\u97F3\u9891",
+    encodedPlaybackOnly: "VS Code Webview \u89E3\u7801\u5668\u4E0D\u652F\u6301\u6B64\u7F16\u7801\u683C\u5F0F\u3002\u8BF7\u5728\u8FD0\u884C\u6269\u5C55\u5BBF\u4E3B\u7684\u673A\u5668\u4E0A\u5B89\u88C5 FFmpeg\uFF0C\u4EE5\u542F\u7528\u515C\u5E95\u89E3\u7801\u3002",
     waitingPcmParams: "\u7B49\u5F85 PCM \u53C2\u6570",
     pcmUsedDefaultParams: "\u5DF2\u4F7F\u7528\u9ED8\u8BA4 PCM \u53C2\u6570\u8BFB\u53D6\u3002",
     pcmFillParams: "\u8BF7\u586B\u5199 PCM \u53C2\u6570\uFF0C\u7136\u540E\u70B9\u51FB\u201C\u8BFB\u53D6\u201D\u3002",
@@ -2478,6 +2488,7 @@
 
   // src/webview/app.ts
   var MIN_DRAG_PIXELS = 6;
+  var ENCODED_DECODE_TIMEOUT_MS = 8e3;
   var PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
   var TRACK_AXIS_WIDTH = 78;
   var AXIS_FONT_SIZE = 13;
@@ -2524,6 +2535,8 @@
     playbackMergerNode;
     playbackChannelGains = [];
     pendingChunks = /* @__PURE__ */ new Map();
+    pendingTranscodes = /* @__PURE__ */ new Map();
+    pendingAnalysisTargets = /* @__PURE__ */ new Map();
     spectrogramCache = /* @__PURE__ */ new Map();
     spectrogramBitmapCache = /* @__PURE__ */ new Map();
     spectrogramRangeCache = /* @__PURE__ */ new Map();
@@ -2573,6 +2586,12 @@
         case "chunk":
           this.resolveChunk(message);
           break;
+        case "transcodedAudio":
+          this.resolveTranscode(message);
+          break;
+        case "transcodeError":
+          this.rejectTranscode(message);
+          break;
         case "error":
           this.setStatus(message.message);
           break;
@@ -2609,16 +2628,27 @@
     clearDecodedAudio() {
       this.audioBuffer = void 0;
       this.sourceSampleRate = void 0;
+      this.clearAudioElement();
       this.spectrogramCache.clear();
       this.spectrogramBitmapCache.clear();
       this.spectrogramRangeCache.clear();
       this.lastSpectrogramByChannel.clear();
       this.waveformCache.clear();
       this.pendingAnalysisKeys.clear();
+      this.pendingAnalysisTargets.clear();
       this.trackViews = [];
       this.elements.trackList.replaceChildren();
       this.elements.seek.value = "0";
       this.updateClock();
+    }
+    clearAudioElement() {
+      this.elements.audio.pause();
+      if (this.objectUrl) {
+        URL.revokeObjectURL(this.objectUrl);
+        this.objectUrl = void 0;
+      }
+      this.elements.audio.removeAttribute("src");
+      this.elements.audio.load();
     }
     async load(metadata) {
       this.currentFileName = metadata.fileName;
@@ -2648,6 +2678,15 @@
         }
       } else {
         await this.loadEncoded(metadata.fileName);
+        if (!this.audioBuffer) {
+          this.settings.channel = 0;
+          this.selection = void 0;
+          this.playheadTime = void 0;
+          this.selectionPlaybackEnd = void 0;
+          this.updateSelectionAnalysis();
+          this.redrawVisuals();
+          return;
+        }
       }
       this.settings.channel = 0;
       this.applyAutoAmplitudeZoom();
@@ -2665,7 +2704,7 @@
       this.applyAutoBrightness();
       this.redrawVisuals();
       if (this.config.autoAnalyze) {
-        this.analyze();
+        this.scheduleAnalyze(0);
       }
       this.setStatus(this.messages.ready);
     }
@@ -2677,10 +2716,37 @@
       this.elements.pcmPanel.hidden = true;
       this.elements.wavPcmPanel.hidden = true;
       const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
-      this.audioBuffer = await audioContext.decodeAudioData(toArrayBuffer(this.audioBytes));
-      this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
-      await audioContext.close();
-      this.installAudioElementFromBytes(fileName);
+      try {
+        this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, this.audioBytes, ENCODED_DECODE_TIMEOUT_MS);
+        this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
+        this.installAudioElementFromBytes(fileName);
+      } catch (error) {
+        console.warn("AudioLens encoded decode fallback:", error);
+        await audioContext.close().catch(() => void 0);
+        await this.loadEncodedViaFfmpeg(fileName);
+        return;
+      } finally {
+        await audioContext.close().catch(() => void 0);
+      }
+    }
+    async loadEncodedViaFfmpeg(fileName) {
+      this.setStatus(this.messages.transcodingAudio);
+      try {
+        const bytes = await this.requestTranscodedAudio();
+        const audioContext = new AudioContext();
+        try {
+          this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, bytes, ENCODED_DECODE_TIMEOUT_MS);
+          this.sourceSampleRate = this.audioBuffer.sampleRate;
+        } finally {
+          await audioContext.close().catch(() => void 0);
+        }
+        this.installAudioElementFromBytes(`${fileName}.wav`, bytes, "audio/wav");
+      } catch (error) {
+        console.warn("AudioLens FFmpeg fallback failed:", error);
+        this.clearDecodedAudio();
+        const detail = error instanceof Error ? error.message : String(error);
+        this.setStatus(`${this.messages.encodedPlaybackOnly} ${detail}`);
+      }
     }
     async loadPcm(_metadata) {
       if (!this.audioBytes) {
@@ -3276,6 +3342,22 @@
       this.pendingChunks.delete(message.requestId);
       resolve(message);
     }
+    resolveTranscode(message) {
+      const pending = this.pendingTranscodes.get(message.requestId);
+      if (!pending) {
+        return;
+      }
+      this.pendingTranscodes.delete(message.requestId);
+      pending.resolve(message);
+    }
+    rejectTranscode(message) {
+      const pending = this.pendingTranscodes.get(message.requestId);
+      if (!pending) {
+        return;
+      }
+      this.pendingTranscodes.delete(message.requestId);
+      pending.reject(new Error(message.message));
+    }
     async readAll(size) {
       const target = new Uint8Array(size);
       let offset = 0;
@@ -3294,14 +3376,23 @@
       }
       return target;
     }
-    installAudioElementFromBytes(fileName) {
-      if (!this.audioBytes) {
+    async requestTranscodedAudio() {
+      const requestId = this.requestSeq;
+      this.requestSeq += 1;
+      const message = await new Promise((resolve, reject) => {
+        this.pendingTranscodes.set(requestId, { resolve, reject });
+        this.vscode.postMessage({ type: "transcodeAudio", requestId });
+      });
+      return new Uint8Array(message.bytes);
+    }
+    installAudioElementFromBytes(fileName, bytes = this.audioBytes, mime = guessMime(fileName)) {
+      if (!bytes) {
         return;
       }
       if (this.objectUrl) {
         URL.revokeObjectURL(this.objectUrl);
       }
-      this.objectUrl = URL.createObjectURL(new Blob([toArrayBuffer(this.audioBytes)], { type: guessMime(fileName) }));
+      this.objectUrl = URL.createObjectURL(new Blob([toArrayBuffer(bytes)], { type: mime }));
       this.elements.audio.src = this.objectUrl;
       this.elements.audio.load();
       this.elements.seek.value = "0";
@@ -3353,7 +3444,7 @@
       this.applyAutoBrightness();
       this.redrawVisuals();
       if (this.config?.autoAnalyze) {
-        this.analyze();
+        this.scheduleAnalyze(0);
       }
       this.setPcmStatus(statusElement, `${this.messages.currentPcmFormat}: ${formatPcmFormat(format)}`);
       this.setStatus(this.messages.ready);
@@ -3825,6 +3916,7 @@
       if (this.pendingAnalysisKeys.size > 0) {
         this.resetAnalysisWorker();
         this.pendingAnalysisKeys.clear();
+        this.pendingAnalysisTargets.clear();
       }
       const visibleTracks = this.trackViews.filter((view) => view.mode !== "waveform");
       if (visibleTracks.length === 0) {
@@ -3853,6 +3945,7 @@
       const windowSize = Math.min(this.settings.fftSize, Math.max(1, source.length));
       const hopSize = Math.max(1, Math.floor(Math.max(1, source.length - windowSize) / targetFrames));
       this.pendingAnalysisKeys.add(cacheKey);
+      this.pendingAnalysisTargets.set(cacheKey, view.channel);
       this.spectrogramRangeCache.set(cacheKey, { startSample, endSample });
       this.setStatus(this.messages.analyzingSpectrogram);
       this.worker.postMessage(
@@ -3905,11 +3998,15 @@
       }
       this.spectrogramCache.set(result.requestId, result);
       this.pendingAnalysisKeys.delete(result.requestId);
+      const targetChannel = this.pendingAnalysisTargets.get(result.requestId);
+      this.pendingAnalysisTargets.delete(result.requestId);
       for (const view of this.trackViews) {
         const key = this.createSpectrogramCacheKey(view.channel, view.spectrogram);
-        if (key === result.requestId) {
+        if (key === result.requestId || view.channel === targetChannel) {
           this.lastSpectrogramByChannel.set(view.channel, result);
-          this.drawSpectrogramCanvas(view.spectrogram, result);
+          if (view.mode !== "waveform") {
+            this.drawSpectrogramCanvas(view.spectrogram, result);
+          }
         }
       }
       if (this.pendingAnalysisKeys.size === 0) {
@@ -4013,7 +4110,7 @@
       this.updatePlaybackChannelGains();
     }
     rebuildPlaybackChannelGraph() {
-      if (!this.playbackAudioContext || !this.playbackSourceNode || !this.playbackGainNode || !this.audioBuffer) {
+      if (!this.playbackAudioContext || !this.playbackSourceNode || !this.playbackGainNode) {
         return;
       }
       this.playbackSourceNode.disconnect();
@@ -4022,6 +4119,14 @@
       this.playbackGainNode.disconnect();
       for (const gain of this.playbackChannelGains) {
         gain.disconnect();
+      }
+      if (!this.audioBuffer) {
+        this.playbackSourceNode.connect(this.playbackGainNode);
+        this.playbackGainNode.connect(this.playbackAudioContext.destination);
+        this.playbackChannelGains = [];
+        this.playbackSplitterNode = void 0;
+        this.playbackMergerNode = void 0;
+        return;
       }
       const channels = this.audioBuffer.numberOfChannels;
       this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
@@ -4483,6 +4588,23 @@
     const buffer = new ArrayBuffer(bytes.byteLength);
     new Uint8Array(buffer).set(bytes);
     return buffer;
+  }
+  async function decodeAudioDataWithTimeout(audioContext, bytes, timeoutMs) {
+    let timeoutId;
+    try {
+      return await Promise.race([
+        audioContext.decodeAudioData(toArrayBuffer(bytes)),
+        new Promise((_, reject) => {
+          timeoutId = window.setTimeout(() => {
+            reject(new Error(`decodeAudioData timed out after ${timeoutMs} ms`));
+          }, timeoutMs);
+        })
+      ]);
+    } finally {
+      if (timeoutId !== void 0) {
+        window.clearTimeout(timeoutId);
+      }
+    }
   }
   function encodeWav(audioBuffer) {
     const channels = audioBuffer.numberOfChannels;

@@ -102,6 +102,8 @@ export const messages = {
   readingAudio: "正在读取音频",
   readingAudioProgress: "正在读取音频",
   decodingAudio: "正在解码音频",
+  transcodingAudio: "正在使用 FFmpeg 转码音频",
+  encodedPlaybackOnly: "VS Code Webview 解码器不支持此编码格式。请在运行扩展宿主的机器上安装 FFmpeg，以启用兜底解码。",
   waitingPcmParams: "等待 PCM 参数",
   pcmUsedDefaultParams: "已使用默认 PCM 参数读取。",
   pcmFillParams: "请填写 PCM 参数，然后点击“读取”。",
