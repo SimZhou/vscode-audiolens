@@ -49,7 +49,7 @@ AudioLens uses the browser audio stack for common encoded formats and extension-
 | Type | Extensions | Notes |
 | --- | --- | --- |
 | WAV | `.wav` | Supports multi-channel WAV files and optional one-time raw PCM reread. |
-| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Decoding depends on the VS Code Webview runtime on the current platform. |
+| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Uses the VS Code Webview decoder first; when available, extension-host FFmpeg is used as a fallback for formats the Webview cannot decode. |
 | Raw PCM | `.pcm`, `.raw` | Requires explicit PCM parameters before reading. |
 
 ## Multi-Channel Workflow
@@ -62,6 +62,8 @@ Multi-channel files are shown as separate channel tracks. Each track has a compa
 - Selecting a track makes it the active channel for selection analysis.
 
 The waveform color is consistent across channels so the selected channel does not visually distort the track comparison.
+
+Adjacent tracks are drawn as a compact stack with shared borders, while the selected track keeps a rounded focus outline for quick orientation.
 
 ## PCM Workflow
 

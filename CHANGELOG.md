@@ -7,6 +7,10 @@ Encoded audio fallback update.
 - Added a bounded decode path for encoded audio so unsupported or stalled codecs no longer leave the editor stuck on decoding.
 - Added extension-host FFmpeg fallback decoding for encoded files that the VS Code Webview cannot demux or decode.
 - Corrected MIME types for ADTS AAC and Ogg Opus blobs.
+- Fixed initial spectrogram rendering for PCM and RAW files after loading with saved or manual PCM parameters.
+- Refined the multi-channel track layout so adjacent tracks connect cleanly while preserving rounded track borders.
+- Improved selection rendering so the active selection uses one continuous outer rectangle instead of per-track border fragments.
+- Made the timeline playhead appear immediately at the selection start while dragging.
 
 ## 1.0.1
 

@@ -2522,6 +2522,7 @@
     requestSeq = 1;
     pendingAnalysisKeys = /* @__PURE__ */ new Set();
     playheadTime;
+    dragPlayheadTime;
     sourceSampleRate;
     selection;
     selectionPlaybackEnd;
@@ -2682,6 +2683,7 @@
           this.settings.channel = 0;
           this.selection = void 0;
           this.playheadTime = void 0;
+          this.dragPlayheadTime = void 0;
           this.selectionPlaybackEnd = void 0;
           this.updateSelectionAnalysis();
           this.redrawVisuals();
@@ -2697,6 +2699,7 @@
       this.waveformCache.clear();
       this.selection = void 0;
       this.playheadTime = void 0;
+      this.dragPlayheadTime = void 0;
       this.selectionPlaybackEnd = void 0;
       this.updateSelectionAnalysis();
       this.populateChannels();
@@ -3063,6 +3066,7 @@
       this.elements.audio.pause();
       this.elements.audio.currentTime = 0;
       this.playheadTime = void 0;
+      this.dragPlayheadTime = void 0;
       this.selectionPlaybackEnd = void 0;
       this.elements.seek.value = "0";
       this.updateClock();
@@ -3769,6 +3773,7 @@
       this.elements.viewRange.title = `${range.startTime.toFixed(3)}s - ${range.endTime.toFixed(3)}s`;
       this.drawTimeline();
       this.drawTrackVisuals();
+      this.updatePersistentSelectionBox();
     }
     drawTimeline() {
       const canvas = this.elements.timeline;
@@ -3782,7 +3787,7 @@
       }
       const ratio = window.devicePixelRatio || 1;
       const left = TRACK_AXIS_WIDTH * ratio;
-      const right = Math.max(left + 1, canvas.width - 10 * ratio);
+      const right = Math.max(left + 1, canvas.width);
       const rect = { left, top: 0, right, bottom: canvas.height, width: right - left, height: canvas.height };
       context.save();
       context.fillStyle = axisTextColor();
@@ -3820,10 +3825,11 @@
       context.restore();
     }
     drawTimelinePlayhead(context, rect, range) {
-      if (this.playheadTime === void 0 || this.playheadTime < range.startTime || this.playheadTime > range.endTime) {
+      const playheadTime = this.dragPlayheadTime ?? this.playheadTime;
+      if (playheadTime === void 0 || playheadTime < range.startTime || playheadTime > range.endTime) {
         return;
       }
-      const x = this.timeToX(this.playheadTime, rect, range);
+      const x = this.timeToX(playheadTime, rect, range);
       context.strokeStyle = "#ffcc66";
       context.fillStyle = "#ffcc66";
       context.lineWidth = 2 * deviceLineWidth();
@@ -4185,6 +4191,7 @@
         }
         isDragging = true;
         startX = event.clientX;
+        this.setDragPlayheadFromPointer(canvas, startX);
         canvas.setPointerCapture(event.pointerId);
         this.updateSelectionBox(canvas, startX, event.clientX);
       });
@@ -4206,6 +4213,8 @@
         } else {
           this.setSelectionFromPointer(canvas, startX, event.clientX);
         }
+        this.dragPlayheadTime = void 0;
+        this.drawTimeline();
       });
     }
     handleWheel(event, canvas) {
@@ -4263,9 +4272,18 @@
       this.selectionPlaybackEnd = void 0;
       this.updateSelectionAnalysis();
       this.playheadTime = clamp2(time, 0, this.audioBuffer.duration);
+      this.dragPlayheadTime = void 0;
       this.elements.audio.currentTime = this.playheadTime;
       this.updateClock();
       this.redrawVisuals();
+    }
+    setDragPlayheadFromPointer(canvas, clientX) {
+      if (!this.audioBuffer) {
+        return;
+      }
+      const time = this.timeFromCanvasX(canvas, clientX);
+      this.dragPlayheadTime = clamp2(time, 0, this.audioBuffer.duration);
+      this.drawTimeline();
     }
     setSelectionFromPointer(canvas, fromX, toX) {
       if (!this.audioBuffer) {
@@ -4279,6 +4297,7 @@
       }
       this.selection = selection;
       this.playheadTime = selection.start;
+      this.dragPlayheadTime = void 0;
       this.selectionPlaybackEnd = void 0;
       this.elements.audio.currentTime = selection.start;
       this.updateClock();
@@ -4298,6 +4317,46 @@
       this.elements.selectionBox.style.top = `${top}px`;
       this.elements.selectionBox.style.width = `${Math.abs(from - to)}px`;
       this.elements.selectionBox.style.height = `${Math.max(1, bottom - top)}px`;
+    }
+    updatePersistentSelectionBox() {
+      if (!this.selection || !this.audioBuffer) {
+        this.hideSelectionBox();
+        return;
+      }
+      const anchor = this.firstVisiblePlotCanvas();
+      if (!anchor) {
+        this.hideSelectionBox();
+        return;
+      }
+      const canvasRect = anchor.getBoundingClientRect();
+      const plot = this.getCssPlotRect(anchor);
+      const visiblePlots = this.visibleSelectionPlotRects();
+      const range = this.visibleRange();
+      const start = this.timeToX(this.selection.start, plot, range);
+      const end = this.timeToX(this.selection.end, plot, range);
+      const left = clamp2(Math.min(start, end), plot.left, plot.right);
+      const right = clamp2(Math.max(start, end), plot.left, plot.right);
+      if (right <= plot.left || left >= plot.right || right - left < 1 || visiblePlots.length === 0) {
+        this.hideSelectionBox();
+        return;
+      }
+      const top = Math.min(...visiblePlots.map((rect) => rect.top));
+      const bottom = Math.max(...visiblePlots.map((rect) => rect.bottom));
+      this.elements.selectionBox.hidden = false;
+      this.elements.selectionBox.style.left = `${canvasRect.left + left}px`;
+      this.elements.selectionBox.style.top = `${top}px`;
+      this.elements.selectionBox.style.width = `${right - left}px`;
+      this.elements.selectionBox.style.height = `${Math.max(1, bottom - top)}px`;
+    }
+    firstVisiblePlotCanvas() {
+      for (const view of this.trackViews) {
+        for (const canvas of [view.waveform, view.spectrogram]) {
+          if (canvas.offsetParent !== null && canvas.getBoundingClientRect().width > 0) {
+            return canvas;
+          }
+        }
+      }
+      return void 0;
     }
     visibleSelectionPlotRects() {
       const rects = [];
@@ -4431,7 +4490,7 @@
         const ratio2 = window.devicePixelRatio || 1;
         const left2 = TRACK_AXIS_WIDTH * ratio2;
         const top2 = 0;
-        const right2 = Math.max(left2 + 1, canvas.width - 10 * ratio2);
+        const right2 = Math.max(left2 + 1, canvas.width);
         const bottom2 = Math.max(top2 + 1, canvas.height);
         return { left: left2, top: top2, right: right2, bottom: bottom2, width: right2 - left2, height: bottom2 - top2 };
       }
@@ -4531,9 +4590,7 @@
       }
       context.save();
       context.fillStyle = "rgba(88, 166, 255, 0.18)";
-      context.strokeStyle = "rgba(88, 166, 255, 0.85)";
       context.fillRect(left, rect.top, right - left, rect.height);
-      context.strokeRect(left, rect.top, right - left, rect.height);
       context.restore();
     }
     drawPlayheadOverlay(context, rect, range) {
@@ -5413,7 +5470,7 @@
       min-height: 0;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      gap: 8px;
+      gap: 0;
       padding: 12px;
       overflow: auto;
       align-content: start;
@@ -5427,6 +5484,8 @@
       color: var(--vscode-foreground);
     }
     .timelineHeader {
+      position: relative;
+      z-index: 1;
       display: grid;
       grid-template-columns: 86px minmax(0, 1fr);
       gap: 0;
@@ -5467,9 +5526,10 @@
     }
     .trackList {
       display: grid;
-      gap: 10px;
+      gap: 0;
     }
     .trackRow {
+      position: relative;
       display: grid;
       grid-template-columns: 86px minmax(0, 1fr);
       min-height: 280px;
@@ -5478,6 +5538,12 @@
       overflow: hidden;
       background: var(--vscode-editor-background);
     }
+    .trackRow:first-child {
+      margin-top: -1px;
+    }
+    .trackRow + .trackRow {
+      margin-top: -1px;
+    }
     .trackRow[data-mode="waveform"] {
       min-height: 132px;
     }
@@ -5485,8 +5551,9 @@
       min-height: 220px;
     }
     .trackRow.isSelected {
+      z-index: 2;
       border-color: var(--vscode-focusBorder);
-      box-shadow: 0 0 0 1px var(--vscode-focusBorder) inset;
+      border-radius: 6px;
     }
     .trackSidebar {
       display: flex;
@@ -5572,9 +5639,6 @@
       min-width: 0;
       min-height: 0;
       border-bottom: 1px solid var(--vscode-panel-border);
-    }
-    .trackWaveformWrap {
-      margin-bottom: -1px;
     }
     .trackCanvasWrap:last-child {
       border-bottom: 0;

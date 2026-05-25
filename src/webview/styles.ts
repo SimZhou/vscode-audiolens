@@ -327,7 +327,7 @@ export function injectStyles(): void {
       min-height: 0;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      gap: 8px;
+      gap: 0;
       padding: 12px;
       overflow: auto;
       align-content: start;
@@ -341,6 +341,8 @@ export function injectStyles(): void {
       color: var(--vscode-foreground);
     }
     .timelineHeader {
+      position: relative;
+      z-index: 1;
       display: grid;
       grid-template-columns: 86px minmax(0, 1fr);
       gap: 0;
@@ -381,9 +383,10 @@ export function injectStyles(): void {
     }
     .trackList {
       display: grid;
-      gap: 10px;
+      gap: 0;
     }
     .trackRow {
+      position: relative;
       display: grid;
       grid-template-columns: 86px minmax(0, 1fr);
       min-height: 280px;
@@ -392,6 +395,12 @@ export function injectStyles(): void {
       overflow: hidden;
       background: var(--vscode-editor-background);
     }
+    .trackRow:first-child {
+      margin-top: -1px;
+    }
+    .trackRow + .trackRow {
+      margin-top: -1px;
+    }
     .trackRow[data-mode="waveform"] {
       min-height: 132px;
     }
@@ -399,8 +408,9 @@ export function injectStyles(): void {
       min-height: 220px;
     }
     .trackRow.isSelected {
+      z-index: 2;
       border-color: var(--vscode-focusBorder);
-      box-shadow: 0 0 0 1px var(--vscode-focusBorder) inset;
+      border-radius: 6px;
     }
     .trackSidebar {
       display: flex;
@@ -486,9 +496,6 @@ export function injectStyles(): void {
       min-width: 0;
       min-height: 0;
       border-bottom: 1px solid var(--vscode-panel-border);
-    }
-    .trackWaveformWrap {
-      margin-bottom: -1px;
     }
     .trackCanvasWrap:last-child {
       border-bottom: 0;

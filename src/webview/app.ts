@@ -130,6 +130,7 @@ export class AudioLensApp {
   private requestSeq = 1;
   private pendingAnalysisKeys = new Set<string>();
   private playheadTime: number | undefined;
+  private dragPlayheadTime: number | undefined;
   private sourceSampleRate: number | undefined;
   private selection: TimeSelectionState | undefined;
   private selectionPlaybackEnd: number | undefined;
@@ -315,6 +316,7 @@ export class AudioLensApp {
         this.settings.channel = 0;
         this.selection = undefined;
         this.playheadTime = undefined;
+        this.dragPlayheadTime = undefined;
         this.selectionPlaybackEnd = undefined;
         this.updateSelectionAnalysis();
         this.redrawVisuals();
@@ -330,6 +332,7 @@ export class AudioLensApp {
     this.waveformCache.clear();
     this.selection = undefined;
     this.playheadTime = undefined;
+    this.dragPlayheadTime = undefined;
     this.selectionPlaybackEnd = undefined;
     this.updateSelectionAnalysis();
 
@@ -712,6 +715,7 @@ export class AudioLensApp {
     this.elements.audio.pause();
     this.elements.audio.currentTime = 0;
     this.playheadTime = undefined;
+    this.dragPlayheadTime = undefined;
     this.selectionPlaybackEnd = undefined;
     this.elements.seek.value = "0";
     this.updateClock();
@@ -1485,6 +1489,7 @@ export class AudioLensApp {
     this.elements.viewRange.title = `${range.startTime.toFixed(3)}s - ${range.endTime.toFixed(3)}s`;
     this.drawTimeline();
     this.drawTrackVisuals();
+    this.updatePersistentSelectionBox();
   }
 
   private drawTimeline(): void {
@@ -1500,7 +1505,7 @@ export class AudioLensApp {
 
     const ratio = window.devicePixelRatio || 1;
     const left = TRACK_AXIS_WIDTH * ratio;
-    const right = Math.max(left + 1, canvas.width - 10 * ratio);
+    const right = Math.max(left + 1, canvas.width);
     const rect = { left, top: 0, right, bottom: canvas.height, width: right - left, height: canvas.height };
 
     context.save();
@@ -1543,10 +1548,11 @@ export class AudioLensApp {
   }
 
   private drawTimelinePlayhead(context: CanvasRenderingContext2D, rect: PlotRect, range: VisibleRangeState): void {
-    if (this.playheadTime === undefined || this.playheadTime < range.startTime || this.playheadTime > range.endTime) {
+    const playheadTime = this.dragPlayheadTime ?? this.playheadTime;
+    if (playheadTime === undefined || playheadTime < range.startTime || playheadTime > range.endTime) {
       return;
     }
-    const x = this.timeToX(this.playheadTime, rect, range);
+    const x = this.timeToX(playheadTime, rect, range);
     context.strokeStyle = "#ffcc66";
     context.fillStyle = "#ffcc66";
     context.lineWidth = 2 * deviceLineWidth();
@@ -1947,6 +1953,7 @@ export class AudioLensApp {
       }
       isDragging = true;
       startX = event.clientX;
+      this.setDragPlayheadFromPointer(canvas, startX);
       canvas.setPointerCapture(event.pointerId);
       this.updateSelectionBox(canvas, startX, event.clientX);
     });
@@ -1968,6 +1975,8 @@ export class AudioLensApp {
       } else {
         this.setSelectionFromPointer(canvas, startX, event.clientX);
       }
+      this.dragPlayheadTime = undefined;
+      this.drawTimeline();
     });
   }
 
@@ -2031,9 +2040,19 @@ export class AudioLensApp {
     this.selectionPlaybackEnd = undefined;
     this.updateSelectionAnalysis();
     this.playheadTime = clamp(time, 0, this.audioBuffer.duration);
+    this.dragPlayheadTime = undefined;
     this.elements.audio.currentTime = this.playheadTime;
     this.updateClock();
     this.redrawVisuals();
+  }
+
+  private setDragPlayheadFromPointer(canvas: HTMLCanvasElement, clientX: number): void {
+    if (!this.audioBuffer) {
+      return;
+    }
+    const time = this.timeFromCanvasX(canvas, clientX);
+    this.dragPlayheadTime = clamp(time, 0, this.audioBuffer.duration);
+    this.drawTimeline();
   }
 
   private setSelectionFromPointer(canvas: HTMLCanvasElement, fromX: number, toX: number): void {
@@ -2048,6 +2067,7 @@ export class AudioLensApp {
     }
     this.selection = selection;
     this.playheadTime = selection.start;
+    this.dragPlayheadTime = undefined;
     this.selectionPlaybackEnd = undefined;
     this.elements.audio.currentTime = selection.start;
     this.updateClock();
@@ -2068,6 +2088,48 @@ export class AudioLensApp {
     this.elements.selectionBox.style.top = `${top}px`;
     this.elements.selectionBox.style.width = `${Math.abs(from - to)}px`;
     this.elements.selectionBox.style.height = `${Math.max(1, bottom - top)}px`;
+  }
+
+  private updatePersistentSelectionBox(): void {
+    if (!this.selection || !this.audioBuffer) {
+      this.hideSelectionBox();
+      return;
+    }
+    const anchor = this.firstVisiblePlotCanvas();
+    if (!anchor) {
+      this.hideSelectionBox();
+      return;
+    }
+    const canvasRect = anchor.getBoundingClientRect();
+    const plot = this.getCssPlotRect(anchor);
+    const visiblePlots = this.visibleSelectionPlotRects();
+    const range = this.visibleRange();
+    const start = this.timeToX(this.selection.start, plot, range);
+    const end = this.timeToX(this.selection.end, plot, range);
+    const left = clamp(Math.min(start, end), plot.left, plot.right);
+    const right = clamp(Math.max(start, end), plot.left, plot.right);
+    if (right <= plot.left || left >= plot.right || right - left < 1 || visiblePlots.length === 0) {
+      this.hideSelectionBox();
+      return;
+    }
+    const top = Math.min(...visiblePlots.map((rect) => rect.top));
+    const bottom = Math.max(...visiblePlots.map((rect) => rect.bottom));
+    this.elements.selectionBox.hidden = false;
+    this.elements.selectionBox.style.left = `${canvasRect.left + left}px`;
+    this.elements.selectionBox.style.top = `${top}px`;
+    this.elements.selectionBox.style.width = `${right - left}px`;
+    this.elements.selectionBox.style.height = `${Math.max(1, bottom - top)}px`;
+  }
+
+  private firstVisiblePlotCanvas(): HTMLCanvasElement | undefined {
+    for (const view of this.trackViews) {
+      for (const canvas of [view.waveform, view.spectrogram]) {
+        if (canvas.offsetParent !== null && canvas.getBoundingClientRect().width > 0) {
+          return canvas;
+        }
+      }
+    }
+    return undefined;
   }
 
   private visibleSelectionPlotRects(): Array<{ top: number; bottom: number }> {
@@ -2213,7 +2275,7 @@ export class AudioLensApp {
       const ratio = window.devicePixelRatio || 1;
       const left = TRACK_AXIS_WIDTH * ratio;
       const top = 0;
-      const right = Math.max(left + 1, canvas.width - 10 * ratio);
+      const right = Math.max(left + 1, canvas.width);
       const bottom = Math.max(top + 1, canvas.height);
       return { left, top, right, bottom, width: right - left, height: bottom - top };
     }
@@ -2318,9 +2380,7 @@ export class AudioLensApp {
     }
     context.save();
     context.fillStyle = "rgba(88, 166, 255, 0.18)";
-    context.strokeStyle = "rgba(88, 166, 255, 0.85)";
     context.fillRect(left, rect.top, right - left, rect.height);
-    context.strokeRect(left, rect.top, right - left, rect.height);
     context.restore();
   }
 
