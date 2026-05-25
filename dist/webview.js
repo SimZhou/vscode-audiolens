@@ -440,6 +440,7 @@
     initializing: "Initializing",
     spectrogramSettings: "Spectrogram settings",
     help: "Help",
+    downloadAudio: "Download audio",
     settings: "Settings",
     playPause: "Play / pause",
     playbackPosition: "Playback position",
@@ -1594,6 +1595,7 @@
     initializing: "\u6B63\u5728\u521D\u59CB\u5316",
     spectrogramSettings: "\u9891\u8C31\u56FE\u8BBE\u7F6E",
     help: "\u5E2E\u52A9",
+    downloadAudio: "\u4E0B\u8F7D\u97F3\u9891",
     settings: "\u8BBE\u7F6E",
     playPause: "\u64AD\u653E / \u6682\u505C",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
@@ -1987,6 +1989,7 @@
           <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
+        <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">\u2193</button>
         <details id="helpMenu" class="helpMenu">
           <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
           <div class="helpPopover">
@@ -2379,6 +2382,7 @@
       defaultTrackMode: query("#defaultTrackMode", HTMLSelectElement),
       zeroPaddingFactor: query("#zeroPaddingFactor", HTMLSelectElement),
       settingsToggle: query("#settingsToggle", HTMLButtonElement),
+      downloadAudio: query("#downloadAudio", HTMLButtonElement),
       helpMenu: query("#helpMenu", HTMLElement),
       gainLabel: query("#gainLabel", HTMLSpanElement),
       playbackGain: query("#playbackGain", HTMLInputElement),
@@ -2699,6 +2703,9 @@
     bindUi() {
       this.elements.play.addEventListener("click", () => {
         void this.togglePlayback();
+      });
+      this.elements.downloadAudio.addEventListener("click", () => {
+        this.downloadCurrentAudio();
       });
       this.elements.audio.addEventListener("play", () => {
         this.elements.play.textContent = "\u23F8";
@@ -3049,6 +3056,13 @@
       const detail = `${this.messages.playbackFailed}: ${message}`;
       this.setStatus(detail);
       this.vscode.postMessage({ type: "showError", message: detail });
+    }
+    downloadCurrentAudio() {
+      if (!this.currentFileName) {
+        this.reportPlaybackError(this.messages.audioNotReady);
+        return;
+      }
+      this.vscode.postMessage({ type: "downloadAudio" });
     }
     syncControls() {
       this.elements.algorithm.value = this.settings.algorithm;
@@ -4011,22 +4025,25 @@
       }
       const channels = this.audioBuffer.numberOfChannels;
       this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
-      this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(channels);
+      this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(2);
       this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext.createGain());
       this.playbackSourceNode.connect(this.playbackSplitterNode);
       this.playbackChannelGains.forEach((gain, channel) => {
         this.playbackSplitterNode?.connect(gain, channel);
-        gain.connect(this.playbackMergerNode, 0, channel);
+        gain.connect(this.playbackMergerNode, 0, 0);
+        gain.connect(this.playbackMergerNode, 0, 1);
       });
       this.playbackMergerNode.connect(this.playbackGainNode);
       this.playbackGainNode.connect(this.playbackAudioContext.destination);
     }
     updatePlaybackChannelGains() {
       const hasSolo = this.trackViews.some((view) => view.solo);
+      const enabledChannels = this.trackViews.length > 0 ? this.trackViews.filter((view) => hasSolo ? view.solo : !view.muted).length : this.playbackChannelGains.length;
+      const channelGain = enabledChannels > 0 ? 1 / enabledChannels : 0;
       this.playbackChannelGains.forEach((gain, channel) => {
         const view = this.trackViews.find((item) => item.channel === channel);
         const enabled = view ? hasSolo ? view.solo : !view.muted : true;
-        gain.gain.value = enabled ? 1 : 0;
+        gain.gain.value = enabled ? channelGain : 0;
       });
     }
     getWaveformPeaks(channel, startSample, endSample, width) {
@@ -5082,8 +5099,13 @@
       cursor: pointer;
     }
     .secondaryIcon {
+      position: relative;
       color: var(--vscode-button-secondaryForeground);
       background: var(--vscode-button-secondaryBackground);
+    }
+    .downloadButton {
+      font-size: 18px;
+      line-height: 1;
     }
     #settingsToggle {
       position: relative;

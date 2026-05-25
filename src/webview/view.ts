@@ -12,6 +12,7 @@ export interface ViewElements {
   defaultTrackMode: HTMLSelectElement;
   zeroPaddingFactor: HTMLSelectElement;
   settingsToggle: HTMLButtonElement;
+  downloadAudio: HTMLButtonElement;
   helpMenu: HTMLElement;
   gainLabel: HTMLSpanElement;
   playbackGain: HTMLInputElement;
@@ -129,6 +130,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
+        <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">↓</button>
         <details id="helpMenu" class="helpMenu">
           <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
           <div class="helpPopover">
@@ -522,6 +524,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     defaultTrackMode: query("#defaultTrackMode", HTMLSelectElement),
     zeroPaddingFactor: query("#zeroPaddingFactor", HTMLSelectElement),
     settingsToggle: query("#settingsToggle", HTMLButtonElement),
+    downloadAudio: query("#downloadAudio", HTMLButtonElement),
     helpMenu: query("#helpMenu", HTMLElement),
     gainLabel: query("#gainLabel", HTMLSpanElement),
     playbackGain: query("#playbackGain", HTMLInputElement),

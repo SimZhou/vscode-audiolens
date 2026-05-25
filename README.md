@@ -161,7 +161,7 @@ code --install-extension simzhou.audiolens
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-1.0.0.vsix
+code --install-extension dist/audiolens-1.0.1.vsix
 ```
 
 ## Development

@@ -135,8 +135,13 @@ export function injectStyles(): void {
       cursor: pointer;
     }
     .secondaryIcon {
+      position: relative;
       color: var(--vscode-button-secondaryForeground);
       background: var(--vscode-button-secondaryBackground);
+    }
+    .downloadButton {
+      font-size: 18px;
+      line-height: 1;
     }
     #settingsToggle {
       position: relative;

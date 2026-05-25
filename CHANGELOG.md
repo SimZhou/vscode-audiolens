@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+Playback routing and remote-file convenience update.
+
+- Downmixed enabled audio tracks to stereo during playback so soloing any channel is audible on normal two-channel output devices.
+- Added a top-bar audio download button for saving the currently opened audio file, especially from Remote SSH workspaces.
+
 ## 1.0.0
 
 First full AudioLens release.

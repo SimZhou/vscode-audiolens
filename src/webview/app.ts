@@ -347,6 +347,9 @@ export class AudioLensApp {
     this.elements.play.addEventListener("click", () => {
       void this.togglePlayback();
     });
+    this.elements.downloadAudio.addEventListener("click", () => {
+      this.downloadCurrentAudio();
+    });
     this.elements.audio.addEventListener("play", () => {
       this.elements.play.textContent = "⏸";
       this.startPlaybackTicker();
@@ -718,6 +721,14 @@ export class AudioLensApp {
     const detail = `${this.messages.playbackFailed}: ${message}`;
     this.setStatus(detail);
     this.vscode.postMessage({ type: "showError", message: detail });
+  }
+
+  private downloadCurrentAudio(): void {
+    if (!this.currentFileName) {
+      this.reportPlaybackError(this.messages.audioNotReady);
+      return;
+    }
+    this.vscode.postMessage({ type: "downloadAudio" });
   }
 
   private syncControls(): void {
@@ -1770,12 +1781,13 @@ export class AudioLensApp {
     }
     const channels = this.audioBuffer.numberOfChannels;
     this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
-    this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(channels);
+    this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(2);
     this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext!.createGain());
     this.playbackSourceNode.connect(this.playbackSplitterNode);
     this.playbackChannelGains.forEach((gain, channel) => {
       this.playbackSplitterNode?.connect(gain, channel);
-      gain.connect(this.playbackMergerNode!, 0, channel);
+      gain.connect(this.playbackMergerNode!, 0, 0);
+      gain.connect(this.playbackMergerNode!, 0, 1);
     });
     this.playbackMergerNode.connect(this.playbackGainNode);
     this.playbackGainNode.connect(this.playbackAudioContext.destination);
@@ -1783,10 +1795,14 @@ export class AudioLensApp {
 
   private updatePlaybackChannelGains(): void {
     const hasSolo = this.trackViews.some((view) => view.solo);
+    const enabledChannels = this.trackViews.length > 0
+      ? this.trackViews.filter((view) => (hasSolo ? view.solo : !view.muted)).length
+      : this.playbackChannelGains.length;
+    const channelGain = enabledChannels > 0 ? 1 / enabledChannels : 0;
     this.playbackChannelGains.forEach((gain, channel) => {
       const view = this.trackViews.find((item) => item.channel === channel);
       const enabled = view ? (hasSolo ? view.solo : !view.muted) : true;
-      gain.gain.value = enabled ? 1 : 0;
+      gain.gain.value = enabled ? channelGain : 0;
     });
   }
 

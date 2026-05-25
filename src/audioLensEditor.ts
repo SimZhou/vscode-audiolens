@@ -184,6 +184,9 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
         case "updatePreferences":
           await this.context.globalState.update(PREFERENCES_KEY, this.normalizePreferences(message.preferences));
           break;
+        case "downloadAudio":
+          await this.downloadAudio(document);
+          break;
         case "showError":
           vscode.window.showErrorMessage(message.message);
           break;
@@ -205,6 +208,26 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       extension,
       kind: extension === "pcm" || extension === "raw" ? "pcm" as const : "encoded" as const
     };
+  }
+
+  private async downloadAudio(document: AudioLensDocument): Promise<void> {
+    if (!vscode.workspace.isTrusted) {
+      throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+    }
+
+    const fileName = path.basename(document.uri.fsPath || document.uri.path);
+    const destination = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(fileName),
+      saveLabel: "Download Audio",
+      title: "Download Audio"
+    });
+    if (!destination) {
+      return;
+    }
+
+    const bytes = await document.readRange(0, document.size);
+    await vscode.workspace.fs.writeFile(destination, bytes);
+    vscode.window.showInformationMessage(`AudioLens saved ${fileName}.`);
   }
 
   private readPreferences(): AudioLensPreferences {

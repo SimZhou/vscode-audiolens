@@ -24,6 +24,7 @@ export interface LocaleMessages {
   initializing: string;
   spectrogramSettings: string;
   help: string;
+  downloadAudio: string;
   settings: string;
   playPause: string;
   playbackPosition: string;

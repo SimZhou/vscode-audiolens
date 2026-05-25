@@ -70,6 +70,7 @@ export type ExtensionMessage =
 export type WebviewMessage =
   | { type: "ready" }
   | { type: "readChunk"; requestId: number; offset: number; length: number }
+  | { type: "downloadAudio" }
   | { type: "updatePreferences"; preferences: AudioLensPreferences }
   | { type: "showError"; message: string };
 

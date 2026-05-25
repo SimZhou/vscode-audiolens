@@ -5,6 +5,7 @@ export const messages = {
   initializing: "正在初始化",
   spectrogramSettings: "频谱图设置",
   help: "帮助",
+  downloadAudio: "下载音频",
   settings: "设置",
   playPause: "播放 / 暂停",
   playbackPosition: "播放位置",

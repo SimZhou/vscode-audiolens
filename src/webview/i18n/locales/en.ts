@@ -5,6 +5,7 @@ export const messages = {
   initializing: "Initializing",
   spectrogramSettings: "Spectrogram settings",
   help: "Help",
+  downloadAudio: "Download audio",
   settings: "Settings",
   playPause: "Play / pause",
   playbackPosition: "Playback position",
