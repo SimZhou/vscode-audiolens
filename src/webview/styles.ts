@@ -764,15 +764,19 @@ export function injectStyles(): void {
       pointer-events: none;
       z-index: 20;
     }
+    .selectionBox.isDraggingSelection {
+      border-left-color: transparent;
+    }
     .selectionBox::before {
       content: "";
       position: absolute;
-      left: -1px;
+      left: 0;
       top: -1px;
       bottom: -1px;
       width: 2px;
+      transform: translateX(-1px);
       background: #ffcc66;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+      display: none;
     }
     .selectionAnalysisPane {
       position: fixed;

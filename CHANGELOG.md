@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.3
+
+Selection and playback polish update.
+
+- Aligned the yellow selection-start playhead between the shared timeline and track canvases while dragging.
+- Kept the blue selection rectangle visible when replacing an active selection during playback.
+- Reduced unnecessary redraw work when starting a new drag selection during playback.
+- Updated active selection playback so replacing a selection while audio is playing also updates the new stop point.
+
 ## 1.0.2
 
 Encoded audio fallback update.

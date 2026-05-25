@@ -2526,6 +2526,7 @@
     sourceSampleRate;
     selection;
     selectionPlaybackEnd;
+    isDraggingSelection = false;
     playbackFrameId;
     preferencesSaveTimer;
     analysisTimer;
@@ -4190,6 +4191,8 @@
           return;
         }
         isDragging = true;
+        this.isDraggingSelection = true;
+        this.selectionPlaybackEnd = void 0;
         startX = event.clientX;
         this.setDragPlayheadFromPointer(canvas, startX);
         canvas.setPointerCapture(event.pointerId);
@@ -4207,6 +4210,7 @@
         }
         isDragging = false;
         canvas.releasePointerCapture(event.pointerId);
+        this.isDraggingSelection = false;
         this.hideSelectionBox();
         if (Math.abs(startX - event.clientX) < MIN_DRAG_PIXELS) {
           this.setPlayheadFromPointer(canvas, event.clientX);
@@ -4215,6 +4219,13 @@
         }
         this.dragPlayheadTime = void 0;
         this.drawTimeline();
+      });
+      canvas.addEventListener("pointercancel", () => {
+        isDragging = false;
+        this.isDraggingSelection = false;
+        this.dragPlayheadTime = void 0;
+        this.hideSelectionBox();
+        this.redrawVisuals();
       });
     }
     handleWheel(event, canvas) {
@@ -4284,6 +4295,9 @@
       const time = this.timeFromCanvasX(canvas, clientX);
       this.dragPlayheadTime = clamp2(time, 0, this.audioBuffer.duration);
       this.drawTimeline();
+      if (this.elements.audio.paused) {
+        this.drawTrackVisuals();
+      }
     }
     setSelectionFromPointer(canvas, fromX, toX) {
       if (!this.audioBuffer) {
@@ -4298,7 +4312,7 @@
       this.selection = selection;
       this.playheadTime = selection.start;
       this.dragPlayheadTime = void 0;
-      this.selectionPlaybackEnd = void 0;
+      this.selectionPlaybackEnd = this.elements.audio.paused ? void 0 : selection.end;
       this.elements.audio.currentTime = selection.start;
       this.updateClock();
       this.updateSelectionAnalysis();
@@ -4313,12 +4327,16 @@
       const top = visiblePlots.length > 0 ? Math.min(...visiblePlots.map((rect) => rect.top)) : canvasRect.top + plot.top;
       const bottom = visiblePlots.length > 0 ? Math.max(...visiblePlots.map((rect) => rect.bottom)) : canvasRect.top + plot.bottom;
       this.elements.selectionBox.hidden = false;
+      this.elements.selectionBox.classList.add("isDraggingSelection");
       this.elements.selectionBox.style.left = `${canvasRect.left + Math.min(from, to)}px`;
       this.elements.selectionBox.style.top = `${top}px`;
       this.elements.selectionBox.style.width = `${Math.abs(from - to)}px`;
       this.elements.selectionBox.style.height = `${Math.max(1, bottom - top)}px`;
     }
     updatePersistentSelectionBox() {
+      if (this.isDraggingSelection) {
+        return;
+      }
       if (!this.selection || !this.audioBuffer) {
         this.hideSelectionBox();
         return;
@@ -4343,6 +4361,7 @@
       const top = Math.min(...visiblePlots.map((rect) => rect.top));
       const bottom = Math.max(...visiblePlots.map((rect) => rect.bottom));
       this.elements.selectionBox.hidden = false;
+      this.elements.selectionBox.classList.remove("isDraggingSelection");
       this.elements.selectionBox.style.left = `${canvasRect.left + left}px`;
       this.elements.selectionBox.style.top = `${top}px`;
       this.elements.selectionBox.style.width = `${right - left}px`;
@@ -4380,6 +4399,7 @@
       return rects;
     }
     hideSelectionBox() {
+      this.elements.selectionBox.classList.remove("isDraggingSelection");
       this.elements.selectionBox.hidden = true;
     }
     bindPlotResizer(handle, pane, variableName, minHeight, maxHeight) {
@@ -4594,10 +4614,11 @@
       context.restore();
     }
     drawPlayheadOverlay(context, rect, range) {
-      if (this.playheadTime === void 0 || this.playheadTime < range.startTime || this.playheadTime > range.endTime) {
+      const playheadTime = this.dragPlayheadTime ?? this.playheadTime;
+      if (playheadTime === void 0 || playheadTime < range.startTime || playheadTime > range.endTime) {
         return;
       }
-      const x = this.timeToX(this.playheadTime, rect, range);
+      const x = this.timeToX(playheadTime, rect, range);
       context.save();
       context.strokeStyle = "#ffcc66";
       context.lineWidth = 2 * deviceLineWidth();
@@ -5907,15 +5928,19 @@
       pointer-events: none;
       z-index: 20;
     }
+    .selectionBox.isDraggingSelection {
+      border-left-color: transparent;
+    }
     .selectionBox::before {
       content: "";
       position: absolute;
-      left: -1px;
+      left: 0;
       top: -1px;
       bottom: -1px;
       width: 2px;
+      transform: translateX(-1px);
       background: #ffcc66;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+      display: none;
     }
     .selectionAnalysisPane {
       position: fixed;
