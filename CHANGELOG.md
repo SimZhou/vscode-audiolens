@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6
+
+Transparent logo update.
+
+- Fixed the v2 logo asset so the background is truly transparent.
+- Regenerated the Marketplace extension icon from the transparent logo.
+
 ## 1.0.5
 
 Logo crop update.
