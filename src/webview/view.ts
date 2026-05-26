@@ -134,10 +134,29 @@ export function renderShell(root: HTMLDivElement): ViewElements {
         <details id="helpMenu" class="helpMenu">
           <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
           <div class="helpPopover">
-            <div><span data-i18n="helpTimeZoom">Time zoom:</span> <kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></div>
-            <div><span data-i18n="helpTimePan">Time pan:</span> <kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></div>
-            <div><span data-i18n="helpAmplitudeZoom">Amplitude zoom:</span> <kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></div>
-            <div data-i18n="helpSelectionPlayback">Drag to select a segment for playback; right-click to reset view.</div>
+            <section class="helpSection">
+              <div class="helpSectionTitle" data-i18n="helpPlaybackGroup">Playback & selection</div>
+              <div class="helpRow"><span><kbd>Space</kbd></span><span data-i18n="helpPlayPause">Play / pause</span></div>
+              <div class="helpRow"><span><kbd>Esc</kbd></span><span data-i18n="helpClearSelection">Close menu, clear selection, or reset playback cursor</span></div>
+              <div class="helpNote" data-i18n="helpSelectionPlayback">Drag waveform or spectrogram to select a segment. Playing with a selection active only plays that range.</div>
+            </section>
+            <section class="helpSection">
+              <div class="helpSectionTitle" data-i18n="helpViewGroup">View navigation</div>
+              <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <kbd>F</kbd></span><span data-i18n="helpResetTimeZoom">Reset time zoom</span></div>
+              <div class="helpRow"><span><kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimeZoom">Time zoom:</span></div>
+              <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimePan">Time pan:</span></div>
+              <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAmplitudeZoom">Amplitude zoom:</span></div>
+            </section>
+            <section class="helpSection">
+              <div class="helpSectionTitle" data-i18n="helpMouseGroup">Mouse & trackpad</div>
+              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="resetView">Reset view</span></div>
+              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpPinch">Pinch</span></span><span data-i18n="helpTrackpadZoom">Pinch on trackpad to zoom time</span></div>
+              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpHorizontalSwipe">Horizontal swipe</span></span><span data-i18n="helpTrackpadPan">Horizontal trackpad swipe pans time</span></div>
+            </section>
+            <section class="helpSection">
+              <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain</div>
+              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click the gain slider to reset to 0 dB</span></div>
+            </section>
           </div>
         </details>
         <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">

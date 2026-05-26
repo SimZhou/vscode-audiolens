@@ -344,7 +344,7 @@ export function injectStyles(): void {
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: 86px minmax(0, 1fr);
+      grid-template-columns: 104px minmax(0, 1fr);
       gap: 0;
       min-height: 34px;
       align-items: stretch;
@@ -388,7 +388,7 @@ export function injectStyles(): void {
     .trackRow {
       position: relative;
       display: grid;
-      grid-template-columns: 86px minmax(0, 1fr);
+      grid-template-columns: 104px minmax(0, 1fr);
       min-height: 280px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
@@ -415,6 +415,7 @@ export function injectStyles(): void {
     .trackSidebar {
       display: flex;
       flex-direction: column;
+      align-items: stretch;
       gap: 6px;
       padding: 8px;
       border: 0;
@@ -424,6 +425,8 @@ export function injectStyles(): void {
     }
     .trackTitle, .trackToggle, .trackMode {
       font: inherit;
+      width: 100%;
+      text-align: center;
     }
     .trackToggle {
       min-height: 26px;
@@ -471,6 +474,7 @@ export function injectStyles(): void {
       background: var(--vscode-input-background);
       border: 1px solid var(--vscode-input-border, transparent);
       border-radius: 4px;
+      text-align-last: center;
     }
     .trackBody,
     .trackCanvasWrap {
@@ -697,18 +701,50 @@ export function injectStyles(): void {
       z-index: 30;
       right: 0;
       top: calc(100% + 8px);
-      width: min(360px, calc(100vw - 24px));
+      width: min(430px, calc(100vw - 24px));
       display: grid;
       gap: 8px;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
       color: var(--vscode-foreground);
       background: var(--vscode-editor-background);
       box-shadow: 0 12px 30px rgb(0 0 0 / 24%);
-      line-height: 1.45;
+      line-height: 1.35;
+      max-height: min(620px, calc(100vh - 92px));
+      overflow: auto;
     }
-    .helpPopover kbd {
+    .helpSection {
+      display: grid;
+      gap: 5px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 72%, transparent);
+    }
+    .helpSection:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+    .helpSectionTitle {
+      color: var(--vscode-descriptionForeground);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .helpRow {
+      display: grid;
+      grid-template-columns: minmax(160px, 0.48fr) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+    .helpRow > :first-child {
+      color: var(--vscode-descriptionForeground);
+      min-width: 0;
+    }
+    .helpNote {
+      color: var(--vscode-descriptionForeground);
+    }
+    .helpPopover kbd,
+    .helpGesture {
       padding: 0 4px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 4px;

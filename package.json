@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens",
   "description": "Audio preview and viewer with waveform inspection and spectrogram analysis for VS Code.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
@@ -62,7 +62,8 @@
     "commands": [
       {
         "command": "audiolens.selectLanguage",
-        "title": "AudioLens: 切换语言"
+        "title": "%command.selectLanguage.title%",
+        "category": "%command.category%"
       }
     ],
     "customEditors": [
@@ -227,7 +228,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.0.3.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.0.4.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

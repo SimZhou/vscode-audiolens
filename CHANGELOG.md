@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.4
+
+Localization and presentation update.
+
+- Replaced the AudioLens logo and extension icon with the new v2 artwork.
+- Added Ko-fi support link to the README while keeping the WeChat appreciation code.
+- Localized the Command Palette language command through VS Code manifest nls files.
+- Expanded and reorganized the Help menu with playback, selection, view navigation, mouse, trackpad, and gain shortcuts.
+- Improved English and Japanese layout for track controls and Help menu readability.
+- Expanded Webview localization coverage across all bundled languages, including PCM controls, track controls, selection analysis, metric tooltips, FFmpeg fallback text, and playback gain labels.
+- Adjusted the shared timeline ruler spacing for a more balanced top-bar layout.
+
 ## 1.0.3
 
 Selection and playback polish update.

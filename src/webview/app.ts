@@ -105,7 +105,7 @@ interface TrackView {
 const MIN_DRAG_PIXELS = 6;
 const ENCODED_DECODE_TIMEOUT_MS = 8000;
 const PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
-const TRACK_AXIS_WIDTH = 78;
+const TRACK_AXIS_WIDTH = 96;
 const AXIS_FONT_SIZE = 13;
 const WAVEFORM_AMPLITUDE_SCALE = 0.45;
 const PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
@@ -231,11 +231,15 @@ export class AudioLensApp {
   private syncPlatformShortcuts(): void {
     const timeZoomModifier = isMacPlatform() ? "⌘" : "Ctrl";
     const amplitudeZoomModifier = isMacPlatform() ? "⌥" : "Alt";
+    const commandModifier = isMacPlatform() ? "⌘" : "Ctrl";
     document.querySelectorAll<HTMLElement>("[data-time-zoom-modifier]").forEach((element) => {
       element.textContent = timeZoomModifier;
     });
     document.querySelectorAll<HTMLElement>("[data-amplitude-zoom-modifier]").forEach((element) => {
       element.textContent = amplitudeZoomModifier;
+    });
+    document.querySelectorAll<HTMLElement>("[data-command-modifier]").forEach((element) => {
+      element.textContent = commandModifier;
     });
   }
 
@@ -1513,8 +1517,15 @@ export class AudioLensApp {
     context.fillStyle = axisTextColor();
     context.font = axisFont();
     context.textBaseline = "middle";
-    const baseline = canvas.height - 7 * ratio;
-    const textY = Math.max(9 * ratio, baseline - 18 * ratio);
+    const timelineVerticalPadding = 3 * ratio;
+    const majorTickHeight = 7 * ratio;
+    const labelToTickGap = 5 * ratio;
+    const labelHeight = 12 * ratio;
+    const availableHeight = Math.max(1, canvas.height - timelineVerticalPadding * 2);
+    const rulerHeight = Math.min(availableHeight, labelHeight + labelToTickGap + majorTickHeight);
+    const rulerTop = timelineVerticalPadding + Math.max(0, (availableHeight - rulerHeight) / 2);
+    const textY = rulerTop + labelHeight / 2;
+    const baseline = rulerTop + labelHeight + labelToTickGap + majorTickHeight;
     const visibleDuration = Math.max(0.001, range.endTime - range.startTime);
     const majorStep = chooseTimelineStep(visibleDuration, rect.width / ratio, 92);
     const minorStep = chooseTimelineMinorStep(majorStep);
@@ -1533,7 +1544,7 @@ export class AudioLensApp {
       context.strokeStyle = isMajor ? timelineMajorColor() : timelineMinorColor();
       context.lineWidth = isMajor ? deviceLineWidth() : Math.max(1, deviceLineWidth() * 0.75);
       context.beginPath();
-      context.moveTo(x, baseline - (isMajor ? 9 : 4) * ratio);
+      context.moveTo(x, baseline - (isMajor ? majorTickHeight : 4 * ratio));
       context.lineTo(x, baseline);
       context.stroke();
 

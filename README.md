@@ -1,7 +1,7 @@
 # AudioLens
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo.black_background.png" alt="AudioLens" width="360">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="360">
 </p>
 
 AudioLens is an audio inspection extension for Visual Studio Code. It is built for speech, audio, and machine learning work where the audio file should stay next to the code, labels, scripts, and test data that explain it.
@@ -163,7 +163,7 @@ code --install-extension simzhou.audiolens
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-1.0.3.vsix
+code --install-extension dist/audiolens-1.0.4.vsix
 ```
 
 ## Development
@@ -191,6 +191,10 @@ Your support helps with feature work, compatibility testing, and long-term maint
 如果 AudioLens 对你的语音、音频或数据标注工作有帮助，欢迎通过赞赏支持这个项目的持续维护。
 
 你的支持会用于后续功能开发、兼容性测试和长期维护。感谢每一份鼓励。
+
+<p align="center">
+  <a href="https://ko-fi.com/simzhou">Support AudioLens on Ko-fi</a>
+</p>
 
 <p align="center">
   <img src="logo/wechat_support.jpeg" alt="WeChat appreciation code" width="240">
