@@ -188,7 +188,7 @@ VS Code で `F5` を押し、AudioLens の拡張デバッグ設定を選択し�
 
 ## 作者
 
-SimZhou: https://simzhou.com/en/about/
+SimZhou: https://simzhou.com/ja/about/
 
 ## AudioLens を支援する
 

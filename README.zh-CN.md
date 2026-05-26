@@ -188,7 +188,7 @@ npm run package
 
 ## 作者
 
-SimZhou: https://simzhou.com/en/about/
+SimZhou: https://simzhou.com/about/
 
 ## 支持 AudioLens
 
