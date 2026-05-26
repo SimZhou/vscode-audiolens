@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.5
+
+Logo crop update.
+
+- Updated the README logo artwork to the cropped v2 image.
+- Regenerated the Marketplace extension icon from the cropped logo.
+
 ## 1.0.4
 
 Localization and presentation update.
