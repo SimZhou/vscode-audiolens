@@ -4045,6 +4045,13 @@
         return;
       }
       const margin = viewDuration * 0.12;
+      if (this.selectionPlaybackEnd !== void 0 && this.playheadTime >= range.startTime && this.playheadTime <= range.endTime) {
+        const selectionEndsInView = this.selectionPlaybackEnd <= range.endTime;
+        const playheadHasRoomAhead = this.playheadTime < range.endTime - margin;
+        if (selectionEndsInView || playheadHasRoomAhead) {
+          return;
+        }
+      }
       if (this.playheadTime <= range.endTime - margin && this.playheadTime >= range.startTime + margin) {
         return;
       }
@@ -6450,7 +6457,7 @@
     }
     .settingsPanel {
       position: absolute;
-      z-index: 10;
+      z-index: 35;
       top: 52px;
       right: 12px;
       width: min(280px, calc(100vw - 24px));

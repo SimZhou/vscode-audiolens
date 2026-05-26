@@ -4,43 +4,53 @@
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="360">
 </p>
 
-AudioLens is an audio inspection extension for Visual Studio Code. It is built for speech, audio, and machine learning work where the audio file should stay next to the code, labels, scripts, and test data that explain it.
+<p align="center"><em>"I am ashamed to say that I have done only a tiny bit of work."</em></p>
 
-Open an audio file and AudioLens shows playback, waveform tracks, spectrograms, selection playback, PCM controls, and practical analysis metrics inside a read-only VS Code editor.
+<p align="center">
+  English | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.zh-CN.md">简体中文</a> | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.ja.md">日本語</a>
+</p>
 
-## What AudioLens Does
+AudioLens is an audio inspection extension for Visual Studio Code. It is built for speech, audio, and machine learning work where audio files should stay next to the code, labels, scripts, and test data that explain them.
+
+Open an audio file and AudioLens shows playback, multi-channel tracks, waveforms, spectrograms, selection playback, PCM controls, and practical analysis metrics inside a read-only VS Code editor.
+
+## Preview
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/Main-Screen-multichannel.en-US.png" alt="AudioLens multi-channel main screen" width="920">
+</p>
+
+## Highlights
 
 - Opens `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, `pcm`, and `raw` files.
-- Displays mono and multi-channel files as separate tracks, with Audacity-style track controls.
-- Shows waveform, spectrogram, or combined waveform + spectrogram views per channel.
-- Supports playback, seeking, selection playback, time zoom, time panning, and amplitude zoom.
-- Provides mute and solo controls for each channel.
+- Displays mono and multi-channel files as separate Audacity-style tracks.
+- Supports waveform, spectrogram, and combined waveform + spectrogram views per channel.
+- Provides per-channel mute and solo controls with stereo downmix playback.
 - Reads raw PCM files with explicit sample rate, channel count, bit depth, sample format, byte order, and start offset.
 - Lets WAV files be reopened as raw PCM for header-offset or damaged-file inspection.
 - Analyzes selected regions with time-domain and frequency-domain metrics.
-- Keeps common preferences such as spectrogram settings, playback gain, default track view, and PCM defaults.
+- Keeps preferences such as spectrogram settings, playback gain, default track view, and PCM defaults.
 - Works in local VS Code windows and Remote SSH workspaces.
 
-## 1.0.0 Highlights
+## Feature Demos
 
-Version 1.0.0 is the first full AudioLens release. The main editor has been rebuilt around multi-channel audio, PCM workflows, and clearer analysis tools.
+### Multi-Channel Tracks and Multi-View
 
-- Multi-channel track view: each real channel is shown as its own track. There are no synthetic mix or waveform-only channels.
-- Per-track display mode: each channel can use waveform, spectrogram, or combined view, and the default view can be changed from Settings.
-- Track controls: mute and solo controls are available per channel, with clearer active states and correct solo/mute playback behavior.
-- Shared timeline: all tracks use one top time ruler with adaptive ticks that become denser while zooming.
-- Playback cursor tracking: the visible range follows playback when the cursor moves beyond the current viewport.
-- Selection rendering: selections are shown consistently across waveform and spectrogram views, with a start-position cursor while dragging.
-- PCM file support: `.pcm` and `.raw` files can be opened with user-specified parameters and saved defaults.
-- WAV as PCM: WAV files can be reopened once as raw PCM with a separate parameter panel and start offset control.
-- Analysis panel: selection analysis now appears as a translucent overlay instead of occupying permanent left-side space.
-- More metrics: selection analysis includes duration, RMS level, peak level, dominant frequency, crest factor, clipping ratio, noise floor, spectral centroid, zero-crossing rate, and frequency-band distribution.
-- Metric tooltips: analysis metrics explain their purpose, limitations, calculation method, and references.
-- Frequency analysis update: band energy is calculated across the selected region instead of using only a single frame near the center.
-- Spectrogram polish: frequency axes, color consistency, redraw behavior, and viewport panning have been improved.
-- Gain control: playback gain is available in the top bar with a stable layout and reset tooltip.
-- Localization cleanup: the Webview now falls back to English for newly added strings when a locale is not fully translated.
-- Packaging cleanup: the public package contains the compiled extension, public documentation, license, and assets only.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.en-US.gif" alt="Multi-channel tracks and multi-view demo" width="920">
+</p>
+
+### Selection Playback and Analysis
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.en-US.gif" alt="Selection playback and analysis demo" width="920">
+</p>
+
+### PCM / RAW Parameterized Loading
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/3.pcm_raw_parameterized_loading.en-US.gif" alt="PCM and RAW parameterized loading demo" width="920">
+</p>
 
 ## Supported Files
 
@@ -49,7 +59,7 @@ AudioLens uses the browser audio stack for common encoded formats and extension-
 | Type | Extensions | Notes |
 | --- | --- | --- |
 | WAV | `.wav` | Supports multi-channel WAV files and optional one-time raw PCM reread. |
-| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Uses the VS Code Webview decoder first; when available, extension-host FFmpeg is used as a fallback for formats the Webview cannot decode. |
+| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Uses the VS Code Webview decoder first. When available, extension-host FFmpeg is used as a fallback for formats the Webview cannot decode. |
 | Raw PCM | `.pcm`, `.raw` | Requires explicit PCM parameters before reading. |
 
 ## Multi-Channel Workflow
@@ -61,9 +71,7 @@ Multi-channel files are shown as separate channel tracks. Each track has a compa
 - The track view selector switches a channel between waveform, spectrogram, and combined view.
 - Selecting a track makes it the active channel for selection analysis.
 
-The waveform color is consistent across channels so the selected channel does not visually distort the track comparison.
-
-Adjacent tracks are drawn as a compact stack with shared borders, while the selected track keeps a rounded focus outline for quick orientation.
+The waveform color is consistent across channels so the selected channel does not visually distort track comparison. Adjacent tracks are drawn as a compact stack with shared borders, while the selected track keeps a rounded focus outline for quick orientation.
 
 ## PCM Workflow
 
@@ -128,7 +136,7 @@ Spectrogram work runs behind a worker boundary so expensive analysis does not bl
 
 ## Localization
 
-AudioLens follows the VS Code display language by default. You can override the Webview language with the `audiolens.language` setting or by running `AudioLens: 切换语言` from the Command Palette.
+AudioLens follows the VS Code display language by default. You can override the Webview language with the `audiolens.language` setting or by running `AudioLens: Switch Language` from the Command Palette.
 
 Supported languages:
 
@@ -140,7 +148,7 @@ New interface strings fall back to English until a locale has a complete transla
 
 AudioLens is declared as a workspace extension. In a Remote SSH window, the extension host runs in the remote workspace, reads audio files from the remote file system, and streams the data to the local Webview for playback and visualization.
 
-This keeps remote speech and audio datasets inspectable without downloading files manually.
+Use the top-bar download button when you want to save the current remote audio file locally.
 
 ## Privacy
 
@@ -163,7 +171,7 @@ code --install-extension simzhou.audiolens
 For local testing, install a packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-1.0.6.vsix
+code --install-extension dist/audiolens-1.0.7.vsix
 ```
 
 ## Development
@@ -186,18 +194,14 @@ SimZhou: https://simzhou.com/en/about/
 
 If AudioLens helps with your speech, audio, or data annotation workflow, you are welcome to support its ongoing development.
 
-Your support helps with feature work, compatibility testing, and long-term maintenance. Thank you for the encouragement.
+### Ko-fi
 
-如果 AudioLens 对你的语音、音频或数据标注工作有帮助，欢迎通过赞赏支持这个项目的持续维护。
+Support AudioLens on Ko-fi: https://ko-fi.com/simzhou
 
-你的支持会用于后续功能开发、兼容性测试和长期维护。感谢每一份鼓励。
-
-<p align="center">
-  <a href="https://ko-fi.com/simzhou">Support AudioLens on Ko-fi</a>
-</p>
+### WeChat
 
 <p align="center">
-  <img src="logo/wechat_support.jpeg" alt="WeChat appreciation code" width="240">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/wechat_support.jpeg" alt="WeChat appreciation code" width="240">
 </p>
 
 ## Copyright

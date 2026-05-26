@@ -670,6 +670,13 @@ export class AudioLensApp {
       return;
     }
     const margin = viewDuration * 0.12;
+    if (this.selectionPlaybackEnd !== undefined && this.playheadTime >= range.startTime && this.playheadTime <= range.endTime) {
+      const selectionEndsInView = this.selectionPlaybackEnd <= range.endTime;
+      const playheadHasRoomAhead = this.playheadTime < range.endTime - margin;
+      if (selectionEndsInView || playheadHasRoomAhead) {
+        return;
+      }
+    }
     if (this.playheadTime <= range.endTime - margin && this.playheadTime >= range.startTime + margin) {
       return;
     }

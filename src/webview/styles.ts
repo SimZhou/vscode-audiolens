@@ -253,7 +253,7 @@ export function injectStyles(): void {
     }
     .settingsPanel {
       position: absolute;
-      z-index: 10;
+      z-index: 35;
       top: 52px;
       right: 12px;
       width: min(280px, calc(100vw - 24px));

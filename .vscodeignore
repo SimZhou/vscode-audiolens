@@ -13,11 +13,15 @@ node_modules/**
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+README.zh-CN.md
+README.ja.md
 docs/roadmap.md
 docs/**
 Cargo.toml
 Cargo.lock
 logo/AudioLens_logo*.png
+logo/ChatGPT Image*.png
+logo/wechat_support.jpeg
 dist/*.map
 *.vsix
 *.aac

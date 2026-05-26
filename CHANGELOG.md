@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.7
+
+Interaction and documentation polish update.
+
+- Kept the settings panel above the selection analysis overlay.
+- Reduced viewport jumps when starting playback from a highly zoomed selection.
+- Reworked the README into English, Simplified Chinese, and Japanese editions with language switching links.
+- Added localized main-screen screenshots and feature GIF demos for multi-channel tracks, selection analysis, and PCM / RAW loading.
+- Moved README media assets into `docs/assets/readme` and kept them out of the VSIX package.
+- Trimmed the VSIX package by excluding non-runtime README assets and optimizing the Marketplace icon.
+
 ## 1.0.6
 
 Transparent logo update.

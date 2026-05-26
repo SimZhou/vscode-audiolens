@@ -28,6 +28,11 @@ GEMINI.md
 
 # Internal planning docs
 docs/
+!docs/
+docs/*
+!docs/assets/
+!docs/assets/readme/
+!docs/assets/readme/*
 docs/roadmap.md
 
 # Local audio fixtures
