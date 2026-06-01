@@ -254,6 +254,28 @@
     }
     return {};
   }
+  function readAudioHeaderInfo(bytes, fileName) {
+    const extension = fileName.toLowerCase().split(".").pop();
+    if (extension === "wav" || extension === "wave") {
+      return readWavHeaderInfo(bytes);
+    }
+    if (extension === "flac") {
+      return readFlacHeaderInfo(bytes);
+    }
+    if (extension === "ogg" || extension === "opus") {
+      return readOggHeaderInfo(bytes);
+    }
+    if (extension === "m4a" || extension === "mp4") {
+      return readMp4HeaderInfo(bytes);
+    }
+    if (extension === "aac") {
+      return readAacHeaderInfo(bytes) ?? readMp4HeaderInfo(bytes);
+    }
+    if (extension === "mp3") {
+      return readMp3HeaderInfo(bytes);
+    }
+    return void 0;
+  }
   function readWavSampleRate(bytes) {
     if (bytes.byteLength < 28 || ascii(bytes, 0, 4) !== "RIFF" || ascii(bytes, 8, 12) !== "WAVE") {
       return void 0;
@@ -272,6 +294,135 @@
     }
     return void 0;
   }
+  function readWavHeaderInfo(bytes) {
+    if (bytes.byteLength < 12 || ascii(bytes, 0, 4) !== "RIFF" || ascii(bytes, 8, 12) !== "WAVE") {
+      return void 0;
+    }
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const rows = [
+      { offset: 0, size: 4, field: "ChunkID", value: ascii(bytes, 0, 4), note: "RIFF" },
+      { offset: 4, size: 4, field: "ChunkSize", value: `${view.getUint32(4, true)} B`, note: "\u6587\u4EF6\u5927\u5C0F - 8" },
+      { offset: 8, size: 4, field: "Format", value: ascii(bytes, 8, 12), note: "WAVE" }
+    ];
+    let offset = 12;
+    let dataPayloadOffset;
+    let fmtChunkSize;
+    let audioFormat;
+    const extraChunksBeforeData = [];
+    while (offset + 8 <= bytes.byteLength) {
+      const chunkId = ascii(bytes, offset, offset + 4);
+      const chunkLabel = chunkId.trimEnd() || chunkId;
+      const chunkSize = view.getUint32(offset + 4, true);
+      const dataOffset = offset + 8;
+      const chunkEnd = Math.min(dataOffset + chunkSize, bytes.byteLength);
+      rows.push({ offset, size: 4, field: `${chunkLabel}.ChunkID`, value: chunkId, note: "\u5B50\u5757 ID" });
+      rows.push({ offset: offset + 4, size: 4, field: `${chunkLabel}.ChunkSize`, value: `${chunkSize} B`, note: "\u5B50\u5757\u6570\u636E\u957F\u5EA6" });
+      if (chunkId === "fmt ") {
+        fmtChunkSize = chunkSize;
+        if (dataOffset + 2 <= chunkEnd) {
+          audioFormat = view.getUint16(dataOffset, true);
+        }
+        appendWavFmtRows(rows, view, dataOffset, chunkEnd);
+      } else if (chunkId === "data") {
+        dataPayloadOffset = dataOffset;
+        rows.push({ offset: dataOffset, size: chunkSize, field: "data.Payload", value: "", note: "\u97F3\u9891\u6570\u636E\u533A\u57DF" });
+      } else if (chunkSize > 0) {
+        if (dataPayloadOffset === void 0) {
+          extraChunksBeforeData.push(chunkLabel);
+        }
+        rows.push({ offset: dataOffset, size: chunkSize, field: `${chunkLabel}.Payload`, value: `${chunkSize} B`, note: "\u672A\u5C55\u5F00\u5B50\u5757" });
+      }
+      offset = dataOffset + chunkSize + chunkSize % 2;
+    }
+    return { format: "WAV / RIFF", summary: wavHeaderSummary(dataPayloadOffset, fmtChunkSize, audioFormat, extraChunksBeforeData), rows };
+  }
+  function wavHeaderSummary(dataPayloadOffset, fmtChunkSize, audioFormat, extraChunksBeforeData) {
+    if (dataPayloadOffset === void 0) {
+      return { tone: "warning", kind: "wavHeader", missingData: true, text: "\u672A\u627E\u5230 data chunk", detail: "\u65E0\u6CD5\u5224\u65AD WAV \u5934\u957F\u5EA6\u3002" };
+    }
+    const isStandardPcmHeader = dataPayloadOffset === 44 && fmtChunkSize === 16 && audioFormat === 1;
+    if (isStandardPcmHeader) {
+      return { tone: "info", kind: "wavHeader", headerSize: dataPayloadOffset, standard: true, text: `WAV \u5934\u957F\u5EA6 ${dataPayloadOffset} B`, detail: "\u6807\u51C6 44 \u5B57\u8282 PCM \u5934\u3002" };
+    }
+    const reasons = wavHeaderReasons(fmtChunkSize, audioFormat, extraChunksBeforeData);
+    return {
+      tone: "warning",
+      kind: "wavHeader",
+      headerSize: dataPayloadOffset,
+      standard: false,
+      reasons,
+      text: `WAV \u5934\u957F\u5EA6 ${dataPayloadOffset} B`,
+      detail: wavHeaderReasonLabels(reasons).join("\uFF1B")
+    };
+  }
+  function wavHeaderReasons(fmtChunkSize, audioFormat, extraChunksBeforeData) {
+    const reasons = [];
+    if (fmtChunkSize !== void 0 && fmtChunkSize !== 16) {
+      reasons.push({ type: "fmtExtended", size: fmtChunkSize });
+    }
+    if (audioFormat !== void 0 && audioFormat !== 1) {
+      reasons.push({ type: "format", format: audioFormat, name: wavFormatName(audioFormat) });
+    }
+    if (extraChunksBeforeData.length > 0) {
+      reasons.push({ type: "extraChunks", chunks: extraChunksBeforeData });
+    }
+    return reasons;
+  }
+  function wavHeaderReasonLabels(reasons) {
+    return reasons.map((reason) => {
+      switch (reason.type) {
+        case "fmtExtended":
+          return `fmt \u5B50\u5757\u4E3A ${reason.size} B\uFF0C\u5305\u542B\u6269\u5C55\u683C\u5F0F\u5B57\u6BB5`;
+        case "format":
+          return `\u7F16\u7801\u683C\u5F0F\u4E3A ${reason.format} (${reason.name})`;
+        case "extraChunks":
+          return `data \u524D\u6709\u989D\u5916\u5B50\u5757 ${reason.chunks.join(", ")}`;
+        case "dataOffset":
+          return "data \u8D77\u59CB\u504F\u79FB\u4E0D\u662F 44 B";
+      }
+    });
+  }
+  function appendWavFmtRows(rows, view, dataOffset, chunkEnd) {
+    if (dataOffset + 16 > chunkEnd) {
+      rows.push({ offset: dataOffset, size: Math.max(0, chunkEnd - dataOffset), field: "fmt.Payload", value: "\u4E0D\u5B8C\u6574", note: "fmt \u5B50\u5757\u8FC7\u77ED" });
+      return;
+    }
+    const audioFormat = view.getUint16(dataOffset, true);
+    const channels = view.getUint16(dataOffset + 2, true);
+    const sampleRate = view.getUint32(dataOffset + 4, true);
+    const byteRate = view.getUint32(dataOffset + 8, true);
+    const blockAlign = view.getUint16(dataOffset + 12, true);
+    const bitsPerSample = view.getUint16(dataOffset + 14, true);
+    rows.push({ offset: dataOffset, size: 2, field: "fmt.AudioFormat", value: `${audioFormat} (${wavFormatName(audioFormat)})`, note: "\u7F16\u7801\u683C\u5F0F" });
+    rows.push({ offset: dataOffset + 2, size: 2, field: "fmt.NumChannels", value: String(channels), note: "\u901A\u9053\u6570" });
+    rows.push({ offset: dataOffset + 4, size: 4, field: "fmt.SampleRate", value: `${sampleRate} Hz`, note: "\u91C7\u6837\u7387" });
+    rows.push({ offset: dataOffset + 8, size: 4, field: "fmt.ByteRate", value: `${byteRate} B/s`, note: "\u5B57\u8282\u7387" });
+    rows.push({ offset: dataOffset + 12, size: 2, field: "fmt.BlockAlign", value: `${blockAlign} B`, note: "\u6BCF\u5E27\u5B57\u8282\u6570" });
+    rows.push({ offset: dataOffset + 14, size: 2, field: "fmt.BitsPerSample", value: `${bitsPerSample} bit`, note: "\u4F4D\u6DF1" });
+    if (dataOffset + 18 <= chunkEnd) {
+      rows.push({ offset: dataOffset + 16, size: 2, field: "fmt.CbSize", value: `${view.getUint16(dataOffset + 16, true)} B`, note: "\u6269\u5C55\u53C2\u6570\u957F\u5EA6" });
+    }
+    if (dataOffset + 24 <= chunkEnd && audioFormat === 65534) {
+      rows.push({ offset: dataOffset + 18, size: 2, field: "fmt.ValidBitsPerSample", value: `${view.getUint16(dataOffset + 18, true)} bit`, note: "\u6709\u6548\u4F4D\u6DF1" });
+      rows.push({ offset: dataOffset + 20, size: 4, field: "fmt.ChannelMask", value: `0x${view.getUint32(dataOffset + 20, true).toString(16)}`, note: "\u58F0\u9053\u5E03\u5C40\u63A9\u7801" });
+    }
+  }
+  function wavFormatName(format) {
+    switch (format) {
+      case 1:
+        return "PCM";
+      case 3:
+        return "IEEE Float";
+      case 6:
+        return "A-law";
+      case 7:
+        return "Mu-law";
+      case 65534:
+        return "Extensible";
+      default:
+        return "Unknown";
+    }
+  }
   function readFlacSampleRate(bytes) {
     if (bytes.byteLength < 42 || ascii(bytes, 0, 4) !== "fLaC") {
       return void 0;
@@ -285,12 +436,340 @@
     const sampleRate = bytes[offset + 10] << 12 | bytes[offset + 11] << 4 | bytes[offset + 12] >> 4;
     return sampleRate > 0 ? sampleRate : void 0;
   }
+  function readFlacHeaderInfo(bytes) {
+    if (bytes.byteLength < 4 || ascii(bytes, 0, 4) !== "fLaC") {
+      return void 0;
+    }
+    const rows = [
+      { offset: 0, size: 4, field: "Marker", value: "fLaC", note: "FLAC \u6807\u8BC6" }
+    ];
+    let offset = 4;
+    while (offset + 4 <= bytes.byteLength) {
+      const header = bytes[offset] ?? 0;
+      const isLast = (header & 128) !== 0;
+      const blockType = header & 127;
+      const length = readUint24BE(bytes, offset + 1);
+      const dataOffset = offset + 4;
+      const blockName = flacBlockTypeName(blockType);
+      rows.push({ offset, size: 1, field: `${blockName}.Header`, value: `last=${isLast}, type=${blockType}`, note: "\u5143\u6570\u636E\u5757\u5934" });
+      rows.push({ offset: offset + 1, size: 3, field: `${blockName}.Length`, value: `${length} B`, note: "\u5143\u6570\u636E\u5757\u957F\u5EA6" });
+      if (blockType === 0 && dataOffset + 34 <= bytes.byteLength) {
+        appendFlacStreamInfoRows(rows, bytes, dataOffset);
+      } else if (length > 0) {
+        rows.push({ offset: dataOffset, size: length, field: `${blockName}.Payload`, value: `${length} B`, note: "\u5143\u6570\u636E\u5757\u5185\u5BB9" });
+      }
+      offset = dataOffset + length;
+      if (isLast) {
+        break;
+      }
+    }
+    return { format: "FLAC", rows };
+  }
+  function appendFlacStreamInfoRows(rows, bytes, offset) {
+    const minBlockSize = readUint16BE(bytes, offset);
+    const maxBlockSize = readUint16BE(bytes, offset + 2);
+    const minFrameSize = readUint24BE(bytes, offset + 4);
+    const maxFrameSize = readUint24BE(bytes, offset + 7);
+    const sampleRate = bytes[offset + 10] << 12 | bytes[offset + 11] << 4 | bytes[offset + 12] >> 4;
+    const channels = (bytes[offset + 12] >> 1 & 7) + 1;
+    const bitsPerSample = ((bytes[offset + 12] & 1) << 4 | bytes[offset + 13] >> 4) + 1;
+    const totalSamples = (BigInt(bytes[offset + 13] & 15) << 32n | BigInt(bytes[offset + 14]) << 24n | BigInt(bytes[offset + 15]) << 16n | BigInt(bytes[offset + 16]) << 8n | BigInt(bytes[offset + 17])).toString();
+    rows.push({ offset, size: 2, field: "STREAMINFO.MinBlockSize", value: String(minBlockSize), note: "\u6700\u5C0F\u5757\u5927\u5C0F" });
+    rows.push({ offset: offset + 2, size: 2, field: "STREAMINFO.MaxBlockSize", value: String(maxBlockSize), note: "\u6700\u5927\u5757\u5927\u5C0F" });
+    rows.push({ offset: offset + 4, size: 3, field: "STREAMINFO.MinFrameSize", value: `${minFrameSize} B`, note: "\u6700\u5C0F\u5E27\u5927\u5C0F" });
+    rows.push({ offset: offset + 7, size: 3, field: "STREAMINFO.MaxFrameSize", value: `${maxFrameSize} B`, note: "\u6700\u5927\u5E27\u5927\u5C0F" });
+    rows.push({ offset: offset + 10, size: 3, bits: "80-99 (20 bit)", field: "STREAMINFO.SampleRate", value: `${sampleRate} Hz`, note: "\u91C7\u6837\u7387" });
+    rows.push({ offset: offset + 12, size: 1, bits: "100-102 (3 bit)", field: "STREAMINFO.Channels", value: String(channels), note: "\u901A\u9053\u6570" });
+    rows.push({ offset: offset + 12, size: 2, bits: "103-107 (5 bit)", field: "STREAMINFO.BitsPerSample", value: `${bitsPerSample} bit`, note: "\u4F4D\u6DF1" });
+    rows.push({ offset: offset + 13, size: 5, bits: "108-143 (36 bit)", field: "STREAMINFO.TotalSamples", value: totalSamples, note: "\u603B\u91C7\u6837\u6570" });
+    rows.push({ offset: offset + 18, size: 16, field: "STREAMINFO.MD5", value: hex(bytes, offset + 18, offset + 34), note: "\u539F\u59CB\u97F3\u9891 MD5" });
+  }
+  function readOggHeaderInfo(bytes) {
+    if (bytes.byteLength < 27 || ascii(bytes, 0, 4) !== "OggS") {
+      return void 0;
+    }
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const rows = [];
+    let offset = 0;
+    let pageIndex = 0;
+    while (offset + 27 <= bytes.byteLength && pageIndex < 4 && ascii(bytes, offset, offset + 4) === "OggS") {
+      const segmentCount = bytes[offset + 26] ?? 0;
+      if (offset + 27 + segmentCount > bytes.byteLength) {
+        break;
+      }
+      const payloadSize = sumBytes(bytes, offset + 27, offset + 27 + segmentCount);
+      const page = `Page${pageIndex}`;
+      rows.push({ offset, size: 4, field: `${page}.CapturePattern`, value: "OggS", note: "Ogg \u9875\u6807\u8BC6" });
+      rows.push({ offset: offset + 4, size: 1, field: `${page}.Version`, value: String(bytes[offset + 4] ?? 0), note: "\u6D41\u7ED3\u6784\u7248\u672C" });
+      rows.push({ offset: offset + 5, size: 1, field: `${page}.HeaderType`, value: oggHeaderType(bytes[offset + 5] ?? 0), note: "\u9875\u7C7B\u578B\u6807\u5FD7" });
+      rows.push({ offset: offset + 6, size: 8, field: `${page}.GranulePosition`, value: view.getBigUint64(offset + 6, true).toString(), note: "\u7EDD\u5BF9\u4F4D\u7F6E" });
+      rows.push({ offset: offset + 14, size: 4, field: `${page}.BitstreamSerialNumber`, value: String(view.getUint32(offset + 14, true)), note: "\u903B\u8F91\u6D41\u5E8F\u53F7" });
+      rows.push({ offset: offset + 18, size: 4, field: `${page}.PageSequenceNumber`, value: String(view.getUint32(offset + 18, true)), note: "\u9875\u5E8F\u53F7" });
+      rows.push({ offset: offset + 22, size: 4, field: `${page}.Checksum`, value: `0x${view.getUint32(offset + 22, true).toString(16)}`, note: "\u9875\u6821\u9A8C\u548C" });
+      rows.push({ offset: offset + 26, size: 1, field: `${page}.PageSegments`, value: String(segmentCount), note: "segment \u6570" });
+      rows.push({ offset: offset + 27, size: segmentCount, field: `${page}.SegmentTable`, value: `${segmentCount} B`, note: "segment \u957F\u5EA6\u8868" });
+      rows.push({ offset: offset + 27 + segmentCount, size: payloadSize, field: `${page}.Payload`, value: `${payloadSize} B`, note: "\u9875\u6570\u636E" });
+      if (pageIndex === 0) {
+        appendOggCodecRows(rows, bytes, offset + 27 + segmentCount, payloadSize);
+      }
+      offset += 27 + segmentCount + payloadSize;
+      pageIndex += 1;
+    }
+    return { format: "OGG", rows };
+  }
+  function appendOggCodecRows(rows, bytes, offset, size) {
+    if (size >= 19 && ascii(bytes, offset, offset + 8) === "OpusHead") {
+      rows.push({ offset, size: 8, field: "OpusHead.Magic", value: "OpusHead", note: "Opus \u8BC6\u522B\u5934" });
+      rows.push({ offset: offset + 8, size: 1, field: "OpusHead.Version", value: String(bytes[offset + 8] ?? 0), note: "\u7248\u672C" });
+      rows.push({ offset: offset + 9, size: 1, field: "OpusHead.ChannelCount", value: String(bytes[offset + 9] ?? 0), note: "\u901A\u9053\u6570" });
+      rows.push({ offset: offset + 10, size: 2, field: "OpusHead.PreSkip", value: String(readUint16LE(bytes, offset + 10)), note: "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570" });
+      rows.push({ offset: offset + 12, size: 4, field: "OpusHead.InputSampleRate", value: `${readUint32LE(bytes, offset + 12)} Hz`, note: "\u8F93\u5165\u91C7\u6837\u7387" });
+      rows.push({ offset: offset + 16, size: 2, field: "OpusHead.OutputGain", value: String(readInt16LE(bytes, offset + 16)), note: "\u8F93\u51FA\u589E\u76CA" });
+      rows.push({ offset: offset + 18, size: 1, field: "OpusHead.ChannelMappingFamily", value: String(bytes[offset + 18] ?? 0), note: "\u58F0\u9053\u6620\u5C04\u65CF" });
+      return;
+    }
+    if (size >= 30 && bytes[offset] === 1 && ascii(bytes, offset + 1, offset + 7) === "vorbis") {
+      rows.push({ offset, size: 1, field: "Vorbis.PacketType", value: "1", note: "\u8BC6\u522B\u5934" });
+      rows.push({ offset: offset + 1, size: 6, field: "Vorbis.Magic", value: "vorbis", note: "Vorbis \u6807\u8BC6" });
+      rows.push({ offset: offset + 7, size: 4, field: "Vorbis.Version", value: String(readUint32LE(bytes, offset + 7)), note: "\u7248\u672C" });
+      rows.push({ offset: offset + 11, size: 1, field: "Vorbis.Channels", value: String(bytes[offset + 11] ?? 0), note: "\u901A\u9053\u6570" });
+      rows.push({ offset: offset + 12, size: 4, field: "Vorbis.SampleRate", value: `${readUint32LE(bytes, offset + 12)} Hz`, note: "\u91C7\u6837\u7387" });
+    }
+  }
+  function readMp4HeaderInfo(bytes) {
+    if (bytes.byteLength < 8) {
+      return void 0;
+    }
+    const rows = [];
+    appendMp4Boxes(rows, bytes, 0, bytes.byteLength, 0);
+    return rows.length > 0 ? { format: "M4A / MP4", rows } : void 0;
+  }
+  function appendMp4Boxes(rows, bytes, start, end, depth) {
+    const boxes = collectMp4Boxes(bytes, start, end);
+    boxes.forEach((box, index) => {
+      if (rows.length >= 420) {
+        return;
+      }
+      const isLast = index === boxes.length - 1;
+      rows.push({ offset: box.offset, size: box.boxSize, depth, treePrefix: isLast ? "\u2514\u2500" : "\u251C\u2500", kind: "box", field: box.type, value: "", note: "box \u7C7B\u578B" });
+      const payloadOffset = box.offset + box.headerSize;
+      const payloadEnd = box.offset + box.boxSize;
+      appendKnownMp4BoxRows(rows, bytes, box.type, payloadOffset, payloadEnd, depth + 1, isLast);
+      if (isMp4ContainerBox(box.type)) {
+        const childStart = box.type === "meta" ? payloadOffset + 4 : payloadOffset;
+        if (childStart <= payloadEnd) {
+          appendMp4Boxes(rows, bytes, childStart, payloadEnd, depth + 1);
+        }
+      }
+    });
+  }
+  function collectMp4Boxes(bytes, start, end) {
+    const boxes = [];
+    let offset = start;
+    while (offset + 8 <= end && boxes.length < 420) {
+      const size32 = readUint32BE(bytes, offset);
+      const type = ascii(bytes, offset + 4, offset + 8);
+      if (!isMp4BoxType(type)) {
+        break;
+      }
+      let headerSize = 8;
+      let boxSize = size32;
+      if (size32 === 1 && offset + 16 <= end) {
+        boxSize = Number(readUint64BE(bytes, offset + 8));
+        headerSize = 16;
+      } else if (size32 === 0) {
+        boxSize = end - offset;
+      }
+      if (boxSize < headerSize || offset + boxSize > end) {
+        break;
+      }
+      boxes.push({ offset, type, boxSize, headerSize });
+      offset += boxSize;
+    }
+    return boxes;
+  }
+  function appendKnownMp4BoxRows(rows, bytes, type, offset, end, depth, parentIsLast) {
+    const branch = parentIsLast ? "  \u251C\u2500" : "\u2502 \u251C\u2500";
+    if (type === "ftyp" && offset + 8 <= end) {
+      rows.push({ offset, size: 4, depth, treePrefix: branch, kind: "field", field: "MajorBrand", value: ascii(bytes, offset, offset + 4), note: "\u4E3B\u54C1\u724C" });
+      rows.push({ offset: offset + 4, size: 4, depth, treePrefix: branch, kind: "field", field: "MinorVersion", value: String(readUint32BE(bytes, offset + 4)), note: "\u6B21\u7248\u672C" });
+      if (offset + 8 < end) {
+        rows.push({ offset: offset + 8, size: end - offset - 8, depth, treePrefix: branch, kind: "field", field: "CompatibleBrands", value: readBrands(bytes, offset + 8, end), note: "\u517C\u5BB9\u54C1\u724C" });
+      }
+      return;
+    }
+    if ((type === "mvhd" || type === "mdhd") && offset + 20 <= end) {
+      const version = bytes[offset] ?? 0;
+      rows.push({ offset, size: 1, depth, treePrefix: branch, kind: "field", field: "Version", value: String(version), note: "\u7248\u672C" });
+      rows.push({ offset: offset + 1, size: 3, depth, treePrefix: branch, kind: "field", field: "Flags", value: `0x${hex(bytes, offset + 1, offset + 4)}`, note: "\u6807\u5FD7" });
+      if (version === 1 && offset + 32 <= end) {
+        rows.push({ offset: offset + 20, size: 4, depth, treePrefix: branch, kind: "field", field: "Timescale", value: String(readUint32BE(bytes, offset + 20)), note: "\u65F6\u95F4\u523B\u5EA6" });
+        rows.push({ offset: offset + 24, size: 8, depth, treePrefix: branch, kind: "field", field: "Duration", value: readUint64BE(bytes, offset + 24).toString(), note: "\u65F6\u957F\u5355\u4F4D\u6570" });
+      } else if (offset + 20 <= end) {
+        rows.push({ offset: offset + 12, size: 4, depth, treePrefix: branch, kind: "field", field: "Timescale", value: String(readUint32BE(bytes, offset + 12)), note: "\u65F6\u95F4\u523B\u5EA6" });
+        rows.push({ offset: offset + 16, size: 4, depth, treePrefix: branch, kind: "field", field: "Duration", value: String(readUint32BE(bytes, offset + 16)), note: "\u65F6\u957F\u5355\u4F4D\u6570" });
+      }
+      return;
+    }
+    if (type === "hdlr" && offset + 12 <= end) {
+      rows.push({ offset, size: 1, depth, treePrefix: branch, kind: "field", field: "Version", value: String(bytes[offset] ?? 0), note: "\u7248\u672C" });
+      rows.push({ offset: offset + 8, size: 4, depth, treePrefix: branch, kind: "field", field: "HandlerType", value: ascii(bytes, offset + 8, offset + 12), note: "\u5904\u7406\u5668\u7C7B\u578B" });
+      return;
+    }
+    if (type === "stsd" && offset + 16 <= end) {
+      rows.push({ offset, size: 1, depth, treePrefix: branch, kind: "field", field: "Version", value: String(bytes[offset] ?? 0), note: "\u7248\u672C" });
+      rows.push({ offset: offset + 4, size: 4, depth, treePrefix: branch, kind: "field", field: "EntryCount", value: String(readUint32BE(bytes, offset + 4)), note: "\u6837\u672C\u63CF\u8FF0\u6570\u91CF" });
+      rows.push({ offset: offset + 12, size: 4, depth, treePrefix: branch, kind: "field", field: "SampleEntryType", value: ascii(bytes, offset + 12, offset + 16), note: "\u6837\u672C\u7C7B\u578B" });
+    }
+  }
+  function readAacHeaderInfo(bytes) {
+    if (bytes.byteLength < 7 || bytes[0] !== 255 || ((bytes[1] ?? 0) & 240) !== 240) {
+      return void 0;
+    }
+    const protectionAbsent = bytes[1] & 1;
+    const profile = bytes[2] >> 6 & 3;
+    const sampleRateIndex = bytes[2] >> 2 & 15;
+    const channelConfig = (bytes[2] & 1) << 2 | bytes[3] >> 6 & 3;
+    const frameLength = (bytes[3] & 3) << 11 | bytes[4] << 3 | bytes[5] >> 5 & 7;
+    const bufferFullness = (bytes[5] & 31) << 6 | bytes[6] >> 2 & 63;
+    const frameCount = bytes[6] & 3;
+    const rows = [
+      { offset: 0, size: 2, bits: "0-11 (12 bit)", field: "ADTS.Syncword", value: "0xfff", note: "\u540C\u6B65\u5B57" },
+      { offset: 1, size: 1, bits: "12 (1 bit)", field: "ADTS.MpegVersion", value: (bytes[1] >> 3 & 1) === 0 ? "MPEG-4" : "MPEG-2", note: "MPEG \u7248\u672C" },
+      { offset: 1, size: 1, bits: "13-14 (2 bit)", field: "ADTS.Layer", value: String(bytes[1] >> 1 & 3), note: "\u5C42" },
+      { offset: 1, size: 1, bits: "15 (1 bit)", field: "ADTS.ProtectionAbsent", value: String(protectionAbsent), note: "CRC \u662F\u5426\u7701\u7565" },
+      { offset: 2, size: 1, bits: "16-17 (2 bit)", field: "ADTS.Profile", value: `${profile} (${aacProfileName(profile)})`, note: "AAC profile" },
+      { offset: 2, size: 1, bits: "18-21 (4 bit)", field: "ADTS.SamplingFrequencyIndex", value: `${sampleRateIndex} (${aacSampleRate(sampleRateIndex)})`, note: "\u91C7\u6837\u7387\u7D22\u5F15" },
+      { offset: 2, size: 2, bits: "23-25 (3 bit)", field: "ADTS.ChannelConfiguration", value: String(channelConfig), note: "\u58F0\u9053\u914D\u7F6E" },
+      { offset: 3, size: 3, bits: "30-42 (13 bit)", field: "ADTS.FrameLength", value: `${frameLength} B`, note: "ADTS \u5E27\u957F\u5EA6" },
+      { offset: 5, size: 2, bits: "43-53 (11 bit)", field: "ADTS.BufferFullness", value: String(bufferFullness), note: "\u7F13\u51B2 fullness" },
+      { offset: 6, size: 1, bits: "54-55 (2 bit)", field: "ADTS.RawDataBlocks", value: String(frameCount), note: "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5" }
+    ];
+    return { format: "AAC / ADTS", rows };
+  }
+  function readMp3HeaderInfo(bytes) {
+    const rows = [];
+    let offset = 0;
+    if (bytes.byteLength >= 10 && ascii(bytes, 0, 3) === "ID3") {
+      const tagSize = readSynchsafeUint32(bytes, 6);
+      rows.push({ offset: 0, size: 3, field: "ID3.Identifier", value: "ID3", note: "ID3v2 \u6807\u8BC6" });
+      rows.push({ offset: 3, size: 2, field: "ID3.Version", value: `${bytes[3] ?? 0}.${bytes[4] ?? 0}`, note: "ID3 \u7248\u672C" });
+      rows.push({ offset: 5, size: 1, field: "ID3.Flags", value: `0x${(bytes[5] ?? 0).toString(16)}`, note: "\u6807\u5FD7" });
+      rows.push({ offset: 6, size: 4, field: "ID3.Size", value: `${tagSize} B`, note: "\u6807\u7B7E\u957F\u5EA6" });
+      offset = 10 + tagSize;
+    }
+    while (offset + 4 <= bytes.byteLength && !(bytes[offset] === 255 && ((bytes[offset + 1] ?? 0) & 224) === 224)) {
+      offset += 1;
+    }
+    if (offset + 4 > bytes.byteLength) {
+      return rows.length > 0 ? { format: "MP3", rows } : void 0;
+    }
+    rows.push({ offset, size: 2, bits: "frame 0-10 (11 bit)", field: "MPEG.Sync", value: "0x7ff", note: "\u5E27\u540C\u6B65" });
+    rows.push({ offset: offset + 1, size: 1, bits: "frame 11-12 (2 bit)", field: "MPEG.Version", value: mp3VersionName(bytes[offset + 1] >> 3 & 3), note: "MPEG \u97F3\u9891\u7248\u672C" });
+    rows.push({ offset: offset + 1, size: 1, bits: "frame 13-14 (2 bit)", field: "MPEG.Layer", value: mp3LayerName(bytes[offset + 1] >> 1 & 3), note: "Layer" });
+    rows.push({ offset: offset + 1, size: 1, bits: "frame 15 (1 bit)", field: "MPEG.ProtectionBit", value: String(bytes[offset + 1] & 1), note: "CRC \u6807\u5FD7" });
+    rows.push({ offset: offset + 2, size: 1, bits: "frame 16-19 (4 bit)", field: "MPEG.BitrateIndex", value: String(bytes[offset + 2] >> 4 & 15), note: "\u7801\u7387\u7D22\u5F15" });
+    rows.push({ offset: offset + 2, size: 1, bits: "frame 20-21 (2 bit)", field: "MPEG.SamplingRateIndex", value: String(bytes[offset + 2] >> 2 & 3), note: "\u91C7\u6837\u7387\u7D22\u5F15" });
+    rows.push({ offset: offset + 3, size: 1, bits: "frame 24-25 (2 bit)", field: "MPEG.ChannelMode", value: mp3ChannelModeName(bytes[offset + 3] >> 6 & 3), note: "\u58F0\u9053\u6A21\u5F0F" });
+    return { format: "MP3", rows };
+  }
   function ascii(bytes, start, end) {
     let value = "";
     for (let index = start; index < end; index += 1) {
       value += String.fromCharCode(bytes[index] ?? 0);
     }
     return value;
+  }
+  function hex(bytes, start, end) {
+    let value = "";
+    for (let index = start; index < end; index += 1) {
+      value += (bytes[index] ?? 0).toString(16).padStart(2, "0");
+    }
+    return value;
+  }
+  function readUint16BE(bytes, offset) {
+    return (bytes[offset] ?? 0) << 8 | (bytes[offset + 1] ?? 0);
+  }
+  function readUint16LE(bytes, offset) {
+    return (bytes[offset] ?? 0) | (bytes[offset + 1] ?? 0) << 8;
+  }
+  function readInt16LE(bytes, offset) {
+    const value = readUint16LE(bytes, offset);
+    return value >= 32768 ? value - 65536 : value;
+  }
+  function readUint24BE(bytes, offset) {
+    return (bytes[offset] ?? 0) << 16 | (bytes[offset + 1] ?? 0) << 8 | (bytes[offset + 2] ?? 0);
+  }
+  function readUint32BE(bytes, offset) {
+    return (bytes[offset] ?? 0) * 16777216 + ((bytes[offset + 1] ?? 0) << 16 | (bytes[offset + 2] ?? 0) << 8 | (bytes[offset + 3] ?? 0));
+  }
+  function readUint32LE(bytes, offset) {
+    return (bytes[offset] ?? 0) | (bytes[offset + 1] ?? 0) << 8 | (bytes[offset + 2] ?? 0) << 16 | (bytes[offset + 3] ?? 0) * 16777216;
+  }
+  function readUint64BE(bytes, offset) {
+    return BigInt(bytes[offset] ?? 0) << 56n | BigInt(bytes[offset + 1] ?? 0) << 48n | BigInt(bytes[offset + 2] ?? 0) << 40n | BigInt(bytes[offset + 3] ?? 0) << 32n | BigInt(bytes[offset + 4] ?? 0) << 24n | BigInt(bytes[offset + 5] ?? 0) << 16n | BigInt(bytes[offset + 6] ?? 0) << 8n | BigInt(bytes[offset + 7] ?? 0);
+  }
+  function readSynchsafeUint32(bytes, offset) {
+    return (bytes[offset] & 127) << 21 | (bytes[offset + 1] & 127) << 14 | (bytes[offset + 2] & 127) << 7 | bytes[offset + 3] & 127;
+  }
+  function sumBytes(bytes, start, end) {
+    let sum = 0;
+    for (let index = start; index < end; index += 1) {
+      sum += bytes[index] ?? 0;
+    }
+    return sum;
+  }
+  function flacBlockTypeName(type) {
+    return ["STREAMINFO", "PADDING", "APPLICATION", "SEEKTABLE", "VORBIS_COMMENT", "CUESHEET", "PICTURE"][type] ?? `BLOCK_${type}`;
+  }
+  function oggHeaderType(value) {
+    const flags = [];
+    if ((value & 1) !== 0) flags.push("continued");
+    if ((value & 2) !== 0) flags.push("first");
+    if ((value & 4) !== 0) flags.push("last");
+    return flags.length ? `${value} (${flags.join(", ")})` : String(value);
+  }
+  function isMp4BoxType(type) {
+    return /^[A-Za-z0-9 _-]{4}$/.test(type);
+  }
+  function isMp4ContainerBox(type) {
+    return ["moov", "trak", "mdia", "minf", "stbl", "edts", "udta", "meta", "ilst"].includes(type);
+  }
+  function readBrands(bytes, start, end) {
+    const brands = [];
+    for (let offset = start; offset + 4 <= end; offset += 4) {
+      brands.push(ascii(bytes, offset, offset + 4));
+    }
+    return brands.join(", ");
+  }
+  function aacProfileName(profile) {
+    return ["Main", "LC", "SSR", "Reserved"][profile] ?? "Unknown";
+  }
+  function aacSampleRate(index) {
+    return [
+      "96000 Hz",
+      "88200 Hz",
+      "64000 Hz",
+      "48000 Hz",
+      "44100 Hz",
+      "32000 Hz",
+      "24000 Hz",
+      "22050 Hz",
+      "16000 Hz",
+      "12000 Hz",
+      "11025 Hz",
+      "8000 Hz",
+      "7350 Hz"
+    ][index] ?? "reserved";
+  }
+  function mp3VersionName(value) {
+    return ["MPEG 2.5", "reserved", "MPEG 2", "MPEG 1"][value] ?? "unknown";
+  }
+  function mp3LayerName(value) {
+    return ["reserved", "Layer III", "Layer II", "Layer I"][value] ?? "unknown";
+  }
+  function mp3ChannelModeName(value) {
+    return ["Stereo", "Joint stereo", "Dual channel", "Single channel"][value] ?? "unknown";
   }
 
   // src/webview/dom.ts
@@ -403,6 +882,27 @@
     mouseWheel: "Mausrad",
     help: "Hilfe",
     downloadAudio: "Audio herunterladen",
+    headerInfo: "Header-Info",
+    headerInfoTitle: "Header-Info",
+    headerInfoAudioUnread: "Audiodaten wurden noch nicht gelesen.",
+    headerInfoUnsupported: "Header-Parsing wird f\xFCr dieses Format noch nicht unterst\xFCtzt.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Byte-Offset",
+    headerInfoSize: "L\xE4nge",
+    headerInfoBits: "Bits",
+    headerInfoField: "Feld",
+    headerInfoValue: "Wert",
+    headerInfoDescription: "Beschreibung",
+    headerInfoWavMissingData: "data-Chunk nicht gefunden",
+    headerInfoWavCannotDetermine: "WAV-Headerl\xE4nge kann nicht bestimmt werden.",
+    headerInfoWavHeaderLength: "WAV-Headerl\xE4nge {size} B",
+    headerInfoWavStandardPcm: "Standardm\xE4\xDFiger 44-Byte-PCM-Header.",
+    headerInfoWavNonStandardPrefix: "Nicht standardm\xE4\xDFiger 44-Byte-PCM-Header",
+    headerInfoWavFmtExtended: "fmt-Chunk ist {size} B gro\xDF und enth\xE4lt erweiterte Formatfelder",
+    headerInfoWavFormat: "Audioformat ist {format} ({name})",
+    headerInfoWavExtraChunks: "zus\xE4tzliche Chunks vor data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data beginnt nicht bei Offset 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Einstellungen",
     pcmReadAs: "Als PCM lesen",
     pcmParams: "PCM-Parameter",
@@ -512,6 +1012,27 @@
     spectrogramSettings: "Spectrogram settings",
     help: "Help",
     downloadAudio: "Download audio",
+    headerInfo: "Header info",
+    headerInfoTitle: "Header info",
+    headerInfoAudioUnread: "Audio data has not been read.",
+    headerInfoUnsupported: "Header parsing is not supported for this format yet.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Byte Offset",
+    headerInfoSize: "Size",
+    headerInfoBits: "Bits",
+    headerInfoField: "Field",
+    headerInfoValue: "Value",
+    headerInfoDescription: "Description",
+    headerInfoWavMissingData: "data chunk not found",
+    headerInfoWavCannotDetermine: "Cannot determine WAV header length.",
+    headerInfoWavHeaderLength: "WAV header length {size} B",
+    headerInfoWavStandardPcm: "Standard 44-byte PCM header.",
+    headerInfoWavNonStandardPrefix: "Non-44-byte PCM header",
+    headerInfoWavFmtExtended: "fmt chunk is {size} B and contains extended format fields",
+    headerInfoWavFormat: "audio format is {format} ({name})",
+    headerInfoWavExtraChunks: "extra chunk(s) before data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data starts at an offset other than 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Settings",
     playPause: "Play / pause",
     playbackPosition: "Playback position",
@@ -691,6 +1212,27 @@
     mouseWheel: "Rueda del rat\xF3n",
     help: "Ayuda",
     downloadAudio: "Descargar audio",
+    headerInfo: "Informaci\xF3n de cabecera",
+    headerInfoTitle: "Informaci\xF3n de cabecera",
+    headerInfoAudioUnread: "Los datos de audio a\xFAn no se han le\xEDdo.",
+    headerInfoUnsupported: "El an\xE1lisis de cabecera a\xFAn no es compatible con este formato.",
+    headerInfoOffset: "Desplazamiento",
+    headerInfoByteOffset: "Desplazamiento byte",
+    headerInfoSize: "Longitud",
+    headerInfoBits: "Bits",
+    headerInfoField: "Campo",
+    headerInfoValue: "Valor",
+    headerInfoDescription: "Descripci\xF3n",
+    headerInfoWavMissingData: "no se encontr\xF3 el chunk data",
+    headerInfoWavCannotDetermine: "No se puede determinar la longitud de la cabecera WAV.",
+    headerInfoWavHeaderLength: "Longitud de cabecera WAV {size} B",
+    headerInfoWavStandardPcm: "Cabecera PCM est\xE1ndar de 44 bytes.",
+    headerInfoWavNonStandardPrefix: "Cabecera PCM no est\xE1ndar de 44 bytes",
+    headerInfoWavFmtExtended: "el chunk fmt mide {size} B e incluye campos de formato extendidos",
+    headerInfoWavFormat: "el formato de audio es {format} ({name})",
+    headerInfoWavExtraChunks: "chunk(s) extra antes de data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data comienza en un desplazamiento distinto de 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Ajustes",
     pcmReadAs: "Leer como PCM",
     pcmParams: "Par\xE1metros PCM",
@@ -835,6 +1377,27 @@
     mouseWheel: "molette",
     help: "Aide",
     downloadAudio: "T\xE9l\xE9charger l'audio",
+    headerInfo: "Infos d'en-t\xEAte",
+    headerInfoTitle: "Infos d'en-t\xEAte",
+    headerInfoAudioUnread: "Les donn\xE9es audio n'ont pas encore \xE9t\xE9 lues.",
+    headerInfoUnsupported: "L'analyse de l'en-t\xEAte n'est pas encore prise en charge pour ce format.",
+    headerInfoOffset: "D\xE9calage",
+    headerInfoByteOffset: "D\xE9calage octet",
+    headerInfoSize: "Taille",
+    headerInfoBits: "Bits",
+    headerInfoField: "Champ",
+    headerInfoValue: "Valeur",
+    headerInfoDescription: "Description",
+    headerInfoWavMissingData: "chunk data introuvable",
+    headerInfoWavCannotDetermine: "Impossible de d\xE9terminer la longueur de l'en-t\xEAte WAV.",
+    headerInfoWavHeaderLength: "Longueur de l'en-t\xEAte WAV {size} B",
+    headerInfoWavStandardPcm: "En-t\xEAte PCM standard de 44 octets.",
+    headerInfoWavNonStandardPrefix: "En-t\xEAte PCM non standard de 44 octets",
+    headerInfoWavFmtExtended: "le chunk fmt fait {size} B et contient des champs de format \xE9tendus",
+    headerInfoWavFormat: "le format audio est {format} ({name})",
+    headerInfoWavExtraChunks: "chunk(s) suppl\xE9mentaire(s) avant data : {chunks}",
+    headerInfoWavDataOffsetNon44: "data commence \xE0 un d\xE9calage diff\xE9rent de 44 B",
+    headerInfoReasonSeparator: " ; ",
     settings: "R\xE9glages",
     pcmReadAs: "Lire en PCM",
     pcmParams: "Param\xE8tres PCM",
@@ -979,6 +1542,27 @@
     mouseWheel: "Roda mouse",
     help: "Bantuan",
     downloadAudio: "Unduh audio",
+    headerInfo: "Info header",
+    headerInfoTitle: "Info header",
+    headerInfoAudioUnread: "Data audio belum dibaca.",
+    headerInfoUnsupported: "Penguraian header belum didukung untuk format ini.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Offset byte",
+    headerInfoSize: "Panjang",
+    headerInfoBits: "Bit",
+    headerInfoField: "Kolom",
+    headerInfoValue: "Nilai",
+    headerInfoDescription: "Deskripsi",
+    headerInfoWavMissingData: "chunk data tidak ditemukan",
+    headerInfoWavCannotDetermine: "Tidak dapat menentukan panjang header WAV.",
+    headerInfoWavHeaderLength: "Panjang header WAV {size} B",
+    headerInfoWavStandardPcm: "Header PCM standar 44 byte.",
+    headerInfoWavNonStandardPrefix: "Header PCM bukan 44 byte",
+    headerInfoWavFmtExtended: "chunk fmt berukuran {size} B dan berisi kolom format tambahan",
+    headerInfoWavFormat: "format audio adalah {format} ({name})",
+    headerInfoWavExtraChunks: "chunk tambahan sebelum data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data dimulai pada offset selain 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Pengaturan",
     pcmReadAs: "Baca sebagai PCM",
     pcmParams: "Parameter PCM",
@@ -1123,6 +1707,27 @@
     mouseWheel: "Rotella mouse",
     help: "Aiuto",
     downloadAudio: "Scarica audio",
+    headerInfo: "Info intestazione",
+    headerInfoTitle: "Info intestazione",
+    headerInfoAudioUnread: "I dati audio non sono ancora stati letti.",
+    headerInfoUnsupported: "L'analisi dell'intestazione non \xE8 ancora supportata per questo formato.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Offset byte",
+    headerInfoSize: "Lunghezza",
+    headerInfoBits: "Bit",
+    headerInfoField: "Campo",
+    headerInfoValue: "Valore",
+    headerInfoDescription: "Descrizione",
+    headerInfoWavMissingData: "chunk data non trovato",
+    headerInfoWavCannotDetermine: "Impossibile determinare la lunghezza dell'intestazione WAV.",
+    headerInfoWavHeaderLength: "Lunghezza intestazione WAV {size} B",
+    headerInfoWavStandardPcm: "Intestazione PCM standard da 44 byte.",
+    headerInfoWavNonStandardPrefix: "Intestazione PCM non standard da 44 byte",
+    headerInfoWavFmtExtended: "il chunk fmt \xE8 {size} B e contiene campi di formato estesi",
+    headerInfoWavFormat: "il formato audio \xE8 {format} ({name})",
+    headerInfoWavExtraChunks: "chunk extra prima di data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data inizia a un offset diverso da 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Impostazioni",
     pcmReadAs: "Leggi come PCM",
     pcmParams: "Parametri PCM",
@@ -1232,6 +1837,27 @@
     spectrogramSettings: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u8A2D\u5B9A",
     help: "\u30D8\u30EB\u30D7",
     downloadAudio: "\u97F3\u58F0\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    headerInfo: "\u30D8\u30C3\u30C0\u30FC\u60C5\u5831",
+    headerInfoTitle: "\u30D8\u30C3\u30C0\u30FC\u60C5\u5831",
+    headerInfoAudioUnread: "\u97F3\u58F0\u30C7\u30FC\u30BF\u306F\u307E\u3060\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+    headerInfoUnsupported: "\u3053\u306E\u5F62\u5F0F\u306E\u30D8\u30C3\u30C0\u30FC\u89E3\u6790\u306F\u307E\u3060\u30B5\u30DD\u30FC\u30C8\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+    headerInfoOffset: "\u30AA\u30D5\u30BB\u30C3\u30C8",
+    headerInfoByteOffset: "\u30D0\u30A4\u30C8\u30AA\u30D5\u30BB\u30C3\u30C8",
+    headerInfoSize: "\u9577\u3055",
+    headerInfoBits: "\u30D3\u30C3\u30C8\u7BC4\u56F2",
+    headerInfoField: "\u30D5\u30A3\u30FC\u30EB\u30C9",
+    headerInfoValue: "\u5024",
+    headerInfoDescription: "\u8AAC\u660E",
+    headerInfoWavMissingData: "data chunk \u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
+    headerInfoWavCannotDetermine: "WAV \u30D8\u30C3\u30C0\u30FC\u9577\u3092\u5224\u5B9A\u3067\u304D\u307E\u305B\u3093\u3002",
+    headerInfoWavHeaderLength: "WAV \u30D8\u30C3\u30C0\u30FC\u9577 {size} B",
+    headerInfoWavStandardPcm: "\u6A19\u6E96\u306E 44 \u30D0\u30A4\u30C8 PCM \u30D8\u30C3\u30C0\u30FC\u3067\u3059\u3002",
+    headerInfoWavNonStandardPrefix: "44 \u30D0\u30A4\u30C8\u3067\u306F\u306A\u3044 PCM \u30D8\u30C3\u30C0\u30FC",
+    headerInfoWavFmtExtended: "fmt \u30C1\u30E3\u30F3\u30AF\u306F {size} B \u3067\u3001\u62E1\u5F35\u5F62\u5F0F\u30D5\u30A3\u30FC\u30EB\u30C9\u3092\u542B\u307F\u307E\u3059",
+    headerInfoWavFormat: "\u97F3\u58F0\u5F62\u5F0F\u306F {format} ({name}) \u3067\u3059",
+    headerInfoWavExtraChunks: "data \u306E\u524D\u306B\u8FFD\u52A0\u30C1\u30E3\u30F3\u30AF\u304C\u3042\u308A\u307E\u3059: {chunks}",
+    headerInfoWavDataOffsetNon44: "data \u306E\u958B\u59CB\u30AA\u30D5\u30BB\u30C3\u30C8\u304C 44 B \u3067\u306F\u3042\u308A\u307E\u305B\u3093",
+    headerInfoReasonSeparator: "\uFF1B",
     settings: "\u8A2D\u5B9A",
     playPause: "\u518D\u751F / \u4E00\u6642\u505C\u6B62",
     playbackPosition: "\u518D\u751F\u4F4D\u7F6E",
@@ -1411,6 +2037,27 @@
     mouseWheel: "\uB9C8\uC6B0\uC2A4 \uD720",
     help: "\uB3C4\uC6C0\uB9D0",
     downloadAudio: "\uC624\uB514\uC624 \uB2E4\uC6B4\uB85C\uB4DC",
+    headerInfo: "\uD5E4\uB354 \uC815\uBCF4",
+    headerInfoTitle: "\uD5E4\uB354 \uC815\uBCF4",
+    headerInfoAudioUnread: "\uC624\uB514\uC624 \uB370\uC774\uD130\uB97C \uC544\uC9C1 \uC77D\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
+    headerInfoUnsupported: "\uC774 \uD615\uC2DD\uC758 \uD5E4\uB354 \uD30C\uC2F1\uC740 \uC544\uC9C1 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    headerInfoOffset: "\uC624\uD504\uC14B",
+    headerInfoByteOffset: "\uBC14\uC774\uD2B8 \uC624\uD504\uC14B",
+    headerInfoSize: "\uAE38\uC774",
+    headerInfoBits: "\uBE44\uD2B8 \uBC94\uC704",
+    headerInfoField: "\uD544\uB4DC",
+    headerInfoValue: "\uAC12",
+    headerInfoDescription: "\uC124\uBA85",
+    headerInfoWavMissingData: "data chunk\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+    headerInfoWavCannotDetermine: "WAV \uD5E4\uB354 \uAE38\uC774\uB97C \uD310\uB2E8\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    headerInfoWavHeaderLength: "WAV \uD5E4\uB354 \uAE38\uC774 {size} B",
+    headerInfoWavStandardPcm: "\uD45C\uC900 44\uBC14\uC774\uD2B8 PCM \uD5E4\uB354\uC785\uB2C8\uB2E4.",
+    headerInfoWavNonStandardPrefix: "44\uBC14\uC774\uD2B8\uAC00 \uC544\uB2CC PCM \uD5E4\uB354",
+    headerInfoWavFmtExtended: "fmt \uCCAD\uD06C\uAC00 {size} B\uC774\uBA70 \uD655\uC7A5 \uD615\uC2DD \uD544\uB4DC\uB97C \uD3EC\uD568\uD569\uB2C8\uB2E4",
+    headerInfoWavFormat: "\uC624\uB514\uC624 \uD615\uC2DD\uC740 {format} ({name})\uC785\uB2C8\uB2E4",
+    headerInfoWavExtraChunks: "data \uC55E\uC5D0 \uCD94\uAC00 \uCCAD\uD06C\uAC00 \uC788\uC2B5\uB2C8\uB2E4: {chunks}",
+    headerInfoWavDataOffsetNon44: "data \uC2DC\uC791 \uC624\uD504\uC14B\uC774 44 B\uAC00 \uC544\uB2D9\uB2C8\uB2E4",
+    headerInfoReasonSeparator: "; ",
     settings: "\uC124\uC815",
     pcmReadAs: "PCM\uC73C\uB85C \uC77D\uAE30",
     pcmParams: "PCM \uB9E4\uAC1C\uBCC0\uC218",
@@ -1555,6 +2202,27 @@
     mouseWheel: "Muiswiel",
     help: "Help",
     downloadAudio: "Audio downloaden",
+    headerInfo: "Headerinformatie",
+    headerInfoTitle: "Headerinformatie",
+    headerInfoAudioUnread: "Audiogegevens zijn nog niet gelezen.",
+    headerInfoUnsupported: "Headeranalyse wordt voor dit formaat nog niet ondersteund.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Byte-offset",
+    headerInfoSize: "Lengte",
+    headerInfoBits: "Bits",
+    headerInfoField: "Veld",
+    headerInfoValue: "Waarde",
+    headerInfoDescription: "Beschrijving",
+    headerInfoWavMissingData: "data-chunk niet gevonden",
+    headerInfoWavCannotDetermine: "Kan WAV-headerlengte niet bepalen.",
+    headerInfoWavHeaderLength: "WAV-headerlengte {size} B",
+    headerInfoWavStandardPcm: "Standaard PCM-header van 44 bytes.",
+    headerInfoWavNonStandardPrefix: "Niet-standaard PCM-header van 44 bytes",
+    headerInfoWavFmtExtended: "fmt-chunk is {size} B en bevat uitgebreide formaatvelden",
+    headerInfoWavFormat: "audioformaat is {format} ({name})",
+    headerInfoWavExtraChunks: "extra chunk(s) v\xF3\xF3r data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data begint op een andere offset dan 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Instellingen",
     pcmReadAs: "Als PCM lezen",
     pcmParams: "PCM-parameters",
@@ -1699,6 +2367,27 @@
     mouseWheel: "Musehjul",
     help: "Hjelp",
     downloadAudio: "Last ned lyd",
+    headerInfo: "Headerinfo",
+    headerInfoTitle: "Headerinfo",
+    headerInfoAudioUnread: "Lyddata er ikke lest enn\xE5.",
+    headerInfoUnsupported: "Headeranalyse st\xF8ttes ikke for dette formatet enn\xE5.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Byte-offset",
+    headerInfoSize: "Lengde",
+    headerInfoBits: "Bits",
+    headerInfoField: "Felt",
+    headerInfoValue: "Verdi",
+    headerInfoDescription: "Beskrivelse",
+    headerInfoWavMissingData: "data-chunk ikke funnet",
+    headerInfoWavCannotDetermine: "Kan ikke bestemme WAV-headerlengde.",
+    headerInfoWavHeaderLength: "WAV-headerlengde {size} B",
+    headerInfoWavStandardPcm: "Standard 44-byte PCM-header.",
+    headerInfoWavNonStandardPrefix: "Ikke-standard PCM-header som ikke er 44 byte",
+    headerInfoWavFmtExtended: "fmt-chunk er {size} B og inneholder utvidede formatfelt",
+    headerInfoWavFormat: "lydformatet er {format} ({name})",
+    headerInfoWavExtraChunks: "ekstra chunk(er) f\xF8r data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data starter p\xE5 en annen offset enn 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Innstillinger",
     pcmReadAs: "Les som PCM",
     pcmParams: "PCM-parametere",
@@ -1843,6 +2532,27 @@
     mouseWheel: "K\xF3\u0142ko myszy",
     help: "Pomoc",
     downloadAudio: "Pobierz audio",
+    headerInfo: "Informacje nag\u0142\xF3wka",
+    headerInfoTitle: "Informacje nag\u0142\xF3wka",
+    headerInfoAudioUnread: "Dane audio nie zosta\u0142y jeszcze odczytane.",
+    headerInfoUnsupported: "Analiza nag\u0142\xF3wka nie jest jeszcze obs\u0142ugiwana dla tego formatu.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Offset bajtu",
+    headerInfoSize: "D\u0142ugo\u015B\u0107",
+    headerInfoBits: "Bity",
+    headerInfoField: "Pole",
+    headerInfoValue: "Warto\u015B\u0107",
+    headerInfoDescription: "Opis",
+    headerInfoWavMissingData: "nie znaleziono chunku data",
+    headerInfoWavCannotDetermine: "Nie mo\u017Cna okre\u015Bli\u0107 d\u0142ugo\u015Bci nag\u0142\xF3wka WAV.",
+    headerInfoWavHeaderLength: "D\u0142ugo\u015B\u0107 nag\u0142\xF3wka WAV {size} B",
+    headerInfoWavStandardPcm: "Standardowy 44-bajtowy nag\u0142\xF3wek PCM.",
+    headerInfoWavNonStandardPrefix: "Niestandardowy nag\u0142\xF3wek PCM inny ni\u017C 44 bajty",
+    headerInfoWavFmtExtended: "chunk fmt ma {size} B i zawiera rozszerzone pola formatu",
+    headerInfoWavFormat: "format audio to {format} ({name})",
+    headerInfoWavExtraChunks: "dodatkowe chunki przed data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data zaczyna si\u0119 od offsetu innego ni\u017C 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Ustawienia",
     pcmReadAs: "Czytaj jako PCM",
     pcmParams: "Parametry PCM",
@@ -1987,6 +2697,27 @@
     mouseWheel: "Roda do mouse",
     help: "Ajuda",
     downloadAudio: "Baixar \xE1udio",
+    headerInfo: "Informa\xE7\xF5es do cabe\xE7alho",
+    headerInfoTitle: "Informa\xE7\xF5es do cabe\xE7alho",
+    headerInfoAudioUnread: "Os dados de \xE1udio ainda n\xE3o foram lidos.",
+    headerInfoUnsupported: "A an\xE1lise do cabe\xE7alho ainda n\xE3o \xE9 compat\xEDvel com este formato.",
+    headerInfoOffset: "Deslocamento",
+    headerInfoByteOffset: "Deslocamento byte",
+    headerInfoSize: "Tamanho",
+    headerInfoBits: "Bits",
+    headerInfoField: "Campo",
+    headerInfoValue: "Valor",
+    headerInfoDescription: "Descri\xE7\xE3o",
+    headerInfoWavMissingData: "chunk data n\xE3o encontrado",
+    headerInfoWavCannotDetermine: "N\xE3o \xE9 poss\xEDvel determinar o tamanho do cabe\xE7alho WAV.",
+    headerInfoWavHeaderLength: "Tamanho do cabe\xE7alho WAV {size} B",
+    headerInfoWavStandardPcm: "Cabe\xE7alho PCM padr\xE3o de 44 bytes.",
+    headerInfoWavNonStandardPrefix: "Cabe\xE7alho PCM n\xE3o padr\xE3o de 44 bytes",
+    headerInfoWavFmtExtended: "o chunk fmt tem {size} B e cont\xE9m campos de formato estendidos",
+    headerInfoWavFormat: "o formato de \xE1udio \xE9 {format} ({name})",
+    headerInfoWavExtraChunks: "chunk(s) extra antes de data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data come\xE7a em um deslocamento diferente de 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "Ajustes",
     pcmReadAs: "Ler como PCM",
     pcmParams: "Par\xE2metros PCM",
@@ -2131,6 +2862,27 @@
     mouseWheel: "\u041A\u043E\u043B\u0435\u0441\u043E \u043C\u044B\u0448\u0438",
     help: "\u0421\u043F\u0440\u0430\u0432\u043A\u0430",
     downloadAudio: "\u0421\u043A\u0430\u0447\u0430\u0442\u044C \u0430\u0443\u0434\u0438\u043E",
+    headerInfo: "\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430",
+    headerInfoTitle: "\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430",
+    headerInfoAudioUnread: "\u0410\u0443\u0434\u0438\u043E\u0434\u0430\u043D\u043D\u044B\u0435 \u0435\u0449\u0435 \u043D\u0435 \u043F\u0440\u043E\u0447\u0438\u0442\u0430\u043D\u044B.",
+    headerInfoUnsupported: "\u0420\u0430\u0437\u0431\u043E\u0440 \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430 \u0434\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u0444\u043E\u0440\u043C\u0430\u0442\u0430 \u043F\u043E\u043A\u0430 \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F.",
+    headerInfoOffset: "\u0421\u043C\u0435\u0449\u0435\u043D\u0438\u0435",
+    headerInfoByteOffset: "\u0411\u0430\u0439\u0442\u043E\u0432\u043E\u0435 \u0441\u043C\u0435\u0449\u0435\u043D\u0438\u0435",
+    headerInfoSize: "\u0414\u043B\u0438\u043D\u0430",
+    headerInfoBits: "\u0411\u0438\u0442\u044B",
+    headerInfoField: "\u041F\u043E\u043B\u0435",
+    headerInfoValue: "\u0417\u043D\u0430\u0447\u0435\u043D\u0438\u0435",
+    headerInfoDescription: "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435",
+    headerInfoWavMissingData: "chunk data \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D",
+    headerInfoWavCannotDetermine: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u044C \u0434\u043B\u0438\u043D\u0443 WAV-\u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430.",
+    headerInfoWavHeaderLength: "\u0414\u043B\u0438\u043D\u0430 WAV-\u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430 {size} B",
+    headerInfoWavStandardPcm: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u044B\u0439 PCM-\u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043E\u043A 44 \u0431\u0430\u0439\u0442\u0430.",
+    headerInfoWavNonStandardPrefix: "\u041D\u0435\u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u044B\u0439 PCM-\u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043E\u043A \u043D\u0435 44 \u0431\u0430\u0439\u0442\u0430",
+    headerInfoWavFmtExtended: "chunk fmt \u0438\u043C\u0435\u0435\u0442 \u0440\u0430\u0437\u043C\u0435\u0440 {size} B \u0438 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0435 \u043F\u043E\u043B\u044F \u0444\u043E\u0440\u043C\u0430\u0442\u0430",
+    headerInfoWavFormat: "\u0430\u0443\u0434\u0438\u043E\u0444\u043E\u0440\u043C\u0430\u0442: {format} ({name})",
+    headerInfoWavExtraChunks: "\u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 chunk \u043F\u0435\u0440\u0435\u0434 data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0442\u0441\u044F \u043D\u0435 \u0441\u043E \u0441\u043C\u0435\u0449\u0435\u043D\u0438\u044F 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     pcmReadAs: "\u0427\u0438\u0442\u0430\u0442\u044C \u043A\u0430\u043A PCM",
     pcmParams: "\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B PCM",
@@ -2275,6 +3027,27 @@
     mouseWheel: "Fare tekeri",
     help: "Yard\u0131m",
     downloadAudio: "Sesi indir",
+    headerInfo: "Ba\u015Fl\u0131k bilgisi",
+    headerInfoTitle: "Ba\u015Fl\u0131k bilgisi",
+    headerInfoAudioUnread: "Ses verisi hen\xFCz okunmad\u0131.",
+    headerInfoUnsupported: "Bu format i\xE7in ba\u015Fl\u0131k ayr\u0131\u015Ft\u0131rma hen\xFCz desteklenmiyor.",
+    headerInfoOffset: "Ofset",
+    headerInfoByteOffset: "Bayt ofseti",
+    headerInfoSize: "Uzunluk",
+    headerInfoBits: "Bitler",
+    headerInfoField: "Alan",
+    headerInfoValue: "De\u011Fer",
+    headerInfoDescription: "A\xE7\u0131klama",
+    headerInfoWavMissingData: "data chunk bulunamad\u0131",
+    headerInfoWavCannotDetermine: "WAV ba\u015Fl\u0131k uzunlu\u011Fu belirlenemiyor.",
+    headerInfoWavHeaderLength: "WAV ba\u015Fl\u0131k uzunlu\u011Fu {size} B",
+    headerInfoWavStandardPcm: "Standart 44 bayt PCM ba\u015Fl\u0131\u011F\u0131.",
+    headerInfoWavNonStandardPrefix: "44 bayt olmayan PCM ba\u015Fl\u0131\u011F\u0131",
+    headerInfoWavFmtExtended: "fmt chunk {size} B ve geni\u015Fletilmi\u015F format alanlar\u0131 i\xE7eriyor",
+    headerInfoWavFormat: "ses format\u0131 {format} ({name})",
+    headerInfoWavExtraChunks: "data \xF6ncesinde ek chunk(lar): {chunks}",
+    headerInfoWavDataOffsetNon44: "data 44 B d\u0131\u015F\u0131nda bir ofsette ba\u015Fl\u0131yor",
+    headerInfoReasonSeparator: "; ",
     settings: "Ayarlar",
     pcmReadAs: "PCM olarak oku",
     pcmParams: "PCM parametreleri",
@@ -2419,6 +3192,27 @@
     mouseWheel: "Con l\u0103n chu\u1ED9t",
     help: "Tr\u1EE3 gi\xFAp",
     downloadAudio: "T\u1EA3i \xE2m thanh",
+    headerInfo: "Th\xF4ng tin header",
+    headerInfoTitle: "Th\xF4ng tin header",
+    headerInfoAudioUnread: "D\u1EEF li\u1EC7u \xE2m thanh ch\u01B0a \u0111\u01B0\u1EE3c \u0111\u1ECDc.",
+    headerInfoUnsupported: "Ch\u01B0a h\u1ED7 tr\u1EE3 ph\xE2n t\xEDch header cho \u0111\u1ECBnh d\u1EA1ng n\xE0y.",
+    headerInfoOffset: "Offset",
+    headerInfoByteOffset: "Offset byte",
+    headerInfoSize: "\u0110\u1ED9 d\xE0i",
+    headerInfoBits: "Bit",
+    headerInfoField: "Tr\u01B0\u1EDDng",
+    headerInfoValue: "Gi\xE1 tr\u1ECB",
+    headerInfoDescription: "M\xF4 t\u1EA3",
+    headerInfoWavMissingData: "kh\xF4ng t\xECm th\u1EA5y chunk data",
+    headerInfoWavCannotDetermine: "Kh\xF4ng th\u1EC3 x\xE1c \u0111\u1ECBnh \u0111\u1ED9 d\xE0i header WAV.",
+    headerInfoWavHeaderLength: "\u0110\u1ED9 d\xE0i header WAV {size} B",
+    headerInfoWavStandardPcm: "Header PCM chu\u1EA9n 44 byte.",
+    headerInfoWavNonStandardPrefix: "Header PCM kh\xF4ng ph\u1EA3i 44 byte",
+    headerInfoWavFmtExtended: "chunk fmt d\xE0i {size} B v\xE0 ch\u1EE9a c\xE1c tr\u01B0\u1EDDng \u0111\u1ECBnh d\u1EA1ng m\u1EDF r\u1ED9ng",
+    headerInfoWavFormat: "\u0111\u1ECBnh d\u1EA1ng \xE2m thanh l\xE0 {format} ({name})",
+    headerInfoWavExtraChunks: "chunk b\u1ED5 sung tr\u01B0\u1EDBc data: {chunks}",
+    headerInfoWavDataOffsetNon44: "data b\u1EAFt \u0111\u1EA7u \u1EDF offset kh\xE1c 44 B",
+    headerInfoReasonSeparator: "; ",
     settings: "C\xE0i \u0111\u1EB7t",
     pcmReadAs: "\u0110\u1ECDc nh\u01B0 PCM",
     pcmParams: "Tham s\u1ED1 PCM",
@@ -2528,6 +3322,27 @@
     spectrogramSettings: "\u9891\u8C31\u56FE\u8BBE\u7F6E",
     help: "\u5E2E\u52A9",
     downloadAudio: "\u4E0B\u8F7D\u97F3\u9891",
+    headerInfo: "\u6587\u4EF6\u5934\u4FE1\u606F",
+    headerInfoTitle: "\u6587\u4EF6\u5934\u4FE1\u606F",
+    headerInfoAudioUnread: "\u97F3\u9891\u6570\u636E\u5C1A\u672A\u8BFB\u53D6\u3002",
+    headerInfoUnsupported: "\u5F53\u524D\u683C\u5F0F\u6682\u4E0D\u652F\u6301\u89E3\u6790\u6587\u4EF6\u5934\u4FE1\u606F\u3002",
+    headerInfoOffset: "\u504F\u79FB",
+    headerInfoByteOffset: "\u5B57\u8282\u504F\u79FB",
+    headerInfoSize: "\u957F\u5EA6",
+    headerInfoBits: "\u4F4D\u8303\u56F4",
+    headerInfoField: "\u5B57\u6BB5",
+    headerInfoValue: "\u503C",
+    headerInfoDescription: "\u8BF4\u660E",
+    headerInfoWavMissingData: "\u672A\u627E\u5230 data chunk",
+    headerInfoWavCannotDetermine: "\u65E0\u6CD5\u5224\u65AD WAV \u5934\u957F\u5EA6\u3002",
+    headerInfoWavHeaderLength: "WAV \u5934\u957F\u5EA6 {size} B",
+    headerInfoWavStandardPcm: "\u6807\u51C6 44 \u5B57\u8282 PCM \u5934\u3002",
+    headerInfoWavNonStandardPrefix: "\u975E 44 \u5B57\u8282 PCM \u5934",
+    headerInfoWavFmtExtended: "fmt \u5B50\u5757\u4E3A {size} B\uFF0C\u5305\u542B\u6269\u5C55\u683C\u5F0F\u5B57\u6BB5",
+    headerInfoWavFormat: "\u7F16\u7801\u683C\u5F0F\u4E3A {format} ({name})",
+    headerInfoWavExtraChunks: "data \u524D\u6709\u989D\u5916\u5B50\u5757 {chunks}",
+    headerInfoWavDataOffsetNon44: "data \u8D77\u59CB\u504F\u79FB\u4E0D\u662F 44 B",
+    headerInfoReasonSeparator: "\uFF1B",
     settings: "\u8BBE\u7F6E",
     playPause: "\u64AD\u653E / \u6682\u505C",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
@@ -2707,6 +3522,27 @@
     mouseWheel: "\u6ED1\u9F20\u6EFE\u8F2A",
     help: "\u8AAA\u660E",
     downloadAudio: "\u4E0B\u8F09\u97F3\u8A0A",
+    headerInfo: "\u6A94\u6848\u982D\u8CC7\u8A0A",
+    headerInfoTitle: "\u6A94\u6848\u982D\u8CC7\u8A0A",
+    headerInfoAudioUnread: "\u5C1A\u672A\u8B80\u53D6\u97F3\u8A0A\u8CC7\u6599\u3002",
+    headerInfoUnsupported: "\u76EE\u524D\u683C\u5F0F\u5C1A\u4E0D\u652F\u63F4\u89E3\u6790\u6A94\u6848\u982D\u8CC7\u8A0A\u3002",
+    headerInfoOffset: "\u504F\u79FB",
+    headerInfoByteOffset: "\u4F4D\u5143\u7D44\u504F\u79FB",
+    headerInfoSize: "\u9577\u5EA6",
+    headerInfoBits: "\u4F4D\u5143\u7BC4\u570D",
+    headerInfoField: "\u6B04\u4F4D",
+    headerInfoValue: "\u503C",
+    headerInfoDescription: "\u8AAA\u660E",
+    headerInfoWavMissingData: "\u627E\u4E0D\u5230 data chunk",
+    headerInfoWavCannotDetermine: "\u7121\u6CD5\u5224\u65B7 WAV \u6A94\u6848\u982D\u9577\u5EA6\u3002",
+    headerInfoWavHeaderLength: "WAV \u6A94\u6848\u982D\u9577\u5EA6 {size} B",
+    headerInfoWavStandardPcm: "\u6A19\u6E96 44 \u4F4D\u5143\u7D44 PCM \u6A94\u6848\u982D\u3002",
+    headerInfoWavNonStandardPrefix: "\u975E 44 \u4F4D\u5143\u7D44 PCM \u6A94\u6848\u982D",
+    headerInfoWavFmtExtended: "fmt \u5B50\u5340\u584A\u70BA {size} B\uFF0C\u5305\u542B\u64F4\u5145\u683C\u5F0F\u6B04\u4F4D",
+    headerInfoWavFormat: "\u7DE8\u78BC\u683C\u5F0F\u70BA {format} ({name})",
+    headerInfoWavExtraChunks: "data \u524D\u6709\u984D\u5916\u5B50\u5340\u584A {chunks}",
+    headerInfoWavDataOffsetNon44: "data \u8D77\u59CB\u504F\u79FB\u4E0D\u662F 44 B",
+    headerInfoReasonSeparator: "\uFF1B",
     settings: "\u8A2D\u5B9A",
     pcmReadAs: "\u6309 PCM \u8B80\u53D6",
     pcmParams: "PCM \u53C3\u6578",
@@ -3002,6 +3838,13 @@
           <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
+        <button id="headerInfo" class="iconButton secondaryIcon headerInfoButton" data-i18n-title="headerInfo" data-i18n-aria="headerInfo" data-i18n-tooltip="headerInfo" title="Header info" aria-label="Header info" data-tooltip="Header info" hidden>
+          <svg class="headerInfoIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6.75 3.5h7.5L19 8.25v12.25H6.75z" />
+            <path d="M14.25 3.5v4.75H19" />
+            <path d="M9.25 12.25h6.5M9.25 15.25h6.5M9.25 18.25h4.25" />
+          </svg>
+        </button>
         <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">\u2193</button>
         <details id="helpMenu" class="helpMenu">
           <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
@@ -3086,6 +3929,14 @@
           <button id="wavPcmCancel" class="secondary" data-i18n="cancel">Cancel</button>
           <button id="wavPcmApply" class="secondary" data-i18n="read">Read</button>
         </div>
+      </section>
+
+      <section id="headerInfoPanel" class="headerInfoPanel" role="dialog" aria-label="Audio header info" hidden>
+        <div class="headerInfoHeader">
+          <strong id="headerInfoTitle">\u6587\u4EF6\u5934\u4FE1\u606F</strong>
+          <button id="headerInfoClose" class="iconButton secondaryIcon" title="Close" aria-label="Close">\xD7</button>
+        </div>
+        <div id="headerInfoBody" class="headerInfoBody"></div>
       </section>
 
       <section class="player">
@@ -3424,6 +4275,11 @@
       channel: query("#channel", HTMLSelectElement),
       pcmPanel: query("#pcmPanel", HTMLElement),
       pcmReveal: query("#pcmReveal", HTMLButtonElement),
+      headerInfo: query("#headerInfo", HTMLButtonElement),
+      headerInfoPanel: query("#headerInfoPanel", HTMLElement),
+      headerInfoTitle: query("#headerInfoTitle", HTMLElement),
+      headerInfoBody: query("#headerInfoBody", HTMLElement),
+      headerInfoClose: query("#headerInfoClose", HTMLButtonElement),
       pcmSampleRate: query("#pcmSampleRate", HTMLInputElement),
       pcmChannels: query("#pcmChannels", HTMLInputElement),
       pcmStartOffset: query("#pcmStartOffset", HTMLInputElement),
@@ -3525,6 +4381,1192 @@
     { labelKey: "frequencyBand4To8k", min: 4e3, max: 8e3 },
     { labelKey: "frequencyBand8kPlus", min: 8e3, max: Number.POSITIVE_INFINITY }
   ];
+  var HEADER_NOTE_EN = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "File size - 8",
+    "\u5B50\u5757 ID": "Subchunk ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Subchunk data length",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Audio data region",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Unexpanded chunk",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt chunk is too short",
+    "\u7F16\u7801\u683C\u5F0F": "Audio format",
+    "\u901A\u9053\u6570": "Channel count",
+    "\u91C7\u6837\u7387": "Sample rate",
+    "\u5B57\u8282\u7387": "Byte rate",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Bytes per frame",
+    "\u4F4D\u6DF1": "Bit depth",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Extension parameter length",
+    "\u6709\u6548\u4F4D\u6DF1": "Valid bit depth",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Channel layout mask",
+    "FLAC \u6807\u8BC6": "FLAC marker",
+    "\u5143\u6570\u636E\u5757\u5934": "Metadata block header",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Metadata block length",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Metadata block payload",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Minimum block size",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Maximum block size",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Minimum frame size",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Maximum frame size",
+    "\u603B\u91C7\u6837\u6570": "Total samples",
+    "\u539F\u59CB\u97F3\u9891 MD5": "Raw audio MD5",
+    "Ogg \u9875\u6807\u8BC6": "Ogg page marker",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Stream structure version",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Page type flags",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Absolute position",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Logical stream serial number",
+    "\u9875\u5E8F\u53F7": "Page sequence number",
+    "\u9875\u6821\u9A8C\u548C": "Page checksum",
+    "segment \u6570": "Segment count",
+    "segment \u957F\u5EA6\u8868": "Segment length table",
+    "\u9875\u6570\u636E": "Page payload",
+    "Opus \u8BC6\u522B\u5934": "Opus identification header",
+    "\u7248\u672C": "Version",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Pre-skip sample count",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Input sample rate",
+    "\u8F93\u51FA\u589E\u76CA": "Output gain",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Channel mapping family",
+    "\u8BC6\u522B\u5934": "Identification header",
+    "Vorbis \u6807\u8BC6": "Vorbis marker",
+    "box \u5927\u5C0F": "Box size",
+    "box \u7C7B\u578B": "Box type",
+    "\u4E3B\u54C1\u724C": "Major brand",
+    "\u6B21\u7248\u672C": "Minor version",
+    "\u517C\u5BB9\u54C1\u724C": "Compatible brands",
+    "\u6807\u5FD7": "Flags",
+    "\u65F6\u95F4\u523B\u5EA6": "Timescale",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Duration units",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Handler type",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Sample description count",
+    "\u6837\u672C\u7C7B\u578B": "Sample type",
+    "\u540C\u6B65\u5B57": "Sync word",
+    "MPEG \u7248\u672C": "MPEG version",
+    "\u5C42": "Layer",
+    "CRC \u662F\u5426\u7701\u7565": "Whether CRC is absent",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Sample rate index",
+    "\u58F0\u9053\u914D\u7F6E": "Channel configuration",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS frame length",
+    "\u7F13\u51B2 fullness": "Buffer fullness",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Raw data block count field",
+    "ID3v2 \u6807\u8BC6": "ID3v2 marker",
+    "ID3 \u7248\u672C": "ID3 version",
+    "\u6807\u7B7E\u957F\u5EA6": "Tag length",
+    "\u5E27\u540C\u6B65": "Frame sync",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG audio version",
+    "CRC \u6807\u5FD7": "CRC flag",
+    "\u7801\u7387\u7D22\u5F15": "Bitrate index",
+    "\u58F0\u9053\u6A21\u5F0F": "Channel mode"
+  };
+  var HEADER_NOTE_ZH_TW = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "\u6A94\u6848\u5927\u5C0F - 8",
+    "\u5B50\u5757 ID": "\u5B50\u5340\u584A ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "\u5B50\u5340\u584A\u8CC7\u6599\u9577\u5EA6",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "\u97F3\u8A0A\u8CC7\u6599\u5340\u57DF",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "\u672A\u5C55\u958B\u5B50\u5340\u584A",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt \u5B50\u5340\u584A\u904E\u77ED",
+    "\u7F16\u7801\u683C\u5F0F": "\u7DE8\u78BC\u683C\u5F0F",
+    "\u901A\u9053\u6570": "\u8072\u9053\u6578",
+    "\u91C7\u6837\u7387": "\u53D6\u6A23\u7387",
+    "\u5B57\u8282\u7387": "\u4F4D\u5143\u7D44\u7387",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "\u6BCF\u5E40\u4F4D\u5143\u7D44\u6578",
+    "\u4F4D\u6DF1": "\u4F4D\u5143\u6DF1\u5EA6",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "\u64F4\u5145\u53C3\u6578\u9577\u5EA6",
+    "\u6709\u6548\u4F4D\u6DF1": "\u6709\u6548\u4F4D\u5143\u6DF1\u5EA6",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "\u8072\u9053\u5E03\u5C40\u906E\u7F69",
+    "FLAC \u6807\u8BC6": "FLAC \u6A19\u8B58",
+    "\u5143\u6570\u636E\u5757\u5934": "\u4E2D\u7E7C\u8CC7\u6599\u5340\u584A\u982D",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "\u4E2D\u7E7C\u8CC7\u6599\u5340\u584A\u9577\u5EA6",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "\u4E2D\u7E7C\u8CC7\u6599\u5340\u584A\u5167\u5BB9",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "\u6700\u5C0F\u5340\u584A\u5927\u5C0F",
+    "\u6700\u5927\u5757\u5927\u5C0F": "\u6700\u5927\u5340\u584A\u5927\u5C0F",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "\u6700\u5C0F\u5E40\u5927\u5C0F",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "\u6700\u5927\u5E40\u5927\u5C0F",
+    "\u603B\u91C7\u6837\u6570": "\u7E3D\u53D6\u6A23\u6578",
+    "\u539F\u59CB\u97F3\u9891 MD5": "\u539F\u59CB\u97F3\u8A0A MD5",
+    "Ogg \u9875\u6807\u8BC6": "Ogg \u9801\u6A19\u8B58",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "\u4E32\u6D41\u7D50\u69CB\u7248\u672C",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "\u9801\u985E\u578B\u6A19\u8A8C",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "\u7D55\u5C0D\u4F4D\u7F6E",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "\u908F\u8F2F\u4E32\u6D41\u5E8F\u865F",
+    "\u9875\u5E8F\u53F7": "\u9801\u5E8F\u865F",
+    "\u9875\u6821\u9A8C\u548C": "\u9801\u6821\u9A57\u548C",
+    "segment \u6570": "segment \u6578",
+    "segment \u957F\u5EA6\u8868": "segment \u9577\u5EA6\u8868",
+    "\u9875\u6570\u636E": "\u9801\u8CC7\u6599",
+    "Opus \u8BC6\u522B\u5934": "Opus \u8B58\u5225\u982D",
+    "\u7248\u672C": "\u7248\u672C",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "\u9810\u8DF3\u904E\u53D6\u6A23\u6578",
+    "\u8F93\u5165\u91C7\u6837\u7387": "\u8F38\u5165\u53D6\u6A23\u7387",
+    "\u8F93\u51FA\u589E\u76CA": "\u8F38\u51FA\u589E\u76CA",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "\u8072\u9053\u6620\u5C04\u65CF",
+    "\u8BC6\u522B\u5934": "\u8B58\u5225\u982D",
+    "Vorbis \u6807\u8BC6": "Vorbis \u6A19\u8B58",
+    "box \u5927\u5C0F": "box \u5927\u5C0F",
+    "box \u7C7B\u578B": "box \u985E\u578B",
+    "\u4E3B\u54C1\u724C": "\u4E3B\u54C1\u724C",
+    "\u6B21\u7248\u672C": "\u6B21\u7248\u672C",
+    "\u517C\u5BB9\u54C1\u724C": "\u76F8\u5BB9\u54C1\u724C",
+    "\u6807\u5FD7": "\u6A19\u8A8C",
+    "\u65F6\u95F4\u523B\u5EA6": "\u6642\u9593\u523B\u5EA6",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "\u6642\u9577\u55AE\u4F4D\u6578",
+    "\u5904\u7406\u5668\u7C7B\u578B": "\u8655\u7406\u5668\u985E\u578B",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "\u6A23\u672C\u63CF\u8FF0\u6578\u91CF",
+    "\u6837\u672C\u7C7B\u578B": "\u6A23\u672C\u985E\u578B",
+    "\u540C\u6B65\u5B57": "\u540C\u6B65\u5B57",
+    "MPEG \u7248\u672C": "MPEG \u7248\u672C",
+    "\u5C42": "\u5C64",
+    "CRC \u662F\u5426\u7701\u7565": "CRC \u662F\u5426\u7701\u7565",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "\u53D6\u6A23\u7387\u7D22\u5F15",
+    "\u58F0\u9053\u914D\u7F6E": "\u8072\u9053\u914D\u7F6E",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS \u5E40\u9577\u5EA6",
+    "\u7F13\u51B2 fullness": "\u7DE9\u885D fullness",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "\u539F\u59CB\u8CC7\u6599\u5340\u584A\u6578\u91CF\u6B04\u4F4D",
+    "ID3v2 \u6807\u8BC6": "ID3v2 \u6A19\u8B58",
+    "ID3 \u7248\u672C": "ID3 \u7248\u672C",
+    "\u6807\u7B7E\u957F\u5EA6": "\u6A19\u7C64\u9577\u5EA6",
+    "\u5E27\u540C\u6B65": "\u5E40\u540C\u6B65",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG \u97F3\u8A0A\u7248\u672C",
+    "CRC \u6807\u5FD7": "CRC \u6A19\u8A8C",
+    "\u7801\u7387\u7D22\u5F15": "\u78BC\u7387\u7D22\u5F15",
+    "\u58F0\u9053\u6A21\u5F0F": "\u8072\u9053\u6A21\u5F0F"
+  };
+  var HEADER_NOTE_JA = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "\u30D5\u30A1\u30A4\u30EB\u30B5\u30A4\u30BA - 8",
+    "\u5B50\u5757 ID": "\u30B5\u30D6\u30C1\u30E3\u30F3\u30AF ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "\u30B5\u30D6\u30C1\u30E3\u30F3\u30AF\u30C7\u30FC\u30BF\u9577",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "\u97F3\u58F0\u30C7\u30FC\u30BF\u9818\u57DF",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "\u672A\u5C55\u958B\u306E\u30B5\u30D6\u30C1\u30E3\u30F3\u30AF",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt \u30B5\u30D6\u30C1\u30E3\u30F3\u30AF\u304C\u77ED\u3059\u304E\u307E\u3059",
+    "\u7F16\u7801\u683C\u5F0F": "\u30A8\u30F3\u30B3\u30FC\u30C9\u5F62\u5F0F",
+    "\u901A\u9053\u6570": "\u30C1\u30E3\u30F3\u30CD\u30EB\u6570",
+    "\u91C7\u6837\u7387": "\u30B5\u30F3\u30D7\u30EB\u30EC\u30FC\u30C8",
+    "\u5B57\u8282\u7387": "\u30D0\u30A4\u30C8\u30EC\u30FC\u30C8",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "\u30D5\u30EC\u30FC\u30E0\u3042\u305F\u308A\u306E\u30D0\u30A4\u30C8\u6570",
+    "\u4F4D\u6DF1": "\u30D3\u30C3\u30C8\u6DF1\u5EA6",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "\u62E1\u5F35\u30D1\u30E9\u30E1\u30FC\u30BF\u9577",
+    "\u6709\u6548\u4F4D\u6DF1": "\u6709\u52B9\u30D3\u30C3\u30C8\u6DF1\u5EA6",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "\u30C1\u30E3\u30F3\u30CD\u30EB\u914D\u7F6E\u30DE\u30B9\u30AF",
+    "FLAC \u6807\u8BC6": "FLAC \u30DE\u30FC\u30AB\u30FC",
+    "\u5143\u6570\u636E\u5757\u5934": "\u30E1\u30BF\u30C7\u30FC\u30BF\u30D6\u30ED\u30C3\u30AF\u30D8\u30C3\u30C0\u30FC",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "\u30E1\u30BF\u30C7\u30FC\u30BF\u30D6\u30ED\u30C3\u30AF\u9577",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "\u30E1\u30BF\u30C7\u30FC\u30BF\u30D6\u30ED\u30C3\u30AF\u5185\u5BB9",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "\u6700\u5C0F\u30D6\u30ED\u30C3\u30AF\u30B5\u30A4\u30BA",
+    "\u6700\u5927\u5757\u5927\u5C0F": "\u6700\u5927\u30D6\u30ED\u30C3\u30AF\u30B5\u30A4\u30BA",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "\u6700\u5C0F\u30D5\u30EC\u30FC\u30E0\u30B5\u30A4\u30BA",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "\u6700\u5927\u30D5\u30EC\u30FC\u30E0\u30B5\u30A4\u30BA",
+    "\u603B\u91C7\u6837\u6570": "\u7DCF\u30B5\u30F3\u30D7\u30EB\u6570",
+    "\u539F\u59CB\u97F3\u9891 MD5": "\u539F\u97F3\u58F0 MD5",
+    "Ogg \u9875\u6807\u8BC6": "Ogg \u30DA\u30FC\u30B8\u30DE\u30FC\u30AB\u30FC",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "\u30B9\u30C8\u30EA\u30FC\u30E0\u69CB\u9020\u30D0\u30FC\u30B8\u30E7\u30F3",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "\u30DA\u30FC\u30B8\u30BF\u30A4\u30D7\u30D5\u30E9\u30B0",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "\u7D76\u5BFE\u4F4D\u7F6E",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "\u8AD6\u7406\u30B9\u30C8\u30EA\u30FC\u30E0\u30B7\u30EA\u30A2\u30EB\u756A\u53F7",
+    "\u9875\u5E8F\u53F7": "\u30DA\u30FC\u30B8\u30B7\u30FC\u30B1\u30F3\u30B9\u756A\u53F7",
+    "\u9875\u6821\u9A8C\u548C": "\u30DA\u30FC\u30B8\u30C1\u30A7\u30C3\u30AF\u30B5\u30E0",
+    "segment \u6570": "segment \u6570",
+    "segment \u957F\u5EA6\u8868": "segment \u9577\u30C6\u30FC\u30D6\u30EB",
+    "\u9875\u6570\u636E": "\u30DA\u30FC\u30B8\u30DA\u30A4\u30ED\u30FC\u30C9",
+    "Opus \u8BC6\u522B\u5934": "Opus \u8B58\u5225\u30D8\u30C3\u30C0\u30FC",
+    "\u7248\u672C": "\u30D0\u30FC\u30B8\u30E7\u30F3",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "\u30D7\u30EA\u30B9\u30AD\u30C3\u30D7\u30B5\u30F3\u30D7\u30EB\u6570",
+    "\u8F93\u5165\u91C7\u6837\u7387": "\u5165\u529B\u30B5\u30F3\u30D7\u30EB\u30EC\u30FC\u30C8",
+    "\u8F93\u51FA\u589E\u76CA": "\u51FA\u529B\u30B2\u30A4\u30F3",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "\u30C1\u30E3\u30F3\u30CD\u30EB\u30DE\u30C3\u30D4\u30F3\u30B0\u30D5\u30A1\u30DF\u30EA\u30FC",
+    "\u8BC6\u522B\u5934": "\u8B58\u5225\u30D8\u30C3\u30C0\u30FC",
+    "Vorbis \u6807\u8BC6": "Vorbis \u30DE\u30FC\u30AB\u30FC",
+    "box \u5927\u5C0F": "box \u30B5\u30A4\u30BA",
+    "box \u7C7B\u578B": "box \u30BF\u30A4\u30D7",
+    "\u4E3B\u54C1\u724C": "\u30E1\u30B8\u30E3\u30FC\u30D6\u30E9\u30F3\u30C9",
+    "\u6B21\u7248\u672C": "\u30DE\u30A4\u30CA\u30FC\u30D0\u30FC\u30B8\u30E7\u30F3",
+    "\u517C\u5BB9\u54C1\u724C": "\u4E92\u63DB\u30D6\u30E9\u30F3\u30C9",
+    "\u6807\u5FD7": "\u30D5\u30E9\u30B0",
+    "\u65F6\u95F4\u523B\u5EA6": "\u30BF\u30A4\u30E0\u30B9\u30B1\u30FC\u30EB",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "\u7D99\u7D9A\u6642\u9593\u5358\u4F4D\u6570",
+    "\u5904\u7406\u5668\u7C7B\u578B": "\u30CF\u30F3\u30C9\u30E9\u30FC\u30BF\u30A4\u30D7",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "\u30B5\u30F3\u30D7\u30EB\u8A18\u8FF0\u6570",
+    "\u6837\u672C\u7C7B\u578B": "\u30B5\u30F3\u30D7\u30EB\u30BF\u30A4\u30D7",
+    "\u540C\u6B65\u5B57": "\u540C\u671F\u30EF\u30FC\u30C9",
+    "MPEG \u7248\u672C": "MPEG \u30D0\u30FC\u30B8\u30E7\u30F3",
+    "\u5C42": "\u30EC\u30A4\u30E4\u30FC",
+    "CRC \u662F\u5426\u7701\u7565": "CRC \u304C\u7701\u7565\u3055\u308C\u3066\u3044\u308B\u304B",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "\u30B5\u30F3\u30D7\u30EB\u30EC\u30FC\u30C8\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9",
+    "\u58F0\u9053\u914D\u7F6E": "\u30C1\u30E3\u30F3\u30CD\u30EB\u69CB\u6210",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS \u30D5\u30EC\u30FC\u30E0\u9577",
+    "\u7F13\u51B2 fullness": "\u30D0\u30C3\u30D5\u30A1 fullness",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "\u751F\u30C7\u30FC\u30BF\u30D6\u30ED\u30C3\u30AF\u6570\u30D5\u30A3\u30FC\u30EB\u30C9",
+    "ID3v2 \u6807\u8BC6": "ID3v2 \u30DE\u30FC\u30AB\u30FC",
+    "ID3 \u7248\u672C": "ID3 \u30D0\u30FC\u30B8\u30E7\u30F3",
+    "\u6807\u7B7E\u957F\u5EA6": "\u30BF\u30B0\u9577",
+    "\u5E27\u540C\u6B65": "\u30D5\u30EC\u30FC\u30E0\u540C\u671F",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG \u97F3\u58F0\u30D0\u30FC\u30B8\u30E7\u30F3",
+    "CRC \u6807\u5FD7": "CRC \u30D5\u30E9\u30B0",
+    "\u7801\u7387\u7D22\u5F15": "\u30D3\u30C3\u30C8\u30EC\u30FC\u30C8\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9",
+    "\u58F0\u9053\u6A21\u5F0F": "\u30C1\u30E3\u30F3\u30CD\u30EB\u30E2\u30FC\u30C9"
+  };
+  var HEADER_NOTE_KO = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "\uD30C\uC77C \uD06C\uAE30 - 8",
+    "\u5B50\u5757 ID": "\uC11C\uBE0C\uCCAD\uD06C ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "\uC11C\uBE0C\uCCAD\uD06C \uB370\uC774\uD130 \uAE38\uC774",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "\uC624\uB514\uC624 \uB370\uC774\uD130 \uC601\uC5ED",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "\uD3BC\uCE58\uC9C0 \uC54A\uC740 \uC11C\uBE0C\uCCAD\uD06C",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt \uC11C\uBE0C\uCCAD\uD06C\uAC00 \uB108\uBB34 \uC9E7\uC74C",
+    "\u7F16\u7801\u683C\u5F0F": "\uC778\uCF54\uB529 \uD615\uC2DD",
+    "\u901A\u9053\u6570": "\uCC44\uB110 \uC218",
+    "\u91C7\u6837\u7387": "\uC0D8\uD50C\uB808\uC774\uD2B8",
+    "\u5B57\u8282\u7387": "\uBC14\uC774\uD2B8 \uB808\uC774\uD2B8",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "\uD504\uB808\uC784\uB2F9 \uBC14\uC774\uD2B8 \uC218",
+    "\u4F4D\u6DF1": "\uBE44\uD2B8 \uAE4A\uC774",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "\uD655\uC7A5 \uB9E4\uAC1C\uBCC0\uC218 \uAE38\uC774",
+    "\u6709\u6548\u4F4D\u6DF1": "\uC720\uD6A8 \uBE44\uD2B8 \uAE4A\uC774",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "\uCC44\uB110 \uB808\uC774\uC544\uC6C3 \uB9C8\uC2A4\uD06C",
+    "FLAC \u6807\u8BC6": "FLAC \uB9C8\uCEE4",
+    "\u5143\u6570\u636E\u5757\u5934": "\uBA54\uD0C0\uB370\uC774\uD130 \uBE14\uB85D \uD5E4\uB354",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "\uBA54\uD0C0\uB370\uC774\uD130 \uBE14\uB85D \uAE38\uC774",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "\uBA54\uD0C0\uB370\uC774\uD130 \uBE14\uB85D \uD398\uC774\uB85C\uB4DC",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "\uCD5C\uC18C \uBE14\uB85D \uD06C\uAE30",
+    "\u6700\u5927\u5757\u5927\u5C0F": "\uCD5C\uB300 \uBE14\uB85D \uD06C\uAE30",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "\uCD5C\uC18C \uD504\uB808\uC784 \uD06C\uAE30",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "\uCD5C\uB300 \uD504\uB808\uC784 \uD06C\uAE30",
+    "\u603B\u91C7\u6837\u6570": "\uCD1D \uC0D8\uD50C \uC218",
+    "\u539F\u59CB\u97F3\u9891 MD5": "\uC6D0\uBCF8 \uC624\uB514\uC624 MD5",
+    "Ogg \u9875\u6807\u8BC6": "Ogg \uD398\uC774\uC9C0 \uB9C8\uCEE4",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "\uC2A4\uD2B8\uB9BC \uAD6C\uC870 \uBC84\uC804",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "\uD398\uC774\uC9C0 \uC720\uD615 \uD50C\uB798\uADF8",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "\uC808\uB300 \uC704\uCE58",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "\uB17C\uB9AC \uC2A4\uD2B8\uB9BC \uC77C\uB828\uBC88\uD638",
+    "\u9875\u5E8F\u53F7": "\uD398\uC774\uC9C0 \uC2DC\uD000\uC2A4 \uBC88\uD638",
+    "\u9875\u6821\u9A8C\u548C": "\uD398\uC774\uC9C0 \uCCB4\uD06C\uC12C",
+    "segment \u6570": "segment \uC218",
+    "segment \u957F\u5EA6\u8868": "segment \uAE38\uC774 \uD14C\uC774\uBE14",
+    "\u9875\u6570\u636E": "\uD398\uC774\uC9C0 \uD398\uC774\uB85C\uB4DC",
+    "Opus \u8BC6\u522B\u5934": "Opus \uC2DD\uBCC4 \uD5E4\uB354",
+    "\u7248\u672C": "\uBC84\uC804",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "\uD504\uB9AC\uC2A4\uD0B5 \uC0D8\uD50C \uC218",
+    "\u8F93\u5165\u91C7\u6837\u7387": "\uC785\uB825 \uC0D8\uD50C\uB808\uC774\uD2B8",
+    "\u8F93\u51FA\u589E\u76CA": "\uCD9C\uB825 \uAC8C\uC778",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "\uCC44\uB110 \uB9E4\uD551 \uD328\uBC00\uB9AC",
+    "\u8BC6\u522B\u5934": "\uC2DD\uBCC4 \uD5E4\uB354",
+    "Vorbis \u6807\u8BC6": "Vorbis \uB9C8\uCEE4",
+    "box \u5927\u5C0F": "box \uD06C\uAE30",
+    "box \u7C7B\u578B": "box \uC720\uD615",
+    "\u4E3B\u54C1\u724C": "\uC8FC \uBE0C\uB79C\uB4DC",
+    "\u6B21\u7248\u672C": "\uB9C8\uC774\uB108 \uBC84\uC804",
+    "\u517C\u5BB9\u54C1\u724C": "\uD638\uD658 \uBE0C\uB79C\uB4DC",
+    "\u6807\u5FD7": "\uD50C\uB798\uADF8",
+    "\u65F6\u95F4\u523B\u5EA6": "\uD0C0\uC784\uC2A4\uCF00\uC77C",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "\uC9C0\uC18D \uC2DC\uAC04 \uB2E8\uC704 \uC218",
+    "\u5904\u7406\u5668\u7C7B\u578B": "\uD578\uB4E4\uB7EC \uC720\uD615",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "\uC0D8\uD50C \uC124\uBA85 \uC218",
+    "\u6837\u672C\u7C7B\u578B": "\uC0D8\uD50C \uC720\uD615",
+    "\u540C\u6B65\u5B57": "\uB3D9\uAE30 \uC6CC\uB4DC",
+    "MPEG \u7248\u672C": "MPEG \uBC84\uC804",
+    "\u5C42": "\uB808\uC774\uC5B4",
+    "CRC \u662F\u5426\u7701\u7565": "CRC \uC0DD\uB7B5 \uC5EC\uBD80",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "\uC0D8\uD50C\uB808\uC774\uD2B8 \uC778\uB371\uC2A4",
+    "\u58F0\u9053\u914D\u7F6E": "\uCC44\uB110 \uAD6C\uC131",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS \uD504\uB808\uC784 \uAE38\uC774",
+    "\u7F13\u51B2 fullness": "\uBC84\uD37C fullness",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "\uC6D0\uC2DC \uB370\uC774\uD130 \uBE14\uB85D \uC218 \uD544\uB4DC",
+    "ID3v2 \u6807\u8BC6": "ID3v2 \uB9C8\uCEE4",
+    "ID3 \u7248\u672C": "ID3 \uBC84\uC804",
+    "\u6807\u7B7E\u957F\u5EA6": "\uD0DC\uADF8 \uAE38\uC774",
+    "\u5E27\u540C\u6B65": "\uD504\uB808\uC784 \uB3D9\uAE30",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG \uC624\uB514\uC624 \uBC84\uC804",
+    "CRC \u6807\u5FD7": "CRC \uD50C\uB798\uADF8",
+    "\u7801\u7387\u7D22\u5F15": "\uBE44\uD2B8\uB808\uC774\uD2B8 \uC778\uB371\uC2A4",
+    "\u58F0\u9053\u6A21\u5F0F": "\uCC44\uB110 \uBAA8\uB4DC"
+  };
+  var HEADER_NOTE_FR = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Taille du fichier - 8",
+    "\u5B50\u5757 ID": "ID de sous-chunk",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Longueur des donn\xE9es du sous-chunk",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Zone de donn\xE9es audio",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Sous-chunk non d\xE9velopp\xE9",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "Sous-chunk fmt trop court",
+    "\u7F16\u7801\u683C\u5F0F": "Format d'encodage",
+    "\u901A\u9053\u6570": "Nombre de canaux",
+    "\u91C7\u6837\u7387": "Fr\xE9quence d'\xE9chantillonnage",
+    "\u5B57\u8282\u7387": "D\xE9bit en octets",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Octets par trame",
+    "\u4F4D\u6DF1": "Profondeur de bits",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Longueur des param\xE8tres \xE9tendus",
+    "\u6709\u6548\u4F4D\u6DF1": "Profondeur de bits valide",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Masque de disposition des canaux",
+    "FLAC \u6807\u8BC6": "Marqueur FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "En-t\xEAte du bloc de m\xE9tadonn\xE9es",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Longueur du bloc de m\xE9tadonn\xE9es",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Contenu du bloc de m\xE9tadonn\xE9es",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Taille minimale de bloc",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Taille maximale de bloc",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Taille minimale de trame",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Taille maximale de trame",
+    "\u603B\u91C7\u6837\u6570": "Nombre total d'\xE9chantillons",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 de l'audio brut",
+    "Ogg \u9875\u6807\u8BC6": "Marqueur de page Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Version de structure du flux",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Drapeaux de type de page",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Position absolue",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Num\xE9ro de s\xE9rie du flux logique",
+    "\u9875\u5E8F\u53F7": "Num\xE9ro de s\xE9quence de page",
+    "\u9875\u6821\u9A8C\u548C": "Somme de contr\xF4le de page",
+    "segment \u6570": "Nombre de segments",
+    "segment \u957F\u5EA6\u8868": "Table des longueurs de segments",
+    "\u9875\u6570\u636E": "Donn\xE9es de page",
+    "Opus \u8BC6\u522B\u5934": "En-t\xEAte d'identification Opus",
+    "\u7248\u672C": "Version",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Nombre d'\xE9chantillons pr\xE9-saut\xE9s",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Fr\xE9quence d'\xE9chantillonnage d'entr\xE9e",
+    "\u8F93\u51FA\u589E\u76CA": "Gain de sortie",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Famille de mappage des canaux",
+    "\u8BC6\u522B\u5934": "En-t\xEAte d'identification",
+    "Vorbis \u6807\u8BC6": "Marqueur Vorbis",
+    "box \u5927\u5C0F": "Taille de box",
+    "box \u7C7B\u578B": "Type de box",
+    "\u4E3B\u54C1\u724C": "Marque principale",
+    "\u6B21\u7248\u672C": "Version mineure",
+    "\u517C\u5BB9\u54C1\u724C": "Marques compatibles",
+    "\u6807\u5FD7": "Drapeaux",
+    "\u65F6\u95F4\u523B\u5EA6": "\xC9chelle temporelle",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Unit\xE9s de dur\xE9e",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Type de gestionnaire",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Nombre de descriptions d'\xE9chantillon",
+    "\u6837\u672C\u7C7B\u578B": "Type d'\xE9chantillon",
+    "\u540C\u6B65\u5B57": "Mot de synchronisation",
+    "MPEG \u7248\u672C": "Version MPEG",
+    "\u5C42": "Couche",
+    "CRC \u662F\u5426\u7701\u7565": "CRC absent ou non",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Indice de fr\xE9quence d'\xE9chantillonnage",
+    "\u58F0\u9053\u914D\u7F6E": "Configuration des canaux",
+    "ADTS \u5E27\u957F\u5EA6": "Longueur de trame ADTS",
+    "\u7F13\u51B2 fullness": "Remplissage du tampon",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Champ du nombre de blocs de donn\xE9es brutes",
+    "ID3v2 \u6807\u8BC6": "Marqueur ID3v2",
+    "ID3 \u7248\u672C": "Version ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "Longueur de balise",
+    "\u5E27\u540C\u6B65": "Synchronisation de trame",
+    "MPEG \u97F3\u9891\u7248\u672C": "Version audio MPEG",
+    "CRC \u6807\u5FD7": "Drapeau CRC",
+    "\u7801\u7387\u7D22\u5F15": "Indice de d\xE9bit",
+    "\u58F0\u9053\u6A21\u5F0F": "Mode de canaux"
+  };
+  var HEADER_NOTE_DE = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Dateigr\xF6\xDFe - 8",
+    "\u5B50\u5757 ID": "Subchunk-ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Subchunk-Datenl\xE4nge",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Audiodatenbereich",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Nicht erweiterter Subchunk",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt-Subchunk ist zu kurz",
+    "\u7F16\u7801\u683C\u5F0F": "Kodierungsformat",
+    "\u901A\u9053\u6570": "Kanalanzahl",
+    "\u91C7\u6837\u7387": "Abtastrate",
+    "\u5B57\u8282\u7387": "Byte-Rate",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Bytes pro Frame",
+    "\u4F4D\u6DF1": "Bittiefe",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "L\xE4nge der Erweiterungsparameter",
+    "\u6709\u6548\u4F4D\u6DF1": "G\xFCltige Bittiefe",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Kanallayout-Maske",
+    "FLAC \u6807\u8BC6": "FLAC-Marker",
+    "\u5143\u6570\u636E\u5757\u5934": "Metadatenblock-Header",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Metadatenblock-L\xE4nge",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Metadatenblock-Inhalt",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Minimale Blockgr\xF6\xDFe",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Maximale Blockgr\xF6\xDFe",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Minimale Framegr\xF6\xDFe",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Maximale Framegr\xF6\xDFe",
+    "\u603B\u91C7\u6837\u6570": "Gesamtzahl der Samples",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 der Roh-Audiodaten",
+    "Ogg \u9875\u6807\u8BC6": "Ogg-Seitenmarker",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Streamstruktur-Version",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Seitentyp-Flags",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Absolute Position",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Seriennummer des logischen Streams",
+    "\u9875\u5E8F\u53F7": "Seitensequenznummer",
+    "\u9875\u6821\u9A8C\u548C": "Seitenpr\xFCfsumme",
+    "segment \u6570": "Segmentanzahl",
+    "segment \u957F\u5EA6\u8868": "Segmentl\xE4ngentabelle",
+    "\u9875\u6570\u636E": "Seitendaten",
+    "Opus \u8BC6\u522B\u5934": "Opus-Identifikationsheader",
+    "\u7248\u672C": "Version",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Pre-skip-Sampleanzahl",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Eingabe-Abtastrate",
+    "\u8F93\u51FA\u589E\u76CA": "Ausgabeverst\xE4rkung",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Kanalmapping-Familie",
+    "\u8BC6\u522B\u5934": "Identifikationsheader",
+    "Vorbis \u6807\u8BC6": "Vorbis-Marker",
+    "box \u5927\u5C0F": "Box-Gr\xF6\xDFe",
+    "box \u7C7B\u578B": "Box-Typ",
+    "\u4E3B\u54C1\u724C": "Hauptmarke",
+    "\u6B21\u7248\u672C": "Nebenversion",
+    "\u517C\u5BB9\u54C1\u724C": "Kompatible Marken",
+    "\u6807\u5FD7": "Flags",
+    "\u65F6\u95F4\u523B\u5EA6": "Zeitskala",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Dauereinheiten",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Handler-Typ",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Anzahl der Sample-Beschreibungen",
+    "\u6837\u672C\u7C7B\u578B": "Sample-Typ",
+    "\u540C\u6B65\u5B57": "Syncwort",
+    "MPEG \u7248\u672C": "MPEG-Version",
+    "\u5C42": "Layer",
+    "CRC \u662F\u5426\u7701\u7565": "Ob CRC fehlt",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Abtastratenindex",
+    "\u58F0\u9053\u914D\u7F6E": "Kanalkonfiguration",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS-Frame-L\xE4nge",
+    "\u7F13\u51B2 fullness": "Pufferf\xFCllstand",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Feld f\xFCr Anzahl der Rohdatenbl\xF6cke",
+    "ID3v2 \u6807\u8BC6": "ID3v2-Marker",
+    "ID3 \u7248\u672C": "ID3-Version",
+    "\u6807\u7B7E\u957F\u5EA6": "Tag-L\xE4nge",
+    "\u5E27\u540C\u6B65": "Frame-Synchronisation",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG-Audioversion",
+    "CRC \u6807\u5FD7": "CRC-Flag",
+    "\u7801\u7387\u7D22\u5F15": "Bitratenindex",
+    "\u58F0\u9053\u6A21\u5F0F": "Kanalmodus"
+  };
+  var HEADER_NOTE_ES = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Tama\xF1o del archivo - 8",
+    "\u5B50\u5757 ID": "ID de subchunk",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Longitud de datos del subchunk",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Regi\xF3n de datos de audio",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Subchunk no expandido",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "El subchunk fmt es demasiado corto",
+    "\u7F16\u7801\u683C\u5F0F": "Formato de codificaci\xF3n",
+    "\u901A\u9053\u6570": "N\xFAmero de canales",
+    "\u91C7\u6837\u7387": "Frecuencia de muestreo",
+    "\u5B57\u8282\u7387": "Tasa de bytes",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Bytes por trama",
+    "\u4F4D\u6DF1": "Profundidad de bits",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Longitud de par\xE1metros extendidos",
+    "\u6709\u6548\u4F4D\u6DF1": "Profundidad de bits v\xE1lida",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "M\xE1scara de disposici\xF3n de canales",
+    "FLAC \u6807\u8BC6": "Marcador FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "Cabecera del bloque de metadatos",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Longitud del bloque de metadatos",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Contenido del bloque de metadatos",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Tama\xF1o m\xEDnimo de bloque",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Tama\xF1o m\xE1ximo de bloque",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Tama\xF1o m\xEDnimo de trama",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Tama\xF1o m\xE1ximo de trama",
+    "\u603B\u91C7\u6837\u6570": "Total de muestras",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 del audio sin procesar",
+    "Ogg \u9875\u6807\u8BC6": "Marcador de p\xE1gina Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Versi\xF3n de estructura del flujo",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Banderas de tipo de p\xE1gina",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Posici\xF3n absoluta",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "N\xFAmero de serie del flujo l\xF3gico",
+    "\u9875\u5E8F\u53F7": "N\xFAmero de secuencia de p\xE1gina",
+    "\u9875\u6821\u9A8C\u548C": "Suma de comprobaci\xF3n de p\xE1gina",
+    "segment \u6570": "N\xFAmero de segmentos",
+    "segment \u957F\u5EA6\u8868": "Tabla de longitudes de segmentos",
+    "\u9875\u6570\u636E": "Datos de p\xE1gina",
+    "Opus \u8BC6\u522B\u5934": "Cabecera de identificaci\xF3n Opus",
+    "\u7248\u672C": "Versi\xF3n",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "N\xFAmero de muestras pre-skip",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Frecuencia de muestreo de entrada",
+    "\u8F93\u51FA\u589E\u76CA": "Ganancia de salida",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Familia de mapeo de canales",
+    "\u8BC6\u522B\u5934": "Cabecera de identificaci\xF3n",
+    "Vorbis \u6807\u8BC6": "Marcador Vorbis",
+    "box \u5927\u5C0F": "Tama\xF1o de box",
+    "box \u7C7B\u578B": "Tipo de box",
+    "\u4E3B\u54C1\u724C": "Marca principal",
+    "\u6B21\u7248\u672C": "Versi\xF3n menor",
+    "\u517C\u5BB9\u54C1\u724C": "Marcas compatibles",
+    "\u6807\u5FD7": "Banderas",
+    "\u65F6\u95F4\u523B\u5EA6": "Escala de tiempo",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Unidades de duraci\xF3n",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Tipo de manejador",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "N\xFAmero de descripciones de muestra",
+    "\u6837\u672C\u7C7B\u578B": "Tipo de muestra",
+    "\u540C\u6B65\u5B57": "Palabra de sincronizaci\xF3n",
+    "MPEG \u7248\u672C": "Versi\xF3n MPEG",
+    "\u5C42": "Capa",
+    "CRC \u662F\u5426\u7701\u7565": "Si CRC est\xE1 ausente",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "\xCDndice de frecuencia de muestreo",
+    "\u58F0\u9053\u914D\u7F6E": "Configuraci\xF3n de canales",
+    "ADTS \u5E27\u957F\u5EA6": "Longitud de trama ADTS",
+    "\u7F13\u51B2 fullness": "Llenado del b\xFAfer",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Campo de n\xFAmero de bloques de datos sin procesar",
+    "ID3v2 \u6807\u8BC6": "Marcador ID3v2",
+    "ID3 \u7248\u672C": "Versi\xF3n ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "Longitud de etiqueta",
+    "\u5E27\u540C\u6B65": "Sincronizaci\xF3n de trama",
+    "MPEG \u97F3\u9891\u7248\u672C": "Versi\xF3n de audio MPEG",
+    "CRC \u6807\u5FD7": "Bandera CRC",
+    "\u7801\u7387\u7D22\u5F15": "\xCDndice de bitrate",
+    "\u58F0\u9053\u6A21\u5F0F": "Modo de canales"
+  };
+  var HEADER_NOTE_IT = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Dimensione file - 8",
+    "\u5B50\u5757 ID": "ID sotto-blocco",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Lunghezza dati del sotto-blocco",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Area dati audio",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Sotto-blocco non espanso",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "Sotto-blocco fmt troppo corto",
+    "\u7F16\u7801\u683C\u5F0F": "Formato di codifica",
+    "\u901A\u9053\u6570": "Numero di canali",
+    "\u91C7\u6837\u7387": "Frequenza di campionamento",
+    "\u5B57\u8282\u7387": "Byte rate",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Byte per frame",
+    "\u4F4D\u6DF1": "Profondit\xE0 in bit",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Lunghezza parametri estesi",
+    "\u6709\u6548\u4F4D\u6DF1": "Profondit\xE0 valida in bit",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Maschera layout canali",
+    "FLAC \u6807\u8BC6": "Marcatore FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "Header blocco metadati",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Lunghezza blocco metadati",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Contenuto blocco metadati",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Dimensione minima blocco",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Dimensione massima blocco",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Dimensione minima frame",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Dimensione massima frame",
+    "\u603B\u91C7\u6837\u6570": "Campioni totali",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 audio grezzo",
+    "Ogg \u9875\u6807\u8BC6": "Marcatore pagina Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Versione struttura stream",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Flag tipo pagina",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Posizione assoluta",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Numero seriale stream logico",
+    "\u9875\u5E8F\u53F7": "Numero sequenza pagina",
+    "\u9875\u6821\u9A8C\u548C": "Checksum pagina",
+    "segment \u6570": "Numero segmenti",
+    "segment \u957F\u5EA6\u8868": "Tabella lunghezze segmenti",
+    "\u9875\u6570\u636E": "Payload pagina",
+    "Opus \u8BC6\u522B\u5934": "Header identificazione Opus",
+    "\u7248\u672C": "Versione",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Numero campioni pre-skip",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Frequenza di campionamento in ingresso",
+    "\u8F93\u51FA\u589E\u76CA": "Guadagno in uscita",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Famiglia mappatura canali",
+    "\u8BC6\u522B\u5934": "Header identificazione",
+    "Vorbis \u6807\u8BC6": "Marcatore Vorbis",
+    "box \u5927\u5C0F": "Dimensione box",
+    "box \u7C7B\u578B": "Tipo box",
+    "\u4E3B\u54C1\u724C": "Brand principale",
+    "\u6B21\u7248\u672C": "Versione minore",
+    "\u517C\u5BB9\u54C1\u724C": "Brand compatibili",
+    "\u6807\u5FD7": "Flag",
+    "\u65F6\u95F4\u523B\u5EA6": "Scala temporale",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Unit\xE0 di durata",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Tipo handler",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Numero descrizioni campione",
+    "\u6837\u672C\u7C7B\u578B": "Tipo campione",
+    "\u540C\u6B65\u5B57": "Parola di sync",
+    "MPEG \u7248\u672C": "Versione MPEG",
+    "\u5C42": "Layer",
+    "CRC \u662F\u5426\u7701\u7565": "Se CRC \xE8 assente",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Indice frequenza di campionamento",
+    "\u58F0\u9053\u914D\u7F6E": "Configurazione canali",
+    "ADTS \u5E27\u957F\u5EA6": "Lunghezza frame ADTS",
+    "\u7F13\u51B2 fullness": "Pienezza buffer",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Campo numero blocchi dati grezzi",
+    "ID3v2 \u6807\u8BC6": "Marcatore ID3v2",
+    "ID3 \u7248\u672C": "Versione ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "Lunghezza tag",
+    "\u5E27\u540C\u6B65": "Sync frame",
+    "MPEG \u97F3\u9891\u7248\u672C": "Versione audio MPEG",
+    "CRC \u6807\u5FD7": "Flag CRC",
+    "\u7801\u7387\u7D22\u5F15": "Indice bitrate",
+    "\u58F0\u9053\u6A21\u5F0F": "Modalit\xE0 canali"
+  };
+  var HEADER_NOTE_PT = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Tamanho do arquivo - 8",
+    "\u5B50\u5757 ID": "ID do subchunk",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Comprimento dos dados do subchunk",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Regi\xE3o de dados de \xE1udio",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Subchunk n\xE3o expandido",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "Subchunk fmt curto demais",
+    "\u7F16\u7801\u683C\u5F0F": "Formato de codifica\xE7\xE3o",
+    "\u901A\u9053\u6570": "N\xFAmero de canais",
+    "\u91C7\u6837\u7387": "Taxa de amostragem",
+    "\u5B57\u8282\u7387": "Taxa de bytes",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Bytes por quadro",
+    "\u4F4D\u6DF1": "Profundidade de bits",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Comprimento dos par\xE2metros estendidos",
+    "\u6709\u6548\u4F4D\u6DF1": "Profundidade de bits v\xE1lida",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "M\xE1scara de layout de canais",
+    "FLAC \u6807\u8BC6": "Marcador FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "Cabe\xE7alho do bloco de metadados",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Comprimento do bloco de metadados",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Conte\xFAdo do bloco de metadados",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Tamanho m\xEDnimo de bloco",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Tamanho m\xE1ximo de bloco",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Tamanho m\xEDnimo de quadro",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Tamanho m\xE1ximo de quadro",
+    "\u603B\u91C7\u6837\u6570": "Total de amostras",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 do \xE1udio bruto",
+    "Ogg \u9875\u6807\u8BC6": "Marcador de p\xE1gina Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Vers\xE3o da estrutura do fluxo",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Flags de tipo de p\xE1gina",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Posi\xE7\xE3o absoluta",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "N\xFAmero serial do fluxo l\xF3gico",
+    "\u9875\u5E8F\u53F7": "N\xFAmero de sequ\xEAncia da p\xE1gina",
+    "\u9875\u6821\u9A8C\u548C": "Checksum da p\xE1gina",
+    "segment \u6570": "N\xFAmero de segmentos",
+    "segment \u957F\u5EA6\u8868": "Tabela de comprimentos dos segmentos",
+    "\u9875\u6570\u636E": "Payload da p\xE1gina",
+    "Opus \u8BC6\u522B\u5934": "Cabe\xE7alho de identifica\xE7\xE3o Opus",
+    "\u7248\u672C": "Vers\xE3o",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "N\xFAmero de amostras pre-skip",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Taxa de amostragem de entrada",
+    "\u8F93\u51FA\u589E\u76CA": "Ganho de sa\xEDda",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Fam\xEDlia de mapeamento de canais",
+    "\u8BC6\u522B\u5934": "Cabe\xE7alho de identifica\xE7\xE3o",
+    "Vorbis \u6807\u8BC6": "Marcador Vorbis",
+    "box \u5927\u5C0F": "Tamanho da box",
+    "box \u7C7B\u578B": "Tipo da box",
+    "\u4E3B\u54C1\u724C": "Marca principal",
+    "\u6B21\u7248\u672C": "Vers\xE3o menor",
+    "\u517C\u5BB9\u54C1\u724C": "Marcas compat\xEDveis",
+    "\u6807\u5FD7": "Flags",
+    "\u65F6\u95F4\u523B\u5EA6": "Escala de tempo",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Unidades de dura\xE7\xE3o",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Tipo de handler",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "N\xFAmero de descri\xE7\xF5es de amostra",
+    "\u6837\u672C\u7C7B\u578B": "Tipo de amostra",
+    "\u540C\u6B65\u5B57": "Palavra de sincroniza\xE7\xE3o",
+    "MPEG \u7248\u672C": "Vers\xE3o MPEG",
+    "\u5C42": "Camada",
+    "CRC \u662F\u5426\u7701\u7565": "Se o CRC est\xE1 ausente",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "\xCDndice da taxa de amostragem",
+    "\u58F0\u9053\u914D\u7F6E": "Configura\xE7\xE3o de canais",
+    "ADTS \u5E27\u957F\u5EA6": "Comprimento do quadro ADTS",
+    "\u7F13\u51B2 fullness": "Preenchimento do buffer",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Campo de n\xFAmero de blocos de dados brutos",
+    "ID3v2 \u6807\u8BC6": "Marcador ID3v2",
+    "ID3 \u7248\u672C": "Vers\xE3o ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "Comprimento da tag",
+    "\u5E27\u540C\u6B65": "Sincroniza\xE7\xE3o de quadro",
+    "MPEG \u97F3\u9891\u7248\u672C": "Vers\xE3o de \xE1udio MPEG",
+    "CRC \u6807\u5FD7": "Flag CRC",
+    "\u7801\u7387\u7D22\u5F15": "\xCDndice de bitrate",
+    "\u58F0\u9053\u6A21\u5F0F": "Modo de canais"
+  };
+  var HEADER_NOTE_RU = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "\u0420\u0430\u0437\u043C\u0435\u0440 \u0444\u0430\u0439\u043B\u0430 - 8",
+    "\u5B50\u5757 ID": "ID \u043F\u043E\u0434\u0431\u043B\u043E\u043A\u0430",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "\u0414\u043B\u0438\u043D\u0430 \u0434\u0430\u043D\u043D\u044B\u0445 \u043F\u043E\u0434\u0431\u043B\u043E\u043A\u0430",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "\u041E\u0431\u043B\u0430\u0441\u0442\u044C \u0430\u0443\u0434\u0438\u043E\u0434\u0430\u043D\u043D\u044B\u0445",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "\u041D\u0435\u0440\u0430\u0437\u0432\u0435\u0440\u043D\u0443\u0442\u044B\u0439 \u043F\u043E\u0434\u0431\u043B\u043E\u043A",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "\u041F\u043E\u0434\u0431\u043B\u043E\u043A fmt \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u043A\u043E\u0440\u043E\u0442\u043A\u0438\u0439",
+    "\u7F16\u7801\u683C\u5F0F": "\u0424\u043E\u0440\u043C\u0430\u0442 \u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F",
+    "\u901A\u9053\u6570": "\u0427\u0438\u0441\u043B\u043E \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+    "\u91C7\u6837\u7387": "\u0427\u0430\u0441\u0442\u043E\u0442\u0430 \u0434\u0438\u0441\u043A\u0440\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    "\u5B57\u8282\u7387": "\u0411\u0430\u0439\u0442\u043E\u0432\u0430\u044F \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u044C",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "\u0411\u0430\u0439\u0442 \u043D\u0430 \u043A\u0430\u0434\u0440",
+    "\u4F4D\u6DF1": "\u0411\u0438\u0442\u043E\u0432\u0430\u044F \u0433\u043B\u0443\u0431\u0438\u043D\u0430",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "\u0414\u043B\u0438\u043D\u0430 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0445 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u043E\u0432",
+    "\u6709\u6548\u4F4D\u6DF1": "\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u0430\u044F \u0431\u0438\u0442\u043E\u0432\u0430\u044F \u0433\u043B\u0443\u0431\u0438\u043D\u0430",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "\u041C\u0430\u0441\u043A\u0430 \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u043A\u0438 \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+    "FLAC \u6807\u8BC6": "\u041C\u0430\u0440\u043A\u0435\u0440 FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "\u0417\u0430\u0433\u043E\u043B\u043E\u0432\u043E\u043A \u0431\u043B\u043E\u043A\u0430 \u043C\u0435\u0442\u0430\u0434\u0430\u043D\u043D\u044B\u0445",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "\u0414\u043B\u0438\u043D\u0430 \u0431\u043B\u043E\u043A\u0430 \u043C\u0435\u0442\u0430\u0434\u0430\u043D\u043D\u044B\u0445",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "\u0421\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u0431\u043B\u043E\u043A\u0430 \u043C\u0435\u0442\u0430\u0434\u0430\u043D\u043D\u044B\u0445",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u0440\u0430\u0437\u043C\u0435\u0440 \u0431\u043B\u043E\u043A\u0430",
+    "\u6700\u5927\u5757\u5927\u5C0F": "\u041C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u0440\u0430\u0437\u043C\u0435\u0440 \u0431\u043B\u043E\u043A\u0430",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u0440\u0430\u0437\u043C\u0435\u0440 \u043A\u0430\u0434\u0440\u0430",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "\u041C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u0440\u0430\u0437\u043C\u0435\u0440 \u043A\u0430\u0434\u0440\u0430",
+    "\u603B\u91C7\u6837\u6570": "\u0412\u0441\u0435\u0433\u043E \u0441\u044D\u043C\u043F\u043B\u043E\u0432",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 \u0438\u0441\u0445\u043E\u0434\u043D\u043E\u0433\u043E \u0430\u0443\u0434\u0438\u043E",
+    "Ogg \u9875\u6807\u8BC6": "\u041C\u0430\u0440\u043A\u0435\u0440 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "\u0412\u0435\u0440\u0441\u0438\u044F \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u044B \u043F\u043E\u0442\u043E\u043A\u0430",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "\u0424\u043B\u0430\u0433\u0438 \u0442\u0438\u043F\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "\u0410\u0431\u0441\u043E\u043B\u044E\u0442\u043D\u0430\u044F \u043F\u043E\u0437\u0438\u0446\u0438\u044F",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "\u0421\u0435\u0440\u0438\u0439\u043D\u044B\u0439 \u043D\u043E\u043C\u0435\u0440 \u043B\u043E\u0433\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u043E\u0442\u043E\u043A\u0430",
+    "\u9875\u5E8F\u53F7": "\u041F\u043E\u0440\u044F\u0434\u043A\u043E\u0432\u044B\u0439 \u043D\u043E\u043C\u0435\u0440 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B",
+    "\u9875\u6821\u9A8C\u548C": "\u041A\u043E\u043D\u0442\u0440\u043E\u043B\u044C\u043D\u0430\u044F \u0441\u0443\u043C\u043C\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B",
+    "segment \u6570": "\u0427\u0438\u0441\u043B\u043E \u0441\u0435\u0433\u043C\u0435\u043D\u0442\u043E\u0432",
+    "segment \u957F\u5EA6\u8868": "\u0422\u0430\u0431\u043B\u0438\u0446\u0430 \u0434\u043B\u0438\u043D \u0441\u0435\u0433\u043C\u0435\u043D\u0442\u043E\u0432",
+    "\u9875\u6570\u636E": "\u0414\u0430\u043D\u043D\u044B\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B",
+    "Opus \u8BC6\u522B\u5934": "\u0418\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0446\u0438\u043E\u043D\u043D\u044B\u0439 \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043E\u043A Opus",
+    "\u7248\u672C": "\u0412\u0435\u0440\u0441\u0438\u044F",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "\u0427\u0438\u0441\u043B\u043E pre-skip \u0441\u044D\u043C\u043F\u043B\u043E\u0432",
+    "\u8F93\u5165\u91C7\u6837\u7387": "\u0412\u0445\u043E\u0434\u043D\u0430\u044F \u0447\u0430\u0441\u0442\u043E\u0442\u0430 \u0434\u0438\u0441\u043A\u0440\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    "\u8F93\u51FA\u589E\u76CA": "\u0412\u044B\u0445\u043E\u0434\u043D\u043E\u0435 \u0443\u0441\u0438\u043B\u0435\u043D\u0438\u0435",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "\u0421\u0435\u043C\u0435\u0439\u0441\u0442\u0432\u043E \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+    "\u8BC6\u522B\u5934": "\u0418\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0446\u0438\u043E\u043D\u043D\u044B\u0439 \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043E\u043A",
+    "Vorbis \u6807\u8BC6": "\u041C\u0430\u0440\u043A\u0435\u0440 Vorbis",
+    "box \u5927\u5C0F": "\u0420\u0430\u0437\u043C\u0435\u0440 box",
+    "box \u7C7B\u578B": "\u0422\u0438\u043F box",
+    "\u4E3B\u54C1\u724C": "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0431\u0440\u0435\u043D\u0434",
+    "\u6B21\u7248\u672C": "\u041C\u043B\u0430\u0434\u0448\u0430\u044F \u0432\u0435\u0440\u0441\u0438\u044F",
+    "\u517C\u5BB9\u54C1\u724C": "\u0421\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u044B\u0435 \u0431\u0440\u0435\u043D\u0434\u044B",
+    "\u6807\u5FD7": "\u0424\u043B\u0430\u0433\u0438",
+    "\u65F6\u95F4\u523B\u5EA6": "\u0428\u043A\u0430\u043B\u0430 \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "\u0415\u0434\u0438\u043D\u0438\u0446\u044B \u0434\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u0438",
+    "\u5904\u7406\u5668\u7C7B\u578B": "\u0422\u0438\u043F \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "\u0427\u0438\u0441\u043B\u043E \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0439 \u0441\u044D\u043C\u043F\u043B\u043E\u0432",
+    "\u6837\u672C\u7C7B\u578B": "\u0422\u0438\u043F \u0441\u044D\u043C\u043F\u043B\u0430",
+    "\u540C\u6B65\u5B57": "\u0421\u0438\u043D\u0445\u0440\u043E\u0441\u043B\u043E\u0432\u043E",
+    "MPEG \u7248\u672C": "\u0412\u0435\u0440\u0441\u0438\u044F MPEG",
+    "\u5C42": "\u0421\u043B\u043E\u0439",
+    "CRC \u662F\u5426\u7701\u7565": "\u041E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043B\u0438 CRC",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "\u0418\u043D\u0434\u0435\u043A\u0441 \u0447\u0430\u0441\u0442\u043E\u0442\u044B \u0434\u0438\u0441\u043A\u0440\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    "\u58F0\u9053\u914D\u7F6E": "\u041A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+    "ADTS \u5E27\u957F\u5EA6": "\u0414\u043B\u0438\u043D\u0430 \u043A\u0430\u0434\u0440\u0430 ADTS",
+    "\u7F13\u51B2 fullness": "\u0417\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u043E\u0441\u0442\u044C \u0431\u0443\u0444\u0435\u0440\u0430",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "\u041F\u043E\u043B\u0435 \u0447\u0438\u0441\u043B\u0430 \u0431\u043B\u043E\u043A\u043E\u0432 \u0441\u044B\u0440\u044B\u0445 \u0434\u0430\u043D\u043D\u044B\u0445",
+    "ID3v2 \u6807\u8BC6": "\u041C\u0430\u0440\u043A\u0435\u0440 ID3v2",
+    "ID3 \u7248\u672C": "\u0412\u0435\u0440\u0441\u0438\u044F ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "\u0414\u043B\u0438\u043D\u0430 \u0442\u0435\u0433\u0430",
+    "\u5E27\u540C\u6B65": "\u0421\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044F \u043A\u0430\u0434\u0440\u0430",
+    "MPEG \u97F3\u9891\u7248\u672C": "\u0412\u0435\u0440\u0441\u0438\u044F \u0430\u0443\u0434\u0438\u043E MPEG",
+    "CRC \u6807\u5FD7": "\u0424\u043B\u0430\u0433 CRC",
+    "\u7801\u7387\u7D22\u5F15": "\u0418\u043D\u0434\u0435\u043A\u0441 \u0431\u0438\u0442\u0440\u0435\u0439\u0442\u0430",
+    "\u58F0\u9053\u6A21\u5F0F": "\u0420\u0435\u0436\u0438\u043C \u043A\u0430\u043D\u0430\u043B\u043E\u0432"
+  };
+  var HEADER_NOTE_NL = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Bestandsgrootte - 8",
+    "\u5B50\u5757 ID": "Subchunk-ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Gegevenslengte van subchunk",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Audiogegevensgebied",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Niet-uitgevouwen subchunk",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt-subchunk is te kort",
+    "\u7F16\u7801\u683C\u5F0F": "Coderingsformaat",
+    "\u901A\u9053\u6570": "Aantal kanalen",
+    "\u91C7\u6837\u7387": "Samplefrequentie",
+    "\u5B57\u8282\u7387": "Bytefrequentie",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Bytes per frame",
+    "\u4F4D\u6DF1": "Bitdiepte",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Lengte van uitbreidingsparameters",
+    "\u6709\u6548\u4F4D\u6DF1": "Geldige bitdiepte",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Kanaalindelingsmasker",
+    "FLAC \u6807\u8BC6": "FLAC-markering",
+    "\u5143\u6570\u636E\u5757\u5934": "Header van metadatablok",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Lengte van metadatablok",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Inhoud van metadatablok",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Minimale blokgrootte",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Maximale blokgrootte",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Minimale framegrootte",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Maximale framegrootte",
+    "\u603B\u91C7\u6837\u6570": "Totaal aantal samples",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 van ruwe audio",
+    "Ogg \u9875\u6807\u8BC6": "Ogg-paginamarkering",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Versie van streamstructuur",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Paginatypevlaggen",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Absolute positie",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Serienummer van logische stream",
+    "\u9875\u5E8F\u53F7": "Paginavolgnummer",
+    "\u9875\u6821\u9A8C\u548C": "Paginacontrolesom",
+    "segment \u6570": "Aantal segmenten",
+    "segment \u957F\u5EA6\u8868": "Segmentlengtetabel",
+    "\u9875\u6570\u636E": "Paginagegevens",
+    "Opus \u8BC6\u522B\u5934": "Opus-identificatieheader",
+    "\u7248\u672C": "Versie",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Aantal pre-skip samples",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Invoersamplefrequentie",
+    "\u8F93\u51FA\u589E\u76CA": "Uitvoerversterking",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Kanaaltoewijzingsfamilie",
+    "\u8BC6\u522B\u5934": "Identificatieheader",
+    "Vorbis \u6807\u8BC6": "Vorbis-markering",
+    "box \u5927\u5C0F": "Boxgrootte",
+    "box \u7C7B\u578B": "Boxtype",
+    "\u4E3B\u54C1\u724C": "Hoofdmerk",
+    "\u6B21\u7248\u672C": "Minorversie",
+    "\u517C\u5BB9\u54C1\u724C": "Compatibele merken",
+    "\u6807\u5FD7": "Vlaggen",
+    "\u65F6\u95F4\u523B\u5EA6": "Tijdschaal",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Duur-eenheden",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Handlertype",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Aantal samplebeschrijvingen",
+    "\u6837\u672C\u7C7B\u578B": "Sampletype",
+    "\u540C\u6B65\u5B57": "Synchronisatiewoord",
+    "MPEG \u7248\u672C": "MPEG-versie",
+    "\u5C42": "Laag",
+    "CRC \u662F\u5426\u7701\u7565": "Of CRC ontbreekt",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Samplefrequentie-index",
+    "\u58F0\u9053\u914D\u7F6E": "Kanaalconfiguratie",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS-framelengte",
+    "\u7F13\u51B2 fullness": "Buffervulling",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Veld voor aantal ruwe datablokken",
+    "ID3v2 \u6807\u8BC6": "ID3v2-markering",
+    "ID3 \u7248\u672C": "ID3-versie",
+    "\u6807\u7B7E\u957F\u5EA6": "Taglengte",
+    "\u5E27\u540C\u6B65": "Framesynchronisatie",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG-audioversie",
+    "CRC \u6807\u5FD7": "CRC-vlag",
+    "\u7801\u7387\u7D22\u5F15": "Bitrate-index",
+    "\u58F0\u9053\u6A21\u5F0F": "Kanaalmodus"
+  };
+  var HEADER_NOTE_PL = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Rozmiar pliku - 8",
+    "\u5B50\u5757 ID": "ID podbloku",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "D\u0142ugo\u015B\u0107 danych podbloku",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Obszar danych audio",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Nierozwini\u0119ty podblok",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "Podblok fmt jest zbyt kr\xF3tki",
+    "\u7F16\u7801\u683C\u5F0F": "Format kodowania",
+    "\u901A\u9053\u6570": "Liczba kana\u0142\xF3w",
+    "\u91C7\u6837\u7387": "Cz\u0119stotliwo\u015B\u0107 pr\xF3bkowania",
+    "\u5B57\u8282\u7387": "Szybko\u015B\u0107 bajtowa",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Bajt\xF3w na ramk\u0119",
+    "\u4F4D\u6DF1": "G\u0142\u0119bia bitowa",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "D\u0142ugo\u015B\u0107 parametr\xF3w rozszerzenia",
+    "\u6709\u6548\u4F4D\u6DF1": "Prawid\u0142owa g\u0142\u0119bia bitowa",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Maska uk\u0142adu kana\u0142\xF3w",
+    "FLAC \u6807\u8BC6": "Znacznik FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "Nag\u0142\xF3wek bloku metadanych",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "D\u0142ugo\u015B\u0107 bloku metadanych",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Zawarto\u015B\u0107 bloku metadanych",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Minimalny rozmiar bloku",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Maksymalny rozmiar bloku",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Minimalny rozmiar ramki",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Maksymalny rozmiar ramki",
+    "\u603B\u91C7\u6837\u6570": "\u0141\u0105czna liczba pr\xF3bek",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 surowego audio",
+    "Ogg \u9875\u6807\u8BC6": "Znacznik strony Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Wersja struktury strumienia",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Flagi typu strony",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Pozycja bezwzgl\u0119dna",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Numer seryjny strumienia logicznego",
+    "\u9875\u5E8F\u53F7": "Numer sekwencji strony",
+    "\u9875\u6821\u9A8C\u548C": "Suma kontrolna strony",
+    "segment \u6570": "Liczba segment\xF3w",
+    "segment \u957F\u5EA6\u8868": "Tabela d\u0142ugo\u015Bci segment\xF3w",
+    "\u9875\u6570\u636E": "Dane strony",
+    "Opus \u8BC6\u522B\u5934": "Nag\u0142\xF3wek identyfikacyjny Opus",
+    "\u7248\u672C": "Wersja",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Liczba pr\xF3bek pre-skip",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Wej\u015Bciowa cz\u0119stotliwo\u015B\u0107 pr\xF3bkowania",
+    "\u8F93\u51FA\u589E\u76CA": "Wzmocnienie wyj\u015Bciowe",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Rodzina mapowania kana\u0142\xF3w",
+    "\u8BC6\u522B\u5934": "Nag\u0142\xF3wek identyfikacyjny",
+    "Vorbis \u6807\u8BC6": "Znacznik Vorbis",
+    "box \u5927\u5C0F": "Rozmiar box",
+    "box \u7C7B\u578B": "Typ box",
+    "\u4E3B\u54C1\u724C": "G\u0142\xF3wna marka",
+    "\u6B21\u7248\u672C": "Wersja podrz\u0119dna",
+    "\u517C\u5BB9\u54C1\u724C": "Zgodne marki",
+    "\u6807\u5FD7": "Flagi",
+    "\u65F6\u95F4\u523B\u5EA6": "Skala czasu",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Jednostki czasu trwania",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Typ handlera",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Liczba opis\xF3w pr\xF3bek",
+    "\u6837\u672C\u7C7B\u578B": "Typ pr\xF3bki",
+    "\u540C\u6B65\u5B57": "S\u0142owo synchronizacji",
+    "MPEG \u7248\u672C": "Wersja MPEG",
+    "\u5C42": "Warstwa",
+    "CRC \u662F\u5426\u7701\u7565": "Czy CRC jest pomini\u0119te",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Indeks cz\u0119stotliwo\u015Bci pr\xF3bkowania",
+    "\u58F0\u9053\u914D\u7F6E": "Konfiguracja kana\u0142\xF3w",
+    "ADTS \u5E27\u957F\u5EA6": "D\u0142ugo\u015B\u0107 ramki ADTS",
+    "\u7F13\u51B2 fullness": "Wype\u0142nienie bufora",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Pole liczby blok\xF3w surowych danych",
+    "ID3v2 \u6807\u8BC6": "Znacznik ID3v2",
+    "ID3 \u7248\u672C": "Wersja ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "D\u0142ugo\u015B\u0107 tagu",
+    "\u5E27\u540C\u6B65": "Synchronizacja ramki",
+    "MPEG \u97F3\u9891\u7248\u672C": "Wersja audio MPEG",
+    "CRC \u6807\u5FD7": "Flaga CRC",
+    "\u7801\u7387\u7D22\u5F15": "Indeks bitrate",
+    "\u58F0\u9053\u6A21\u5F0F": "Tryb kana\u0142\xF3w"
+  };
+  var HEADER_NOTE_TR = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Dosya boyutu - 8",
+    "\u5B50\u5757 ID": "Alt par\xE7a ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Alt par\xE7a veri uzunlu\u011Fu",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Ses veri b\xF6lgesi",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Geni\u015Fletilmemi\u015F alt par\xE7a",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt alt par\xE7as\u0131 \xE7ok k\u0131sa",
+    "\u7F16\u7801\u683C\u5F0F": "Kodlama format\u0131",
+    "\u901A\u9053\u6570": "Kanal say\u0131s\u0131",
+    "\u91C7\u6837\u7387": "\xD6rnekleme h\u0131z\u0131",
+    "\u5B57\u8282\u7387": "Bayt h\u0131z\u0131",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Kare ba\u015F\u0131na bayt",
+    "\u4F4D\u6DF1": "Bit derinli\u011Fi",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Geni\u015Fletme parametresi uzunlu\u011Fu",
+    "\u6709\u6548\u4F4D\u6DF1": "Ge\xE7erli bit derinli\u011Fi",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Kanal d\xFCzeni maskesi",
+    "FLAC \u6807\u8BC6": "FLAC i\u015Fareti",
+    "\u5143\u6570\u636E\u5757\u5934": "Meta veri blok ba\u015Fl\u0131\u011F\u0131",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Meta veri blok uzunlu\u011Fu",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Meta veri blok i\xE7eri\u011Fi",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "En k\xFC\xE7\xFCk blok boyutu",
+    "\u6700\u5927\u5757\u5927\u5C0F": "En b\xFCy\xFCk blok boyutu",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "En k\xFC\xE7\xFCk kare boyutu",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "En b\xFCy\xFCk kare boyutu",
+    "\u603B\u91C7\u6837\u6570": "Toplam \xF6rnek say\u0131s\u0131",
+    "\u539F\u59CB\u97F3\u9891 MD5": "Ham ses MD5",
+    "Ogg \u9875\u6807\u8BC6": "Ogg sayfa i\u015Fareti",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Ak\u0131\u015F yap\u0131s\u0131 s\xFCr\xFCm\xFC",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Sayfa t\xFCr\xFC bayraklar\u0131",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Mutlak konum",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Mant\u0131ksal ak\u0131\u015F seri numaras\u0131",
+    "\u9875\u5E8F\u53F7": "Sayfa s\u0131ra numaras\u0131",
+    "\u9875\u6821\u9A8C\u548C": "Sayfa sa\u011Flama toplam\u0131",
+    "segment \u6570": "Segment say\u0131s\u0131",
+    "segment \u957F\u5EA6\u8868": "Segment uzunluk tablosu",
+    "\u9875\u6570\u636E": "Sayfa verisi",
+    "Opus \u8BC6\u522B\u5934": "Opus tan\u0131mlama ba\u015Fl\u0131\u011F\u0131",
+    "\u7248\u672C": "S\xFCr\xFCm",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Pre-skip \xF6rnek say\u0131s\u0131",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Giri\u015F \xF6rnekleme h\u0131z\u0131",
+    "\u8F93\u51FA\u589E\u76CA": "\xC7\u0131k\u0131\u015F kazanc\u0131",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Kanal e\u015Fleme ailesi",
+    "\u8BC6\u522B\u5934": "Tan\u0131mlama ba\u015Fl\u0131\u011F\u0131",
+    "Vorbis \u6807\u8BC6": "Vorbis i\u015Fareti",
+    "box \u5927\u5C0F": "Box boyutu",
+    "box \u7C7B\u578B": "Box t\xFCr\xFC",
+    "\u4E3B\u54C1\u724C": "Ana marka",
+    "\u6B21\u7248\u672C": "Alt s\xFCr\xFCm",
+    "\u517C\u5BB9\u54C1\u724C": "Uyumlu markalar",
+    "\u6807\u5FD7": "Bayraklar",
+    "\u65F6\u95F4\u523B\u5EA6": "Zaman \xF6l\xE7e\u011Fi",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "S\xFCre birimleri",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Handler t\xFCr\xFC",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "\xD6rnek a\xE7\u0131klamas\u0131 say\u0131s\u0131",
+    "\u6837\u672C\u7C7B\u578B": "\xD6rnek t\xFCr\xFC",
+    "\u540C\u6B65\u5B57": "Senkronizasyon s\xF6zc\xFC\u011F\xFC",
+    "MPEG \u7248\u672C": "MPEG s\xFCr\xFCm\xFC",
+    "\u5C42": "Katman",
+    "CRC \u662F\u5426\u7701\u7565": "CRC yok mu",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "\xD6rnekleme h\u0131z\u0131 indeksi",
+    "\u58F0\u9053\u914D\u7F6E": "Kanal yap\u0131land\u0131rmas\u0131",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS kare uzunlu\u011Fu",
+    "\u7F13\u51B2 fullness": "Tampon dolulu\u011Fu",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Ham veri blo\u011Fu say\u0131s\u0131 alan\u0131",
+    "ID3v2 \u6807\u8BC6": "ID3v2 i\u015Fareti",
+    "ID3 \u7248\u672C": "ID3 s\xFCr\xFCm\xFC",
+    "\u6807\u7B7E\u957F\u5EA6": "Etiket uzunlu\u011Fu",
+    "\u5E27\u540C\u6B65": "Kare senkronizasyonu",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG ses s\xFCr\xFCm\xFC",
+    "CRC \u6807\u5FD7": "CRC bayra\u011F\u0131",
+    "\u7801\u7387\u7D22\u5F15": "Bitrate indeksi",
+    "\u58F0\u9053\u6A21\u5F0F": "Kanal modu"
+  };
+  var HEADER_NOTE_ID = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Ukuran file - 8",
+    "\u5B50\u5757 ID": "ID subchunk",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Panjang data subchunk",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Area data audio",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Subchunk yang belum dibuka",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "Subchunk fmt terlalu pendek",
+    "\u7F16\u7801\u683C\u5F0F": "Format pengodean",
+    "\u901A\u9053\u6570": "Jumlah kanal",
+    "\u91C7\u6837\u7387": "Laju sampel",
+    "\u5B57\u8282\u7387": "Laju byte",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Byte per frame",
+    "\u4F4D\u6DF1": "Kedalaman bit",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Panjang parameter ekstensi",
+    "\u6709\u6548\u4F4D\u6DF1": "Kedalaman bit valid",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Mask layout kanal",
+    "FLAC \u6807\u8BC6": "Penanda FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "Header blok metadata",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Panjang blok metadata",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Isi blok metadata",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Ukuran blok minimum",
+    "\u6700\u5927\u5757\u5927\u5C0F": "Ukuran blok maksimum",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Ukuran frame minimum",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "Ukuran frame maksimum",
+    "\u603B\u91C7\u6837\u6570": "Total sampel",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 audio mentah",
+    "Ogg \u9875\u6807\u8BC6": "Penanda halaman Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Versi struktur stream",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Flag tipe halaman",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Posisi absolut",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Nomor seri stream logis",
+    "\u9875\u5E8F\u53F7": "Nomor urut halaman",
+    "\u9875\u6821\u9A8C\u548C": "Checksum halaman",
+    "segment \u6570": "Jumlah segment",
+    "segment \u957F\u5EA6\u8868": "Tabel panjang segment",
+    "\u9875\u6570\u636E": "Payload halaman",
+    "Opus \u8BC6\u522B\u5934": "Header identifikasi Opus",
+    "\u7248\u672C": "Versi",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Jumlah sampel pre-skip",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Laju sampel input",
+    "\u8F93\u51FA\u589E\u76CA": "Gain output",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Keluarga pemetaan kanal",
+    "\u8BC6\u522B\u5934": "Header identifikasi",
+    "Vorbis \u6807\u8BC6": "Penanda Vorbis",
+    "box \u5927\u5C0F": "Ukuran box",
+    "box \u7C7B\u578B": "Tipe box",
+    "\u4E3B\u54C1\u724C": "Brand utama",
+    "\u6B21\u7248\u672C": "Versi minor",
+    "\u517C\u5BB9\u54C1\u724C": "Brand kompatibel",
+    "\u6807\u5FD7": "Flag",
+    "\u65F6\u95F4\u523B\u5EA6": "Skala waktu",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Unit durasi",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Tipe handler",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Jumlah deskripsi sampel",
+    "\u6837\u672C\u7C7B\u578B": "Tipe sampel",
+    "\u540C\u6B65\u5B57": "Kata sinkronisasi",
+    "MPEG \u7248\u672C": "Versi MPEG",
+    "\u5C42": "Layer",
+    "CRC \u662F\u5426\u7701\u7565": "Apakah CRC tidak ada",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Indeks laju sampel",
+    "\u58F0\u9053\u914D\u7F6E": "Konfigurasi kanal",
+    "ADTS \u5E27\u957F\u5EA6": "Panjang frame ADTS",
+    "\u7F13\u51B2 fullness": "Kepenuhan buffer",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Kolom jumlah blok data mentah",
+    "ID3v2 \u6807\u8BC6": "Penanda ID3v2",
+    "ID3 \u7248\u672C": "Versi ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "Panjang tag",
+    "\u5E27\u540C\u6B65": "Sinkronisasi frame",
+    "MPEG \u97F3\u9891\u7248\u672C": "Versi audio MPEG",
+    "CRC \u6807\u5FD7": "Flag CRC",
+    "\u7801\u7387\u7D22\u5F15": "Indeks bitrate",
+    "\u58F0\u9053\u6A21\u5F0F": "Mode kanal"
+  };
+  var HEADER_NOTE_NO = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "Filst\xF8rrelse - 8",
+    "\u5B50\u5757 ID": "Subchunk-ID",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "Datalengde for subchunk",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "Lyddataomr\xE5de",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Ikke-utvidet subchunk",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "fmt-subchunk er for kort",
+    "\u7F16\u7801\u683C\u5F0F": "Kodingsformat",
+    "\u901A\u9053\u6570": "Antall kanaler",
+    "\u91C7\u6837\u7387": "Samplingsrate",
+    "\u5B57\u8282\u7387": "Byterate",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Byte per frame",
+    "\u4F4D\u6DF1": "Bitdybde",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "Lengde p\xE5 utvidelsesparametere",
+    "\u6709\u6548\u4F4D\u6DF1": "Gyldig bitdybde",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "Kanallayoutmaske",
+    "FLAC \u6807\u8BC6": "FLAC-mark\xF8r",
+    "\u5143\u6570\u636E\u5757\u5934": "Metadata-blokkhode",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "Metadata-blokklengde",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "Metadata-blokkinnhold",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "Minste blokkst\xF8rrelse",
+    "\u6700\u5927\u5757\u5927\u5C0F": "St\xF8rste blokkst\xF8rrelse",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "Minste framest\xF8rrelse",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "St\xF8rste framest\xF8rrelse",
+    "\u603B\u91C7\u6837\u6570": "Totalt antall samples",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 for r\xE5 lyd",
+    "Ogg \u9875\u6807\u8BC6": "Ogg-sidemark\xF8r",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Streamstrukturversjon",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "Sidetypeflagg",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "Absolutt posisjon",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "Serienummer for logisk stream",
+    "\u9875\u5E8F\u53F7": "Sidesekvensnummer",
+    "\u9875\u6821\u9A8C\u548C": "Sidekontrollsum",
+    "segment \u6570": "Antall segmenter",
+    "segment \u957F\u5EA6\u8868": "Segmentlengdetabell",
+    "\u9875\u6570\u636E": "Sidedata",
+    "Opus \u8BC6\u522B\u5934": "Opus-identifikasjonshode",
+    "\u7248\u672C": "Versjon",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "Antall pre-skip samples",
+    "\u8F93\u5165\u91C7\u6837\u7387": "Inngangssamplingsrate",
+    "\u8F93\u51FA\u589E\u76CA": "Utgangsforsterkning",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "Kanaltilordningsfamilie",
+    "\u8BC6\u522B\u5934": "Identifikasjonshode",
+    "Vorbis \u6807\u8BC6": "Vorbis-mark\xF8r",
+    "box \u5927\u5C0F": "Box-st\xF8rrelse",
+    "box \u7C7B\u578B": "Box-type",
+    "\u4E3B\u54C1\u724C": "Hovedmerke",
+    "\u6B21\u7248\u672C": "Underversjon",
+    "\u517C\u5BB9\u54C1\u724C": "Kompatible merker",
+    "\u6807\u5FD7": "Flagg",
+    "\u65F6\u95F4\u523B\u5EA6": "Tidsskala",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "Varighetsenheter",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Handlertype",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "Antall samplebeskrivelser",
+    "\u6837\u672C\u7C7B\u578B": "Sampletype",
+    "\u540C\u6B65\u5B57": "Synkroniseringsord",
+    "MPEG \u7248\u672C": "MPEG-versjon",
+    "\u5C42": "Lag",
+    "CRC \u662F\u5426\u7701\u7565": "Om CRC mangler",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Samplingsrateindeks",
+    "\u58F0\u9053\u914D\u7F6E": "Kanalkonfigurasjon",
+    "ADTS \u5E27\u957F\u5EA6": "ADTS-framelengde",
+    "\u7F13\u51B2 fullness": "Bufferfylling",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Felt for antall r\xE5datablokker",
+    "ID3v2 \u6807\u8BC6": "ID3v2-mark\xF8r",
+    "ID3 \u7248\u672C": "ID3-versjon",
+    "\u6807\u7B7E\u957F\u5EA6": "Tagglengde",
+    "\u5E27\u540C\u6B65": "Framesynkronisering",
+    "MPEG \u97F3\u9891\u7248\u672C": "MPEG-lydversjon",
+    "CRC \u6807\u5FD7": "CRC-flagg",
+    "\u7801\u7387\u7D22\u5F15": "Bitrateindeks",
+    "\u58F0\u9053\u6A21\u5F0F": "Kanalmodus"
+  };
+  var HEADER_NOTE_VI = {
+    "\u6587\u4EF6\u5927\u5C0F - 8": "K\xEDch th\u01B0\u1EDBc t\u1EC7p - 8",
+    "\u5B50\u5757 ID": "ID subchunk",
+    "\u5B50\u5757\u6570\u636E\u957F\u5EA6": "\u0110\u1ED9 d\xE0i d\u1EEF li\u1EC7u subchunk",
+    "\u97F3\u9891\u6570\u636E\u533A\u57DF": "V\xF9ng d\u1EEF li\u1EC7u \xE2m thanh",
+    "\u672A\u5C55\u5F00\u5B50\u5757": "Subchunk ch\u01B0a m\u1EDF r\u1ED9ng",
+    "fmt \u5B50\u5757\u8FC7\u77ED": "Subchunk fmt qu\xE1 ng\u1EAFn",
+    "\u7F16\u7801\u683C\u5F0F": "\u0110\u1ECBnh d\u1EA1ng m\xE3 h\xF3a",
+    "\u901A\u9053\u6570": "S\u1ED1 k\xEAnh",
+    "\u91C7\u6837\u7387": "T\u1EA7n s\u1ED1 l\u1EA5y m\u1EABu",
+    "\u5B57\u8282\u7387": "T\u1ED1c \u0111\u1ED9 byte",
+    "\u6BCF\u5E27\u5B57\u8282\u6570": "Byte m\u1ED7i frame",
+    "\u4F4D\u6DF1": "\u0110\u1ED9 s\xE2u bit",
+    "\u6269\u5C55\u53C2\u6570\u957F\u5EA6": "\u0110\u1ED9 d\xE0i tham s\u1ED1 m\u1EDF r\u1ED9ng",
+    "\u6709\u6548\u4F4D\u6DF1": "\u0110\u1ED9 s\xE2u bit h\u1EE3p l\u1EC7",
+    "\u58F0\u9053\u5E03\u5C40\u63A9\u7801": "M\u1EB7t n\u1EA1 b\u1ED1 c\u1EE5c k\xEAnh",
+    "FLAC \u6807\u8BC6": "D\u1EA5u FLAC",
+    "\u5143\u6570\u636E\u5757\u5934": "Header kh\u1ED1i metadata",
+    "\u5143\u6570\u636E\u5757\u957F\u5EA6": "\u0110\u1ED9 d\xE0i kh\u1ED1i metadata",
+    "\u5143\u6570\u636E\u5757\u5185\u5BB9": "N\u1ED9i dung kh\u1ED1i metadata",
+    "\u6700\u5C0F\u5757\u5927\u5C0F": "K\xEDch th\u01B0\u1EDBc kh\u1ED1i nh\u1ECF nh\u1EA5t",
+    "\u6700\u5927\u5757\u5927\u5C0F": "K\xEDch th\u01B0\u1EDBc kh\u1ED1i l\u1EDBn nh\u1EA5t",
+    "\u6700\u5C0F\u5E27\u5927\u5C0F": "K\xEDch th\u01B0\u1EDBc frame nh\u1ECF nh\u1EA5t",
+    "\u6700\u5927\u5E27\u5927\u5C0F": "K\xEDch th\u01B0\u1EDBc frame l\u1EDBn nh\u1EA5t",
+    "\u603B\u91C7\u6837\u6570": "T\u1ED5ng s\u1ED1 m\u1EABu",
+    "\u539F\u59CB\u97F3\u9891 MD5": "MD5 \xE2m thanh th\xF4",
+    "Ogg \u9875\u6807\u8BC6": "D\u1EA5u trang Ogg",
+    "\u6D41\u7ED3\u6784\u7248\u672C": "Phi\xEAn b\u1EA3n c\u1EA5u tr\xFAc stream",
+    "\u9875\u7C7B\u578B\u6807\u5FD7": "C\u1EDD lo\u1EA1i trang",
+    "\u7EDD\u5BF9\u4F4D\u7F6E": "V\u1ECB tr\xED tuy\u1EC7t \u0111\u1ED1i",
+    "\u903B\u8F91\u6D41\u5E8F\u53F7": "S\u1ED1 s\xEA-ri stream logic",
+    "\u9875\u5E8F\u53F7": "S\u1ED1 th\u1EE9 t\u1EF1 trang",
+    "\u9875\u6821\u9A8C\u548C": "Checksum trang",
+    "segment \u6570": "S\u1ED1 segment",
+    "segment \u957F\u5EA6\u8868": "B\u1EA3ng \u0111\u1ED9 d\xE0i segment",
+    "\u9875\u6570\u636E": "Payload trang",
+    "Opus \u8BC6\u522B\u5934": "Header nh\u1EADn d\u1EA1ng Opus",
+    "\u7248\u672C": "Phi\xEAn b\u1EA3n",
+    "\u9884\u8DF3\u8FC7\u91C7\u6837\u6570": "S\u1ED1 m\u1EABu pre-skip",
+    "\u8F93\u5165\u91C7\u6837\u7387": "T\u1EA7n s\u1ED1 l\u1EA5y m\u1EABu \u0111\u1EA7u v\xE0o",
+    "\u8F93\u51FA\u589E\u76CA": "Gain \u0111\u1EA7u ra",
+    "\u58F0\u9053\u6620\u5C04\u65CF": "H\u1ECD \xE1nh x\u1EA1 k\xEAnh",
+    "\u8BC6\u522B\u5934": "Header nh\u1EADn d\u1EA1ng",
+    "Vorbis \u6807\u8BC6": "D\u1EA5u Vorbis",
+    "box \u5927\u5C0F": "K\xEDch th\u01B0\u1EDBc box",
+    "box \u7C7B\u578B": "Lo\u1EA1i box",
+    "\u4E3B\u54C1\u724C": "Brand ch\xEDnh",
+    "\u6B21\u7248\u672C": "Phi\xEAn b\u1EA3n ph\u1EE5",
+    "\u517C\u5BB9\u54C1\u724C": "Brand t\u01B0\u01A1ng th\xEDch",
+    "\u6807\u5FD7": "C\u1EDD",
+    "\u65F6\u95F4\u523B\u5EA6": "Thang th\u1EDDi gian",
+    "\u65F6\u957F\u5355\u4F4D\u6570": "\u0110\u01A1n v\u1ECB th\u1EDDi l\u01B0\u1EE3ng",
+    "\u5904\u7406\u5668\u7C7B\u578B": "Lo\u1EA1i handler",
+    "\u6837\u672C\u63CF\u8FF0\u6570\u91CF": "S\u1ED1 m\xF4 t\u1EA3 m\u1EABu",
+    "\u6837\u672C\u7C7B\u578B": "Lo\u1EA1i m\u1EABu",
+    "\u540C\u6B65\u5B57": "T\u1EEB \u0111\u1ED3ng b\u1ED9",
+    "MPEG \u7248\u672C": "Phi\xEAn b\u1EA3n MPEG",
+    "\u5C42": "L\u1EDBp",
+    "CRC \u662F\u5426\u7701\u7565": "CRC c\xF3 b\u1ECB thi\u1EBFu kh\xF4ng",
+    "\u91C7\u6837\u7387\u7D22\u5F15": "Ch\u1EC9 m\u1EE5c t\u1EA7n s\u1ED1 l\u1EA5y m\u1EABu",
+    "\u58F0\u9053\u914D\u7F6E": "C\u1EA5u h\xECnh k\xEAnh",
+    "ADTS \u5E27\u957F\u5EA6": "\u0110\u1ED9 d\xE0i frame ADTS",
+    "\u7F13\u51B2 fullness": "\u0110\u1ED9 \u0111\u1EA7y buffer",
+    "\u539F\u59CB\u6570\u636E\u5757\u6570\u91CF\u5B57\u6BB5": "Tr\u01B0\u1EDDng s\u1ED1 kh\u1ED1i d\u1EEF li\u1EC7u th\xF4",
+    "ID3v2 \u6807\u8BC6": "D\u1EA5u ID3v2",
+    "ID3 \u7248\u672C": "Phi\xEAn b\u1EA3n ID3",
+    "\u6807\u7B7E\u957F\u5EA6": "\u0110\u1ED9 d\xE0i tag",
+    "\u5E27\u540C\u6B65": "\u0110\u1ED3ng b\u1ED9 frame",
+    "MPEG \u97F3\u9891\u7248\u672C": "Phi\xEAn b\u1EA3n \xE2m thanh MPEG",
+    "CRC \u6807\u5FD7": "C\u1EDD CRC",
+    "\u7801\u7387\u7D22\u5F15": "Ch\u1EC9 m\u1EE5c bitrate",
+    "\u58F0\u9053\u6A21\u5F0F": "Ch\u1EBF \u0111\u1ED9 k\xEAnh"
+  };
+  var HEADER_NOTES_BY_LOCALE = {
+    "zh-TW": HEADER_NOTE_ZH_TW,
+    en: HEADER_NOTE_EN,
+    ja: HEADER_NOTE_JA,
+    ko: HEADER_NOTE_KO,
+    fr: HEADER_NOTE_FR,
+    de: HEADER_NOTE_DE,
+    es: HEADER_NOTE_ES,
+    it: HEADER_NOTE_IT,
+    pt: HEADER_NOTE_PT,
+    ru: HEADER_NOTE_RU,
+    nl: HEADER_NOTE_NL,
+    pl: HEADER_NOTE_PL,
+    tr: HEADER_NOTE_TR,
+    id: HEADER_NOTE_ID,
+    no: HEADER_NOTE_NO,
+    vi: HEADER_NOTE_VI
+  };
   var AudioLensApp = class {
     constructor(vscode2, elements) {
       this.vscode = vscode2;
@@ -3567,6 +5609,7 @@
     lastSpectrogramByChannel = /* @__PURE__ */ new Map();
     waveformCache = /* @__PURE__ */ new Map();
     worker = createAnalysisWorker();
+    currentLocale = "en";
     messages = getMessages("en");
     settings = {
       algorithm: "frequency",
@@ -3642,8 +5685,13 @@
     }
     applyLanguage(config) {
       const locale = resolveLocale(config.language, config.vscodeLanguage);
+      this.currentLocale = locale;
       this.messages = getMessages(locale);
       applyLocale(document, this.messages);
+      if (!this.elements.headerInfoPanel.hidden) {
+        this.renderHeaderInfo();
+        this.positionHeaderInfoPanel();
+      }
       this.updateResetViewButtonState();
       this.updateTrackLabels();
       this.redrawVisuals();
@@ -3697,6 +5745,8 @@
       this.audioBytes = await this.readAll(metadata.size);
       this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
       this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav";
+      this.elements.headerInfo.hidden = metadata.kind === "pcm";
+      this.elements.headerInfoPanel.hidden = true;
       this.elements.wavPcmPanel.hidden = true;
       this.stopPlaybackTicker();
       if (metadata.kind === "pcm") {
@@ -3859,6 +5909,12 @@
       this.elements.pcmReveal.addEventListener("click", () => {
         this.showWavPcmPanel();
       });
+      this.elements.headerInfo.addEventListener("click", () => {
+        this.toggleHeaderInfoPanel();
+      });
+      this.elements.headerInfoClose.addEventListener("click", () => {
+        this.hideHeaderInfoPanel();
+      });
       this.elements.wavPcmApply.addEventListener("click", () => {
         void this.applyWavPcmFormat();
       });
@@ -3946,6 +6002,9 @@
       window.addEventListener("resize", () => {
         if (!this.elements.wavPcmPanel.hidden) {
           this.positionWavPcmPanel();
+        }
+        if (!this.elements.headerInfoPanel.hidden) {
+          this.positionHeaderInfoPanel();
         }
         this.positionPcmStatusTooltip();
         this.redrawVisuals();
@@ -4085,6 +6144,11 @@
         this.elements.settingsToggle.focus();
         return;
       }
+      if (!this.elements.headerInfoPanel.hidden) {
+        this.hideHeaderInfoPanel();
+        this.elements.headerInfo.focus();
+        return;
+      }
       if (this.helpMenuElement().open) {
         this.helpMenuElement().open = false;
         this.elements.helpMenu.querySelector("summary")?.focus();
@@ -4117,6 +6181,9 @@
       if (this.helpMenuElement().open && !this.elements.helpMenu.contains(target)) {
         this.helpMenuElement().open = false;
       }
+      if (!this.elements.headerInfoPanel.hidden && !this.elements.headerInfoPanel.contains(target) && !this.elements.headerInfo.contains(target)) {
+        this.hideHeaderInfoPanel();
+      }
       this.hideFloatingTooltip();
       if (!this.elements.wavPcmPanel.hidden && !this.elements.wavPcmPanel.contains(target) && !this.elements.pcmReveal.contains(target)) {
         this.hideWavPcmPanel();
@@ -4124,6 +6191,169 @@
     }
     helpMenuElement() {
       return this.elements.helpMenu;
+    }
+    toggleHeaderInfoPanel() {
+      if (this.elements.headerInfoPanel.hidden) {
+        this.showHeaderInfoPanel();
+        return;
+      }
+      this.hideHeaderInfoPanel();
+    }
+    showHeaderInfoPanel() {
+      this.elements.settingsPanel.hidden = true;
+      this.helpMenuElement().open = false;
+      this.elements.wavPcmPanel.hidden = true;
+      this.renderHeaderInfo();
+      this.elements.headerInfoPanel.hidden = false;
+      this.positionHeaderInfoPanel();
+    }
+    hideHeaderInfoPanel() {
+      this.elements.headerInfoPanel.hidden = true;
+    }
+    renderHeaderInfo() {
+      this.elements.headerInfoTitle.textContent = `${this.messages.headerInfoTitle} \xB7 ${this.currentFileName || "--"}`;
+      this.elements.headerInfoBody.replaceChildren();
+      if (!this.audioBytes) {
+        this.elements.headerInfoBody.append(this.createHeaderInfoEmpty(this.messages.headerInfoAudioUnread));
+        return;
+      }
+      const info = readAudioHeaderInfo(this.audioBytes, this.currentFileName);
+      if (!info) {
+        this.elements.headerInfoBody.append(this.createHeaderInfoEmpty(this.messages.headerInfoUnsupported));
+        return;
+      }
+      this.elements.headerInfoTitle.textContent = `${this.messages.headerInfoTitle} \xB7 ${info.format}`;
+      if (info.summary) {
+        this.elements.headerInfoBody.append(this.createHeaderInfoSummary(info.summary));
+      }
+      this.elements.headerInfoBody.append(this.createHeaderInfoTable(info));
+    }
+    createHeaderInfoEmpty(message) {
+      const element = document.createElement("div");
+      element.className = "headerInfoEmpty";
+      element.textContent = message;
+      return element;
+    }
+    createHeaderInfoSummary(summary) {
+      const element = document.createElement("div");
+      element.className = `headerInfoSummary is-${summary.tone}`;
+      const text = document.createElement("strong");
+      const localized = this.localizeHeaderSummary(summary);
+      text.textContent = localized.text;
+      element.append(text);
+      if (localized.detail) {
+        const detail = document.createElement("span");
+        detail.textContent = localized.detail;
+        element.append(detail);
+      }
+      return element;
+    }
+    localizeHeaderSummary(summary) {
+      if (summary.kind !== "wavHeader") {
+        return { text: summary.text, detail: summary.detail };
+      }
+      if (summary.missingData) {
+        return { text: this.messages.headerInfoWavMissingData, detail: this.messages.headerInfoWavCannotDetermine };
+      }
+      const size = summary.headerSize ?? 0;
+      const text = this.messages.headerInfoWavHeaderLength.replace("{size}", String(size));
+      if (summary.standard) {
+        return { text, detail: this.messages.headerInfoWavStandardPcm };
+      }
+      const reasons = summary.reasons?.map((reason) => {
+        switch (reason.type) {
+          case "fmtExtended":
+            return this.messages.headerInfoWavFmtExtended.replace("{size}", String(reason.size));
+          case "format":
+            return this.messages.headerInfoWavFormat.replace("{format}", String(reason.format)).replace("{name}", reason.name);
+          case "extraChunks":
+            return this.messages.headerInfoWavExtraChunks.replace("{chunks}", reason.chunks.join(", "));
+          case "dataOffset":
+            return this.messages.headerInfoWavDataOffsetNon44;
+        }
+      }) ?? [];
+      const detail = reasons.length > 0 ? `${this.messages.headerInfoWavNonStandardPrefix}: ${reasons.join(this.messages.headerInfoReasonSeparator)}` : `${this.messages.headerInfoWavNonStandardPrefix}: ${this.messages.headerInfoWavDataOffsetNon44}`;
+      return { text, detail };
+    }
+    createHeaderInfoTable(info) {
+      const hasBits = info.rows.some((row) => row.bits);
+      const table = document.createElement("table");
+      table.className = "headerInfoTable";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      const columns = hasBits ? [
+        [this.messages.headerInfoByteOffset, "offsetColumn"],
+        [this.messages.headerInfoBits, "bitsColumn"],
+        [this.messages.headerInfoField, "fieldColumn"],
+        [this.messages.headerInfoValue, "valueColumn"],
+        [this.messages.headerInfoDescription, "noteColumn"]
+      ] : [
+        [this.messages.headerInfoOffset, "offsetColumn"],
+        [this.messages.headerInfoSize, "sizeColumn"],
+        [this.messages.headerInfoField, "fieldColumn"],
+        [this.messages.headerInfoValue, "valueColumn"],
+        [this.messages.headerInfoDescription, "noteColumn"]
+      ];
+      for (const [label, className] of columns) {
+        const cell = document.createElement("th");
+        cell.className = className;
+        cell.textContent = label;
+        headerRow.append(cell);
+      }
+      thead.append(headerRow);
+      table.append(thead);
+      const tbody = document.createElement("tbody");
+      for (const row of info.rows) {
+        const tr = document.createElement("tr");
+        if (row.kind) {
+          tr.dataset.kind = row.kind;
+        }
+        const values = hasBits ? [
+          `0x${row.offset.toString(16).toUpperCase().padStart(8, "0")}`,
+          row.bits ?? `${row.size * 8} bit`,
+          `${row.treePrefix ? `${row.treePrefix} ` : ""}${row.field}`,
+          row.value,
+          this.localizeHeaderNote(row.note ?? "")
+        ] : [
+          `0x${row.offset.toString(16).toUpperCase().padStart(8, "0")}`,
+          `${row.size} B`,
+          `${row.treePrefix ? `${row.treePrefix} ` : ""}${row.field}`,
+          row.value,
+          this.localizeHeaderNote(row.note ?? "")
+        ];
+        for (const value of values) {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          tr.append(cell);
+        }
+        const fieldCell = tr.children[hasBits ? 2 : 2];
+        if (fieldCell && row.depth !== void 0) {
+          fieldCell.style.setProperty("--header-field-depth", String(row.depth));
+        }
+        tbody.append(tr);
+      }
+      table.append(tbody);
+      return table;
+    }
+    localizeHeaderNote(note) {
+      if (!note) {
+        return "";
+      }
+      if (this.currentLocale === "zh-CN") {
+        return note;
+      }
+      const notes = HEADER_NOTES_BY_LOCALE[this.currentLocale] ?? HEADER_NOTE_EN;
+      return notes[note] ?? HEADER_NOTE_EN[note] ?? note;
+    }
+    positionHeaderInfoPanel() {
+      const anchor = this.elements.headerInfo.getBoundingClientRect();
+      const panel = this.elements.headerInfoPanel;
+      const margin = 12;
+      const panelWidth = Math.min(680, window.innerWidth - margin * 2);
+      const left = clamp2(anchor.right - panelWidth, margin, Math.max(margin, window.innerWidth - panelWidth - margin));
+      panel.style.width = `${panelWidth}px`;
+      panel.style.left = `${left}px`;
+      panel.style.top = `${anchor.bottom + 8}px`;
     }
     bindAnalysisTooltips() {
       document.querySelectorAll(".analysisHelp, .metricHelp").forEach((trigger) => {
@@ -5783,9 +8013,9 @@
   }
   function parseCssRgb(value) {
     const trimmed = value.trim();
-    const hex = /^#([0-9a-f]{6})$/i.exec(trimmed);
-    if (hex) {
-      const number = Number.parseInt(hex[1], 16);
+    const hex2 = /^#([0-9a-f]{6})$/i.exec(trimmed);
+    if (hex2) {
+      const number = Number.parseInt(hex2[1], 16);
       return { red: number >> 16 & 255, green: number >> 8 & 255, blue: number & 255 };
     }
     const rgb = /^rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/i.exec(trimmed);
@@ -6722,6 +8952,19 @@
       flex: 0 0 auto;
       white-space: nowrap;
     }
+    .headerInfoButton {
+      line-height: 1;
+    }
+    .headerInfoIcon {
+      width: 19px;
+      height: 19px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .topPcmPanel {
       flex: 1 1 620px;
       min-width: min(560px, 100%);
@@ -6843,6 +9086,147 @@
     }
     .wavPcmPanel[hidden] {
       display: none;
+    }
+    .headerInfoPanel {
+      position: fixed;
+      z-index: 42;
+      top: 58px;
+      left: 12px;
+      width: min(680px, calc(100vw - 24px));
+      max-height: min(680px, calc(100vh - 82px));
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      color: var(--vscode-foreground);
+      background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 36px rgb(0 0 0 / 28%);
+    }
+    .headerInfoPanel[hidden] {
+      display: none;
+    }
+    .headerInfoHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .headerInfoBody {
+      min-height: 0;
+      overflow: auto;
+    }
+    .headerInfoEmpty {
+      color: var(--vscode-descriptionForeground);
+      line-height: 1.45;
+    }
+    .headerInfoSummary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 7px 9px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      line-height: 1.35;
+      background: var(--vscode-input-background);
+    }
+    .headerInfoSummary strong {
+      white-space: nowrap;
+    }
+    .headerInfoSummary span {
+      color: var(--vscode-descriptionForeground);
+    }
+    .headerInfoSummary.is-info {
+      border-color: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 62%, var(--vscode-panel-border));
+      background: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 12%, var(--vscode-input-background));
+    }
+    .headerInfoSummary.is-warning {
+      border-color: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 62%, var(--vscode-panel-border));
+      background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 10%, var(--vscode-input-background));
+    }
+    .headerInfoTable {
+      width: max-content;
+      min-width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+      table-layout: auto;
+      font-size: 12px;
+    }
+    .headerInfoTable th,
+    .headerInfoTable td {
+      padding: 3px 6px;
+      border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 72%, transparent);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.3;
+    }
+    .headerInfoTable td {
+      overflow-wrap: anywhere;
+    }
+    .headerInfoTable th:nth-child(1),
+    .headerInfoTable th:nth-child(2),
+    .headerInfoTable td:nth-child(1),
+    .headerInfoTable td:nth-child(2) {
+      white-space: nowrap;
+      overflow-wrap: normal;
+      font-family: var(--vscode-editor-font-family), monospace;
+    }
+    .headerInfoTable th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--vscode-descriptionForeground);
+      background: var(--vscode-editor-background);
+      font-weight: 600;
+    }
+    .headerInfoTable .offsetColumn,
+    .headerInfoTable .sizeColumn {
+      white-space: nowrap;
+      overflow-wrap: normal;
+    }
+    .headerInfoTable .offsetColumn {
+      min-width: 92px;
+    }
+    .headerInfoTable .sizeColumn {
+      min-width: 86px;
+    }
+    .headerInfoTable .bitsColumn {
+      min-width: 118px;
+      max-width: 150px;
+      white-space: nowrap;
+      overflow-wrap: normal;
+    }
+    .headerInfoTable .fieldColumn {
+      min-width: 156px;
+      max-width: 240px;
+    }
+    .headerInfoTable .valueColumn {
+      min-width: 96px;
+      max-width: 190px;
+    }
+    .headerInfoTable .noteColumn {
+      min-width: 128px;
+      max-width: 240px;
+    }
+    .headerInfoTable td:nth-child(3),
+    .headerInfoTable td:nth-child(4),
+    .headerInfoTable td:nth-child(5) {
+      max-width: inherit;
+    }
+    .headerInfoTable td:nth-child(3) {
+      padding-left: calc(6px + var(--header-field-depth, 0) * 16px);
+    }
+    .headerInfoTable tr[data-kind="box"] td {
+      background: color-mix(in srgb, var(--vscode-sideBar-background) 72%, transparent);
+    }
+    .headerInfoTable tr[data-kind="box"] td:nth-child(3) {
+      color: var(--vscode-foreground);
+      font-weight: 700;
     }
     .wavPcmHeader {
       display: flex;

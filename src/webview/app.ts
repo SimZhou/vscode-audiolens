@@ -17,10 +17,10 @@ import {
   WaveformPeaks
 } from "../shared/analysis";
 import { createAnalysisWorker, SpectrogramResult } from "./analysisWorker";
-import { readAudioFileFacts } from "./audioFacts";
+import { AudioHeaderInfo, readAudioFileFacts, readAudioHeaderInfo } from "./audioFacts";
 import { clamp, formatBytes, formatTime, guessMime, resizeCanvas } from "./dom";
 import { getMessages, resolveLocale } from "./i18n";
-import { LocaleMessages, LocaleSetting } from "./i18n/types";
+import { LocaleCode, LocaleMessages, LocaleSetting } from "./i18n/types";
 import {
   createAudioBufferFromChannels,
   decodePcm,
@@ -119,6 +119,1209 @@ const BAND_LIMITS = [
   { labelKey: "frequencyBand8kPlus", min: 8000, max: Number.POSITIVE_INFINITY }
 ] satisfies Array<{ labelKey: keyof LocaleMessages; min: number; max: number }>;
 
+const HEADER_NOTE_EN: Record<string, string> = {
+  "文件大小 - 8": "File size - 8",
+  "子块 ID": "Subchunk ID",
+  "子块数据长度": "Subchunk data length",
+  "音频数据区域": "Audio data region",
+  "未展开子块": "Unexpanded chunk",
+  "fmt 子块过短": "fmt chunk is too short",
+  "编码格式": "Audio format",
+  "通道数": "Channel count",
+  "采样率": "Sample rate",
+  "字节率": "Byte rate",
+  "每帧字节数": "Bytes per frame",
+  "位深": "Bit depth",
+  "扩展参数长度": "Extension parameter length",
+  "有效位深": "Valid bit depth",
+  "声道布局掩码": "Channel layout mask",
+  "FLAC 标识": "FLAC marker",
+  "元数据块头": "Metadata block header",
+  "元数据块长度": "Metadata block length",
+  "元数据块内容": "Metadata block payload",
+  "最小块大小": "Minimum block size",
+  "最大块大小": "Maximum block size",
+  "最小帧大小": "Minimum frame size",
+  "最大帧大小": "Maximum frame size",
+  "总采样数": "Total samples",
+  "原始音频 MD5": "Raw audio MD5",
+  "Ogg 页标识": "Ogg page marker",
+  "流结构版本": "Stream structure version",
+  "页类型标志": "Page type flags",
+  "绝对位置": "Absolute position",
+  "逻辑流序号": "Logical stream serial number",
+  "页序号": "Page sequence number",
+  "页校验和": "Page checksum",
+  "segment 数": "Segment count",
+  "segment 长度表": "Segment length table",
+  "页数据": "Page payload",
+  "Opus 识别头": "Opus identification header",
+  "版本": "Version",
+  "预跳过采样数": "Pre-skip sample count",
+  "输入采样率": "Input sample rate",
+  "输出增益": "Output gain",
+  "声道映射族": "Channel mapping family",
+  "识别头": "Identification header",
+  "Vorbis 标识": "Vorbis marker",
+  "box 大小": "Box size",
+  "box 类型": "Box type",
+  "主品牌": "Major brand",
+  "次版本": "Minor version",
+  "兼容品牌": "Compatible brands",
+  "标志": "Flags",
+  "时间刻度": "Timescale",
+  "时长单位数": "Duration units",
+  "处理器类型": "Handler type",
+  "样本描述数量": "Sample description count",
+  "样本类型": "Sample type",
+  "同步字": "Sync word",
+  "MPEG 版本": "MPEG version",
+  "层": "Layer",
+  "CRC 是否省略": "Whether CRC is absent",
+  "采样率索引": "Sample rate index",
+  "声道配置": "Channel configuration",
+  "ADTS 帧长度": "ADTS frame length",
+  "缓冲 fullness": "Buffer fullness",
+  "原始数据块数量字段": "Raw data block count field",
+  "ID3v2 标识": "ID3v2 marker",
+  "ID3 版本": "ID3 version",
+  "标签长度": "Tag length",
+  "帧同步": "Frame sync",
+  "MPEG 音频版本": "MPEG audio version",
+  "CRC 标志": "CRC flag",
+  "码率索引": "Bitrate index",
+  "声道模式": "Channel mode"
+};
+
+const HEADER_NOTE_ZH_TW: Record<string, string> = {
+  "文件大小 - 8": "檔案大小 - 8",
+  "子块 ID": "子區塊 ID",
+  "子块数据长度": "子區塊資料長度",
+  "音频数据区域": "音訊資料區域",
+  "未展开子块": "未展開子區塊",
+  "fmt 子块过短": "fmt 子區塊過短",
+  "编码格式": "編碼格式",
+  "通道数": "聲道數",
+  "采样率": "取樣率",
+  "字节率": "位元組率",
+  "每帧字节数": "每幀位元組數",
+  "位深": "位元深度",
+  "扩展参数长度": "擴充參數長度",
+  "有效位深": "有效位元深度",
+  "声道布局掩码": "聲道布局遮罩",
+  "FLAC 标识": "FLAC 標識",
+  "元数据块头": "中繼資料區塊頭",
+  "元数据块长度": "中繼資料區塊長度",
+  "元数据块内容": "中繼資料區塊內容",
+  "最小块大小": "最小區塊大小",
+  "最大块大小": "最大區塊大小",
+  "最小帧大小": "最小幀大小",
+  "最大帧大小": "最大幀大小",
+  "总采样数": "總取樣數",
+  "原始音频 MD5": "原始音訊 MD5",
+  "Ogg 页标识": "Ogg 頁標識",
+  "流结构版本": "串流結構版本",
+  "页类型标志": "頁類型標誌",
+  "绝对位置": "絕對位置",
+  "逻辑流序号": "邏輯串流序號",
+  "页序号": "頁序號",
+  "页校验和": "頁校驗和",
+  "segment 数": "segment 數",
+  "segment 长度表": "segment 長度表",
+  "页数据": "頁資料",
+  "Opus 识别头": "Opus 識別頭",
+  "版本": "版本",
+  "预跳过采样数": "預跳過取樣數",
+  "输入采样率": "輸入取樣率",
+  "输出增益": "輸出增益",
+  "声道映射族": "聲道映射族",
+  "识别头": "識別頭",
+  "Vorbis 标识": "Vorbis 標識",
+  "box 大小": "box 大小",
+  "box 类型": "box 類型",
+  "主品牌": "主品牌",
+  "次版本": "次版本",
+  "兼容品牌": "相容品牌",
+  "标志": "標誌",
+  "时间刻度": "時間刻度",
+  "时长单位数": "時長單位數",
+  "处理器类型": "處理器類型",
+  "样本描述数量": "樣本描述數量",
+  "样本类型": "樣本類型",
+  "同步字": "同步字",
+  "MPEG 版本": "MPEG 版本",
+  "层": "層",
+  "CRC 是否省略": "CRC 是否省略",
+  "采样率索引": "取樣率索引",
+  "声道配置": "聲道配置",
+  "ADTS 帧长度": "ADTS 幀長度",
+  "缓冲 fullness": "緩衝 fullness",
+  "原始数据块数量字段": "原始資料區塊數量欄位",
+  "ID3v2 标识": "ID3v2 標識",
+  "ID3 版本": "ID3 版本",
+  "标签长度": "標籤長度",
+  "帧同步": "幀同步",
+  "MPEG 音频版本": "MPEG 音訊版本",
+  "CRC 标志": "CRC 標誌",
+  "码率索引": "碼率索引",
+  "声道模式": "聲道模式"
+};
+
+const HEADER_NOTE_JA: Record<string, string> = {
+  "文件大小 - 8": "ファイルサイズ - 8",
+  "子块 ID": "サブチャンク ID",
+  "子块数据长度": "サブチャンクデータ長",
+  "音频数据区域": "音声データ領域",
+  "未展开子块": "未展開のサブチャンク",
+  "fmt 子块过短": "fmt サブチャンクが短すぎます",
+  "编码格式": "エンコード形式",
+  "通道数": "チャンネル数",
+  "采样率": "サンプルレート",
+  "字节率": "バイトレート",
+  "每帧字节数": "フレームあたりのバイト数",
+  "位深": "ビット深度",
+  "扩展参数长度": "拡張パラメータ長",
+  "有效位深": "有効ビット深度",
+  "声道布局掩码": "チャンネル配置マスク",
+  "FLAC 标识": "FLAC マーカー",
+  "元数据块头": "メタデータブロックヘッダー",
+  "元数据块长度": "メタデータブロック長",
+  "元数据块内容": "メタデータブロック内容",
+  "最小块大小": "最小ブロックサイズ",
+  "最大块大小": "最大ブロックサイズ",
+  "最小帧大小": "最小フレームサイズ",
+  "最大帧大小": "最大フレームサイズ",
+  "总采样数": "総サンプル数",
+  "原始音频 MD5": "原音声 MD5",
+  "Ogg 页标识": "Ogg ページマーカー",
+  "流结构版本": "ストリーム構造バージョン",
+  "页类型标志": "ページタイプフラグ",
+  "绝对位置": "絶対位置",
+  "逻辑流序号": "論理ストリームシリアル番号",
+  "页序号": "ページシーケンス番号",
+  "页校验和": "ページチェックサム",
+  "segment 数": "segment 数",
+  "segment 长度表": "segment 長テーブル",
+  "页数据": "ページペイロード",
+  "Opus 识别头": "Opus 識別ヘッダー",
+  "版本": "バージョン",
+  "预跳过采样数": "プリスキップサンプル数",
+  "输入采样率": "入力サンプルレート",
+  "输出增益": "出力ゲイン",
+  "声道映射族": "チャンネルマッピングファミリー",
+  "识别头": "識別ヘッダー",
+  "Vorbis 标识": "Vorbis マーカー",
+  "box 大小": "box サイズ",
+  "box 类型": "box タイプ",
+  "主品牌": "メジャーブランド",
+  "次版本": "マイナーバージョン",
+  "兼容品牌": "互換ブランド",
+  "标志": "フラグ",
+  "时间刻度": "タイムスケール",
+  "时长单位数": "継続時間単位数",
+  "处理器类型": "ハンドラータイプ",
+  "样本描述数量": "サンプル記述数",
+  "样本类型": "サンプルタイプ",
+  "同步字": "同期ワード",
+  "MPEG 版本": "MPEG バージョン",
+  "层": "レイヤー",
+  "CRC 是否省略": "CRC が省略されているか",
+  "采样率索引": "サンプルレートインデックス",
+  "声道配置": "チャンネル構成",
+  "ADTS 帧长度": "ADTS フレーム長",
+  "缓冲 fullness": "バッファ fullness",
+  "原始数据块数量字段": "生データブロック数フィールド",
+  "ID3v2 标识": "ID3v2 マーカー",
+  "ID3 版本": "ID3 バージョン",
+  "标签长度": "タグ長",
+  "帧同步": "フレーム同期",
+  "MPEG 音频版本": "MPEG 音声バージョン",
+  "CRC 标志": "CRC フラグ",
+  "码率索引": "ビットレートインデックス",
+  "声道模式": "チャンネルモード"
+};
+
+const HEADER_NOTE_KO: Record<string, string> = {
+  "文件大小 - 8": "파일 크기 - 8",
+  "子块 ID": "서브청크 ID",
+  "子块数据长度": "서브청크 데이터 길이",
+  "音频数据区域": "오디오 데이터 영역",
+  "未展开子块": "펼치지 않은 서브청크",
+  "fmt 子块过短": "fmt 서브청크가 너무 짧음",
+  "编码格式": "인코딩 형식",
+  "通道数": "채널 수",
+  "采样率": "샘플레이트",
+  "字节率": "바이트 레이트",
+  "每帧字节数": "프레임당 바이트 수",
+  "位深": "비트 깊이",
+  "扩展参数长度": "확장 매개변수 길이",
+  "有效位深": "유효 비트 깊이",
+  "声道布局掩码": "채널 레이아웃 마스크",
+  "FLAC 标识": "FLAC 마커",
+  "元数据块头": "메타데이터 블록 헤더",
+  "元数据块长度": "메타데이터 블록 길이",
+  "元数据块内容": "메타데이터 블록 페이로드",
+  "最小块大小": "최소 블록 크기",
+  "最大块大小": "최대 블록 크기",
+  "最小帧大小": "최소 프레임 크기",
+  "最大帧大小": "최대 프레임 크기",
+  "总采样数": "총 샘플 수",
+  "原始音频 MD5": "원본 오디오 MD5",
+  "Ogg 页标识": "Ogg 페이지 마커",
+  "流结构版本": "스트림 구조 버전",
+  "页类型标志": "페이지 유형 플래그",
+  "绝对位置": "절대 위치",
+  "逻辑流序号": "논리 스트림 일련번호",
+  "页序号": "페이지 시퀀스 번호",
+  "页校验和": "페이지 체크섬",
+  "segment 数": "segment 수",
+  "segment 长度表": "segment 길이 테이블",
+  "页数据": "페이지 페이로드",
+  "Opus 识别头": "Opus 식별 헤더",
+  "版本": "버전",
+  "预跳过采样数": "프리스킵 샘플 수",
+  "输入采样率": "입력 샘플레이트",
+  "输出增益": "출력 게인",
+  "声道映射族": "채널 매핑 패밀리",
+  "识别头": "식별 헤더",
+  "Vorbis 标识": "Vorbis 마커",
+  "box 大小": "box 크기",
+  "box 类型": "box 유형",
+  "主品牌": "주 브랜드",
+  "次版本": "마이너 버전",
+  "兼容品牌": "호환 브랜드",
+  "标志": "플래그",
+  "时间刻度": "타임스케일",
+  "时长单位数": "지속 시간 단위 수",
+  "处理器类型": "핸들러 유형",
+  "样本描述数量": "샘플 설명 수",
+  "样本类型": "샘플 유형",
+  "同步字": "동기 워드",
+  "MPEG 版本": "MPEG 버전",
+  "层": "레이어",
+  "CRC 是否省略": "CRC 생략 여부",
+  "采样率索引": "샘플레이트 인덱스",
+  "声道配置": "채널 구성",
+  "ADTS 帧长度": "ADTS 프레임 길이",
+  "缓冲 fullness": "버퍼 fullness",
+  "原始数据块数量字段": "원시 데이터 블록 수 필드",
+  "ID3v2 标识": "ID3v2 마커",
+  "ID3 版本": "ID3 버전",
+  "标签长度": "태그 길이",
+  "帧同步": "프레임 동기",
+  "MPEG 音频版本": "MPEG 오디오 버전",
+  "CRC 标志": "CRC 플래그",
+  "码率索引": "비트레이트 인덱스",
+  "声道模式": "채널 모드"
+};
+
+const HEADER_NOTE_FR: Record<string, string> = {
+  "文件大小 - 8": "Taille du fichier - 8",
+  "子块 ID": "ID de sous-chunk",
+  "子块数据长度": "Longueur des données du sous-chunk",
+  "音频数据区域": "Zone de données audio",
+  "未展开子块": "Sous-chunk non développé",
+  "fmt 子块过短": "Sous-chunk fmt trop court",
+  "编码格式": "Format d'encodage",
+  "通道数": "Nombre de canaux",
+  "采样率": "Fréquence d'échantillonnage",
+  "字节率": "Débit en octets",
+  "每帧字节数": "Octets par trame",
+  "位深": "Profondeur de bits",
+  "扩展参数长度": "Longueur des paramètres étendus",
+  "有效位深": "Profondeur de bits valide",
+  "声道布局掩码": "Masque de disposition des canaux",
+  "FLAC 标识": "Marqueur FLAC",
+  "元数据块头": "En-tête du bloc de métadonnées",
+  "元数据块长度": "Longueur du bloc de métadonnées",
+  "元数据块内容": "Contenu du bloc de métadonnées",
+  "最小块大小": "Taille minimale de bloc",
+  "最大块大小": "Taille maximale de bloc",
+  "最小帧大小": "Taille minimale de trame",
+  "最大帧大小": "Taille maximale de trame",
+  "总采样数": "Nombre total d'échantillons",
+  "原始音频 MD5": "MD5 de l'audio brut",
+  "Ogg 页标识": "Marqueur de page Ogg",
+  "流结构版本": "Version de structure du flux",
+  "页类型标志": "Drapeaux de type de page",
+  "绝对位置": "Position absolue",
+  "逻辑流序号": "Numéro de série du flux logique",
+  "页序号": "Numéro de séquence de page",
+  "页校验和": "Somme de contrôle de page",
+  "segment 数": "Nombre de segments",
+  "segment 长度表": "Table des longueurs de segments",
+  "页数据": "Données de page",
+  "Opus 识别头": "En-tête d'identification Opus",
+  "版本": "Version",
+  "预跳过采样数": "Nombre d'échantillons pré-sautés",
+  "输入采样率": "Fréquence d'échantillonnage d'entrée",
+  "输出增益": "Gain de sortie",
+  "声道映射族": "Famille de mappage des canaux",
+  "识别头": "En-tête d'identification",
+  "Vorbis 标识": "Marqueur Vorbis",
+  "box 大小": "Taille de box",
+  "box 类型": "Type de box",
+  "主品牌": "Marque principale",
+  "次版本": "Version mineure",
+  "兼容品牌": "Marques compatibles",
+  "标志": "Drapeaux",
+  "时间刻度": "Échelle temporelle",
+  "时长单位数": "Unités de durée",
+  "处理器类型": "Type de gestionnaire",
+  "样本描述数量": "Nombre de descriptions d'échantillon",
+  "样本类型": "Type d'échantillon",
+  "同步字": "Mot de synchronisation",
+  "MPEG 版本": "Version MPEG",
+  "层": "Couche",
+  "CRC 是否省略": "CRC absent ou non",
+  "采样率索引": "Indice de fréquence d'échantillonnage",
+  "声道配置": "Configuration des canaux",
+  "ADTS 帧长度": "Longueur de trame ADTS",
+  "缓冲 fullness": "Remplissage du tampon",
+  "原始数据块数量字段": "Champ du nombre de blocs de données brutes",
+  "ID3v2 标识": "Marqueur ID3v2",
+  "ID3 版本": "Version ID3",
+  "标签长度": "Longueur de balise",
+  "帧同步": "Synchronisation de trame",
+  "MPEG 音频版本": "Version audio MPEG",
+  "CRC 标志": "Drapeau CRC",
+  "码率索引": "Indice de débit",
+  "声道模式": "Mode de canaux"
+};
+
+const HEADER_NOTE_DE: Record<string, string> = {
+  "文件大小 - 8": "Dateigröße - 8",
+  "子块 ID": "Subchunk-ID",
+  "子块数据长度": "Subchunk-Datenlänge",
+  "音频数据区域": "Audiodatenbereich",
+  "未展开子块": "Nicht erweiterter Subchunk",
+  "fmt 子块过短": "fmt-Subchunk ist zu kurz",
+  "编码格式": "Kodierungsformat",
+  "通道数": "Kanalanzahl",
+  "采样率": "Abtastrate",
+  "字节率": "Byte-Rate",
+  "每帧字节数": "Bytes pro Frame",
+  "位深": "Bittiefe",
+  "扩展参数长度": "Länge der Erweiterungsparameter",
+  "有效位深": "Gültige Bittiefe",
+  "声道布局掩码": "Kanallayout-Maske",
+  "FLAC 标识": "FLAC-Marker",
+  "元数据块头": "Metadatenblock-Header",
+  "元数据块长度": "Metadatenblock-Länge",
+  "元数据块内容": "Metadatenblock-Inhalt",
+  "最小块大小": "Minimale Blockgröße",
+  "最大块大小": "Maximale Blockgröße",
+  "最小帧大小": "Minimale Framegröße",
+  "最大帧大小": "Maximale Framegröße",
+  "总采样数": "Gesamtzahl der Samples",
+  "原始音频 MD5": "MD5 der Roh-Audiodaten",
+  "Ogg 页标识": "Ogg-Seitenmarker",
+  "流结构版本": "Streamstruktur-Version",
+  "页类型标志": "Seitentyp-Flags",
+  "绝对位置": "Absolute Position",
+  "逻辑流序号": "Seriennummer des logischen Streams",
+  "页序号": "Seitensequenznummer",
+  "页校验和": "Seitenprüfsumme",
+  "segment 数": "Segmentanzahl",
+  "segment 长度表": "Segmentlängentabelle",
+  "页数据": "Seitendaten",
+  "Opus 识别头": "Opus-Identifikationsheader",
+  "版本": "Version",
+  "预跳过采样数": "Pre-skip-Sampleanzahl",
+  "输入采样率": "Eingabe-Abtastrate",
+  "输出增益": "Ausgabeverstärkung",
+  "声道映射族": "Kanalmapping-Familie",
+  "识别头": "Identifikationsheader",
+  "Vorbis 标识": "Vorbis-Marker",
+  "box 大小": "Box-Größe",
+  "box 类型": "Box-Typ",
+  "主品牌": "Hauptmarke",
+  "次版本": "Nebenversion",
+  "兼容品牌": "Kompatible Marken",
+  "标志": "Flags",
+  "时间刻度": "Zeitskala",
+  "时长单位数": "Dauereinheiten",
+  "处理器类型": "Handler-Typ",
+  "样本描述数量": "Anzahl der Sample-Beschreibungen",
+  "样本类型": "Sample-Typ",
+  "同步字": "Syncwort",
+  "MPEG 版本": "MPEG-Version",
+  "层": "Layer",
+  "CRC 是否省略": "Ob CRC fehlt",
+  "采样率索引": "Abtastratenindex",
+  "声道配置": "Kanalkonfiguration",
+  "ADTS 帧长度": "ADTS-Frame-Länge",
+  "缓冲 fullness": "Pufferfüllstand",
+  "原始数据块数量字段": "Feld für Anzahl der Rohdatenblöcke",
+  "ID3v2 标识": "ID3v2-Marker",
+  "ID3 版本": "ID3-Version",
+  "标签长度": "Tag-Länge",
+  "帧同步": "Frame-Synchronisation",
+  "MPEG 音频版本": "MPEG-Audioversion",
+  "CRC 标志": "CRC-Flag",
+  "码率索引": "Bitratenindex",
+  "声道模式": "Kanalmodus"
+};
+
+const HEADER_NOTE_ES: Record<string, string> = {
+  "文件大小 - 8": "Tamaño del archivo - 8",
+  "子块 ID": "ID de subchunk",
+  "子块数据长度": "Longitud de datos del subchunk",
+  "音频数据区域": "Región de datos de audio",
+  "未展开子块": "Subchunk no expandido",
+  "fmt 子块过短": "El subchunk fmt es demasiado corto",
+  "编码格式": "Formato de codificación",
+  "通道数": "Número de canales",
+  "采样率": "Frecuencia de muestreo",
+  "字节率": "Tasa de bytes",
+  "每帧字节数": "Bytes por trama",
+  "位深": "Profundidad de bits",
+  "扩展参数长度": "Longitud de parámetros extendidos",
+  "有效位深": "Profundidad de bits válida",
+  "声道布局掩码": "Máscara de disposición de canales",
+  "FLAC 标识": "Marcador FLAC",
+  "元数据块头": "Cabecera del bloque de metadatos",
+  "元数据块长度": "Longitud del bloque de metadatos",
+  "元数据块内容": "Contenido del bloque de metadatos",
+  "最小块大小": "Tamaño mínimo de bloque",
+  "最大块大小": "Tamaño máximo de bloque",
+  "最小帧大小": "Tamaño mínimo de trama",
+  "最大帧大小": "Tamaño máximo de trama",
+  "总采样数": "Total de muestras",
+  "原始音频 MD5": "MD5 del audio sin procesar",
+  "Ogg 页标识": "Marcador de página Ogg",
+  "流结构版本": "Versión de estructura del flujo",
+  "页类型标志": "Banderas de tipo de página",
+  "绝对位置": "Posición absoluta",
+  "逻辑流序号": "Número de serie del flujo lógico",
+  "页序号": "Número de secuencia de página",
+  "页校验和": "Suma de comprobación de página",
+  "segment 数": "Número de segmentos",
+  "segment 长度表": "Tabla de longitudes de segmentos",
+  "页数据": "Datos de página",
+  "Opus 识别头": "Cabecera de identificación Opus",
+  "版本": "Versión",
+  "预跳过采样数": "Número de muestras pre-skip",
+  "输入采样率": "Frecuencia de muestreo de entrada",
+  "输出增益": "Ganancia de salida",
+  "声道映射族": "Familia de mapeo de canales",
+  "识别头": "Cabecera de identificación",
+  "Vorbis 标识": "Marcador Vorbis",
+  "box 大小": "Tamaño de box",
+  "box 类型": "Tipo de box",
+  "主品牌": "Marca principal",
+  "次版本": "Versión menor",
+  "兼容品牌": "Marcas compatibles",
+  "标志": "Banderas",
+  "时间刻度": "Escala de tiempo",
+  "时长单位数": "Unidades de duración",
+  "处理器类型": "Tipo de manejador",
+  "样本描述数量": "Número de descripciones de muestra",
+  "样本类型": "Tipo de muestra",
+  "同步字": "Palabra de sincronización",
+  "MPEG 版本": "Versión MPEG",
+  "层": "Capa",
+  "CRC 是否省略": "Si CRC está ausente",
+  "采样率索引": "Índice de frecuencia de muestreo",
+  "声道配置": "Configuración de canales",
+  "ADTS 帧长度": "Longitud de trama ADTS",
+  "缓冲 fullness": "Llenado del búfer",
+  "原始数据块数量字段": "Campo de número de bloques de datos sin procesar",
+  "ID3v2 标识": "Marcador ID3v2",
+  "ID3 版本": "Versión ID3",
+  "标签长度": "Longitud de etiqueta",
+  "帧同步": "Sincronización de trama",
+  "MPEG 音频版本": "Versión de audio MPEG",
+  "CRC 标志": "Bandera CRC",
+  "码率索引": "Índice de bitrate",
+  "声道模式": "Modo de canales"
+};
+
+const HEADER_NOTE_IT: Record<string, string> = {
+  "文件大小 - 8": "Dimensione file - 8",
+  "子块 ID": "ID sotto-blocco",
+  "子块数据长度": "Lunghezza dati del sotto-blocco",
+  "音频数据区域": "Area dati audio",
+  "未展开子块": "Sotto-blocco non espanso",
+  "fmt 子块过短": "Sotto-blocco fmt troppo corto",
+  "编码格式": "Formato di codifica",
+  "通道数": "Numero di canali",
+  "采样率": "Frequenza di campionamento",
+  "字节率": "Byte rate",
+  "每帧字节数": "Byte per frame",
+  "位深": "Profondità in bit",
+  "扩展参数长度": "Lunghezza parametri estesi",
+  "有效位深": "Profondità valida in bit",
+  "声道布局掩码": "Maschera layout canali",
+  "FLAC 标识": "Marcatore FLAC",
+  "元数据块头": "Header blocco metadati",
+  "元数据块长度": "Lunghezza blocco metadati",
+  "元数据块内容": "Contenuto blocco metadati",
+  "最小块大小": "Dimensione minima blocco",
+  "最大块大小": "Dimensione massima blocco",
+  "最小帧大小": "Dimensione minima frame",
+  "最大帧大小": "Dimensione massima frame",
+  "总采样数": "Campioni totali",
+  "原始音频 MD5": "MD5 audio grezzo",
+  "Ogg 页标识": "Marcatore pagina Ogg",
+  "流结构版本": "Versione struttura stream",
+  "页类型标志": "Flag tipo pagina",
+  "绝对位置": "Posizione assoluta",
+  "逻辑流序号": "Numero seriale stream logico",
+  "页序号": "Numero sequenza pagina",
+  "页校验和": "Checksum pagina",
+  "segment 数": "Numero segmenti",
+  "segment 长度表": "Tabella lunghezze segmenti",
+  "页数据": "Payload pagina",
+  "Opus 识别头": "Header identificazione Opus",
+  "版本": "Versione",
+  "预跳过采样数": "Numero campioni pre-skip",
+  "输入采样率": "Frequenza di campionamento in ingresso",
+  "输出增益": "Guadagno in uscita",
+  "声道映射族": "Famiglia mappatura canali",
+  "识别头": "Header identificazione",
+  "Vorbis 标识": "Marcatore Vorbis",
+  "box 大小": "Dimensione box",
+  "box 类型": "Tipo box",
+  "主品牌": "Brand principale",
+  "次版本": "Versione minore",
+  "兼容品牌": "Brand compatibili",
+  "标志": "Flag",
+  "时间刻度": "Scala temporale",
+  "时长单位数": "Unità di durata",
+  "处理器类型": "Tipo handler",
+  "样本描述数量": "Numero descrizioni campione",
+  "样本类型": "Tipo campione",
+  "同步字": "Parola di sync",
+  "MPEG 版本": "Versione MPEG",
+  "层": "Layer",
+  "CRC 是否省略": "Se CRC è assente",
+  "采样率索引": "Indice frequenza di campionamento",
+  "声道配置": "Configurazione canali",
+  "ADTS 帧长度": "Lunghezza frame ADTS",
+  "缓冲 fullness": "Pienezza buffer",
+  "原始数据块数量字段": "Campo numero blocchi dati grezzi",
+  "ID3v2 标识": "Marcatore ID3v2",
+  "ID3 版本": "Versione ID3",
+  "标签长度": "Lunghezza tag",
+  "帧同步": "Sync frame",
+  "MPEG 音频版本": "Versione audio MPEG",
+  "CRC 标志": "Flag CRC",
+  "码率索引": "Indice bitrate",
+  "声道模式": "Modalità canali"
+};
+
+const HEADER_NOTE_PT: Record<string, string> = {
+  "文件大小 - 8": "Tamanho do arquivo - 8",
+  "子块 ID": "ID do subchunk",
+  "子块数据长度": "Comprimento dos dados do subchunk",
+  "音频数据区域": "Região de dados de áudio",
+  "未展开子块": "Subchunk não expandido",
+  "fmt 子块过短": "Subchunk fmt curto demais",
+  "编码格式": "Formato de codificação",
+  "通道数": "Número de canais",
+  "采样率": "Taxa de amostragem",
+  "字节率": "Taxa de bytes",
+  "每帧字节数": "Bytes por quadro",
+  "位深": "Profundidade de bits",
+  "扩展参数长度": "Comprimento dos parâmetros estendidos",
+  "有效位深": "Profundidade de bits válida",
+  "声道布局掩码": "Máscara de layout de canais",
+  "FLAC 标识": "Marcador FLAC",
+  "元数据块头": "Cabeçalho do bloco de metadados",
+  "元数据块长度": "Comprimento do bloco de metadados",
+  "元数据块内容": "Conteúdo do bloco de metadados",
+  "最小块大小": "Tamanho mínimo de bloco",
+  "最大块大小": "Tamanho máximo de bloco",
+  "最小帧大小": "Tamanho mínimo de quadro",
+  "最大帧大小": "Tamanho máximo de quadro",
+  "总采样数": "Total de amostras",
+  "原始音频 MD5": "MD5 do áudio bruto",
+  "Ogg 页标识": "Marcador de página Ogg",
+  "流结构版本": "Versão da estrutura do fluxo",
+  "页类型标志": "Flags de tipo de página",
+  "绝对位置": "Posição absoluta",
+  "逻辑流序号": "Número serial do fluxo lógico",
+  "页序号": "Número de sequência da página",
+  "页校验和": "Checksum da página",
+  "segment 数": "Número de segmentos",
+  "segment 长度表": "Tabela de comprimentos dos segmentos",
+  "页数据": "Payload da página",
+  "Opus 识别头": "Cabeçalho de identificação Opus",
+  "版本": "Versão",
+  "预跳过采样数": "Número de amostras pre-skip",
+  "输入采样率": "Taxa de amostragem de entrada",
+  "输出增益": "Ganho de saída",
+  "声道映射族": "Família de mapeamento de canais",
+  "识别头": "Cabeçalho de identificação",
+  "Vorbis 标识": "Marcador Vorbis",
+  "box 大小": "Tamanho da box",
+  "box 类型": "Tipo da box",
+  "主品牌": "Marca principal",
+  "次版本": "Versão menor",
+  "兼容品牌": "Marcas compatíveis",
+  "标志": "Flags",
+  "时间刻度": "Escala de tempo",
+  "时长单位数": "Unidades de duração",
+  "处理器类型": "Tipo de handler",
+  "样本描述数量": "Número de descrições de amostra",
+  "样本类型": "Tipo de amostra",
+  "同步字": "Palavra de sincronização",
+  "MPEG 版本": "Versão MPEG",
+  "层": "Camada",
+  "CRC 是否省略": "Se o CRC está ausente",
+  "采样率索引": "Índice da taxa de amostragem",
+  "声道配置": "Configuração de canais",
+  "ADTS 帧长度": "Comprimento do quadro ADTS",
+  "缓冲 fullness": "Preenchimento do buffer",
+  "原始数据块数量字段": "Campo de número de blocos de dados brutos",
+  "ID3v2 标识": "Marcador ID3v2",
+  "ID3 版本": "Versão ID3",
+  "标签长度": "Comprimento da tag",
+  "帧同步": "Sincronização de quadro",
+  "MPEG 音频版本": "Versão de áudio MPEG",
+  "CRC 标志": "Flag CRC",
+  "码率索引": "Índice de bitrate",
+  "声道模式": "Modo de canais"
+};
+
+const HEADER_NOTE_RU: Record<string, string> = {
+  "文件大小 - 8": "Размер файла - 8",
+  "子块 ID": "ID подблока",
+  "子块数据长度": "Длина данных подблока",
+  "音频数据区域": "Область аудиоданных",
+  "未展开子块": "Неразвернутый подблок",
+  "fmt 子块过短": "Подблок fmt слишком короткий",
+  "编码格式": "Формат кодирования",
+  "通道数": "Число каналов",
+  "采样率": "Частота дискретизации",
+  "字节率": "Байтовая скорость",
+  "每帧字节数": "Байт на кадр",
+  "位深": "Битовая глубина",
+  "扩展参数长度": "Длина расширенных параметров",
+  "有效位深": "Действительная битовая глубина",
+  "声道布局掩码": "Маска раскладки каналов",
+  "FLAC 标识": "Маркер FLAC",
+  "元数据块头": "Заголовок блока метаданных",
+  "元数据块长度": "Длина блока метаданных",
+  "元数据块内容": "Содержимое блока метаданных",
+  "最小块大小": "Минимальный размер блока",
+  "最大块大小": "Максимальный размер блока",
+  "最小帧大小": "Минимальный размер кадра",
+  "最大帧大小": "Максимальный размер кадра",
+  "总采样数": "Всего сэмплов",
+  "原始音频 MD5": "MD5 исходного аудио",
+  "Ogg 页标识": "Маркер страницы Ogg",
+  "流结构版本": "Версия структуры потока",
+  "页类型标志": "Флаги типа страницы",
+  "绝对位置": "Абсолютная позиция",
+  "逻辑流序号": "Серийный номер логического потока",
+  "页序号": "Порядковый номер страницы",
+  "页校验和": "Контрольная сумма страницы",
+  "segment 数": "Число сегментов",
+  "segment 长度表": "Таблица длин сегментов",
+  "页数据": "Данные страницы",
+  "Opus 识别头": "Идентификационный заголовок Opus",
+  "版本": "Версия",
+  "预跳过采样数": "Число pre-skip сэмплов",
+  "输入采样率": "Входная частота дискретизации",
+  "输出增益": "Выходное усиление",
+  "声道映射族": "Семейство отображения каналов",
+  "识别头": "Идентификационный заголовок",
+  "Vorbis 标识": "Маркер Vorbis",
+  "box 大小": "Размер box",
+  "box 类型": "Тип box",
+  "主品牌": "Основной бренд",
+  "次版本": "Младшая версия",
+  "兼容品牌": "Совместимые бренды",
+  "标志": "Флаги",
+  "时间刻度": "Шкала времени",
+  "时长单位数": "Единицы длительности",
+  "处理器类型": "Тип обработчика",
+  "样本描述数量": "Число описаний сэмплов",
+  "样本类型": "Тип сэмпла",
+  "同步字": "Синхрослово",
+  "MPEG 版本": "Версия MPEG",
+  "层": "Слой",
+  "CRC 是否省略": "Отсутствует ли CRC",
+  "采样率索引": "Индекс частоты дискретизации",
+  "声道配置": "Конфигурация каналов",
+  "ADTS 帧长度": "Длина кадра ADTS",
+  "缓冲 fullness": "Заполненность буфера",
+  "原始数据块数量字段": "Поле числа блоков сырых данных",
+  "ID3v2 标识": "Маркер ID3v2",
+  "ID3 版本": "Версия ID3",
+  "标签长度": "Длина тега",
+  "帧同步": "Синхронизация кадра",
+  "MPEG 音频版本": "Версия аудио MPEG",
+  "CRC 标志": "Флаг CRC",
+  "码率索引": "Индекс битрейта",
+  "声道模式": "Режим каналов"
+};
+
+const HEADER_NOTE_NL: Record<string, string> = {
+  "文件大小 - 8": "Bestandsgrootte - 8",
+  "子块 ID": "Subchunk-ID",
+  "子块数据长度": "Gegevenslengte van subchunk",
+  "音频数据区域": "Audiogegevensgebied",
+  "未展开子块": "Niet-uitgevouwen subchunk",
+  "fmt 子块过短": "fmt-subchunk is te kort",
+  "编码格式": "Coderingsformaat",
+  "通道数": "Aantal kanalen",
+  "采样率": "Samplefrequentie",
+  "字节率": "Bytefrequentie",
+  "每帧字节数": "Bytes per frame",
+  "位深": "Bitdiepte",
+  "扩展参数长度": "Lengte van uitbreidingsparameters",
+  "有效位深": "Geldige bitdiepte",
+  "声道布局掩码": "Kanaalindelingsmasker",
+  "FLAC 标识": "FLAC-markering",
+  "元数据块头": "Header van metadatablok",
+  "元数据块长度": "Lengte van metadatablok",
+  "元数据块内容": "Inhoud van metadatablok",
+  "最小块大小": "Minimale blokgrootte",
+  "最大块大小": "Maximale blokgrootte",
+  "最小帧大小": "Minimale framegrootte",
+  "最大帧大小": "Maximale framegrootte",
+  "总采样数": "Totaal aantal samples",
+  "原始音频 MD5": "MD5 van ruwe audio",
+  "Ogg 页标识": "Ogg-paginamarkering",
+  "流结构版本": "Versie van streamstructuur",
+  "页类型标志": "Paginatypevlaggen",
+  "绝对位置": "Absolute positie",
+  "逻辑流序号": "Serienummer van logische stream",
+  "页序号": "Paginavolgnummer",
+  "页校验和": "Paginacontrolesom",
+  "segment 数": "Aantal segmenten",
+  "segment 长度表": "Segmentlengtetabel",
+  "页数据": "Paginagegevens",
+  "Opus 识别头": "Opus-identificatieheader",
+  "版本": "Versie",
+  "预跳过采样数": "Aantal pre-skip samples",
+  "输入采样率": "Invoersamplefrequentie",
+  "输出增益": "Uitvoerversterking",
+  "声道映射族": "Kanaaltoewijzingsfamilie",
+  "识别头": "Identificatieheader",
+  "Vorbis 标识": "Vorbis-markering",
+  "box 大小": "Boxgrootte",
+  "box 类型": "Boxtype",
+  "主品牌": "Hoofdmerk",
+  "次版本": "Minorversie",
+  "兼容品牌": "Compatibele merken",
+  "标志": "Vlaggen",
+  "时间刻度": "Tijdschaal",
+  "时长单位数": "Duur-eenheden",
+  "处理器类型": "Handlertype",
+  "样本描述数量": "Aantal samplebeschrijvingen",
+  "样本类型": "Sampletype",
+  "同步字": "Synchronisatiewoord",
+  "MPEG 版本": "MPEG-versie",
+  "层": "Laag",
+  "CRC 是否省略": "Of CRC ontbreekt",
+  "采样率索引": "Samplefrequentie-index",
+  "声道配置": "Kanaalconfiguratie",
+  "ADTS 帧长度": "ADTS-framelengte",
+  "缓冲 fullness": "Buffervulling",
+  "原始数据块数量字段": "Veld voor aantal ruwe datablokken",
+  "ID3v2 标识": "ID3v2-markering",
+  "ID3 版本": "ID3-versie",
+  "标签长度": "Taglengte",
+  "帧同步": "Framesynchronisatie",
+  "MPEG 音频版本": "MPEG-audioversie",
+  "CRC 标志": "CRC-vlag",
+  "码率索引": "Bitrate-index",
+  "声道模式": "Kanaalmodus"
+};
+
+const HEADER_NOTE_PL: Record<string, string> = {
+  "文件大小 - 8": "Rozmiar pliku - 8",
+  "子块 ID": "ID podbloku",
+  "子块数据长度": "Długość danych podbloku",
+  "音频数据区域": "Obszar danych audio",
+  "未展开子块": "Nierozwinięty podblok",
+  "fmt 子块过短": "Podblok fmt jest zbyt krótki",
+  "编码格式": "Format kodowania",
+  "通道数": "Liczba kanałów",
+  "采样率": "Częstotliwość próbkowania",
+  "字节率": "Szybkość bajtowa",
+  "每帧字节数": "Bajtów na ramkę",
+  "位深": "Głębia bitowa",
+  "扩展参数长度": "Długość parametrów rozszerzenia",
+  "有效位深": "Prawidłowa głębia bitowa",
+  "声道布局掩码": "Maska układu kanałów",
+  "FLAC 标识": "Znacznik FLAC",
+  "元数据块头": "Nagłówek bloku metadanych",
+  "元数据块长度": "Długość bloku metadanych",
+  "元数据块内容": "Zawartość bloku metadanych",
+  "最小块大小": "Minimalny rozmiar bloku",
+  "最大块大小": "Maksymalny rozmiar bloku",
+  "最小帧大小": "Minimalny rozmiar ramki",
+  "最大帧大小": "Maksymalny rozmiar ramki",
+  "总采样数": "Łączna liczba próbek",
+  "原始音频 MD5": "MD5 surowego audio",
+  "Ogg 页标识": "Znacznik strony Ogg",
+  "流结构版本": "Wersja struktury strumienia",
+  "页类型标志": "Flagi typu strony",
+  "绝对位置": "Pozycja bezwzględna",
+  "逻辑流序号": "Numer seryjny strumienia logicznego",
+  "页序号": "Numer sekwencji strony",
+  "页校验和": "Suma kontrolna strony",
+  "segment 数": "Liczba segmentów",
+  "segment 长度表": "Tabela długości segmentów",
+  "页数据": "Dane strony",
+  "Opus 识别头": "Nagłówek identyfikacyjny Opus",
+  "版本": "Wersja",
+  "预跳过采样数": "Liczba próbek pre-skip",
+  "输入采样率": "Wejściowa częstotliwość próbkowania",
+  "输出增益": "Wzmocnienie wyjściowe",
+  "声道映射族": "Rodzina mapowania kanałów",
+  "识别头": "Nagłówek identyfikacyjny",
+  "Vorbis 标识": "Znacznik Vorbis",
+  "box 大小": "Rozmiar box",
+  "box 类型": "Typ box",
+  "主品牌": "Główna marka",
+  "次版本": "Wersja podrzędna",
+  "兼容品牌": "Zgodne marki",
+  "标志": "Flagi",
+  "时间刻度": "Skala czasu",
+  "时长单位数": "Jednostki czasu trwania",
+  "处理器类型": "Typ handlera",
+  "样本描述数量": "Liczba opisów próbek",
+  "样本类型": "Typ próbki",
+  "同步字": "Słowo synchronizacji",
+  "MPEG 版本": "Wersja MPEG",
+  "层": "Warstwa",
+  "CRC 是否省略": "Czy CRC jest pominięte",
+  "采样率索引": "Indeks częstotliwości próbkowania",
+  "声道配置": "Konfiguracja kanałów",
+  "ADTS 帧长度": "Długość ramki ADTS",
+  "缓冲 fullness": "Wypełnienie bufora",
+  "原始数据块数量字段": "Pole liczby bloków surowych danych",
+  "ID3v2 标识": "Znacznik ID3v2",
+  "ID3 版本": "Wersja ID3",
+  "标签长度": "Długość tagu",
+  "帧同步": "Synchronizacja ramki",
+  "MPEG 音频版本": "Wersja audio MPEG",
+  "CRC 标志": "Flaga CRC",
+  "码率索引": "Indeks bitrate",
+  "声道模式": "Tryb kanałów"
+};
+
+const HEADER_NOTE_TR: Record<string, string> = {
+  "文件大小 - 8": "Dosya boyutu - 8",
+  "子块 ID": "Alt parça ID",
+  "子块数据长度": "Alt parça veri uzunluğu",
+  "音频数据区域": "Ses veri bölgesi",
+  "未展开子块": "Genişletilmemiş alt parça",
+  "fmt 子块过短": "fmt alt parçası çok kısa",
+  "编码格式": "Kodlama formatı",
+  "通道数": "Kanal sayısı",
+  "采样率": "Örnekleme hızı",
+  "字节率": "Bayt hızı",
+  "每帧字节数": "Kare başına bayt",
+  "位深": "Bit derinliği",
+  "扩展参数长度": "Genişletme parametresi uzunluğu",
+  "有效位深": "Geçerli bit derinliği",
+  "声道布局掩码": "Kanal düzeni maskesi",
+  "FLAC 标识": "FLAC işareti",
+  "元数据块头": "Meta veri blok başlığı",
+  "元数据块长度": "Meta veri blok uzunluğu",
+  "元数据块内容": "Meta veri blok içeriği",
+  "最小块大小": "En küçük blok boyutu",
+  "最大块大小": "En büyük blok boyutu",
+  "最小帧大小": "En küçük kare boyutu",
+  "最大帧大小": "En büyük kare boyutu",
+  "总采样数": "Toplam örnek sayısı",
+  "原始音频 MD5": "Ham ses MD5",
+  "Ogg 页标识": "Ogg sayfa işareti",
+  "流结构版本": "Akış yapısı sürümü",
+  "页类型标志": "Sayfa türü bayrakları",
+  "绝对位置": "Mutlak konum",
+  "逻辑流序号": "Mantıksal akış seri numarası",
+  "页序号": "Sayfa sıra numarası",
+  "页校验和": "Sayfa sağlama toplamı",
+  "segment 数": "Segment sayısı",
+  "segment 长度表": "Segment uzunluk tablosu",
+  "页数据": "Sayfa verisi",
+  "Opus 识别头": "Opus tanımlama başlığı",
+  "版本": "Sürüm",
+  "预跳过采样数": "Pre-skip örnek sayısı",
+  "输入采样率": "Giriş örnekleme hızı",
+  "输出增益": "Çıkış kazancı",
+  "声道映射族": "Kanal eşleme ailesi",
+  "识别头": "Tanımlama başlığı",
+  "Vorbis 标识": "Vorbis işareti",
+  "box 大小": "Box boyutu",
+  "box 类型": "Box türü",
+  "主品牌": "Ana marka",
+  "次版本": "Alt sürüm",
+  "兼容品牌": "Uyumlu markalar",
+  "标志": "Bayraklar",
+  "时间刻度": "Zaman ölçeği",
+  "时长单位数": "Süre birimleri",
+  "处理器类型": "Handler türü",
+  "样本描述数量": "Örnek açıklaması sayısı",
+  "样本类型": "Örnek türü",
+  "同步字": "Senkronizasyon sözcüğü",
+  "MPEG 版本": "MPEG sürümü",
+  "层": "Katman",
+  "CRC 是否省略": "CRC yok mu",
+  "采样率索引": "Örnekleme hızı indeksi",
+  "声道配置": "Kanal yapılandırması",
+  "ADTS 帧长度": "ADTS kare uzunluğu",
+  "缓冲 fullness": "Tampon doluluğu",
+  "原始数据块数量字段": "Ham veri bloğu sayısı alanı",
+  "ID3v2 标识": "ID3v2 işareti",
+  "ID3 版本": "ID3 sürümü",
+  "标签长度": "Etiket uzunluğu",
+  "帧同步": "Kare senkronizasyonu",
+  "MPEG 音频版本": "MPEG ses sürümü",
+  "CRC 标志": "CRC bayrağı",
+  "码率索引": "Bitrate indeksi",
+  "声道模式": "Kanal modu"
+};
+
+const HEADER_NOTE_ID: Record<string, string> = {
+  "文件大小 - 8": "Ukuran file - 8",
+  "子块 ID": "ID subchunk",
+  "子块数据长度": "Panjang data subchunk",
+  "音频数据区域": "Area data audio",
+  "未展开子块": "Subchunk yang belum dibuka",
+  "fmt 子块过短": "Subchunk fmt terlalu pendek",
+  "编码格式": "Format pengodean",
+  "通道数": "Jumlah kanal",
+  "采样率": "Laju sampel",
+  "字节率": "Laju byte",
+  "每帧字节数": "Byte per frame",
+  "位深": "Kedalaman bit",
+  "扩展参数长度": "Panjang parameter ekstensi",
+  "有效位深": "Kedalaman bit valid",
+  "声道布局掩码": "Mask layout kanal",
+  "FLAC 标识": "Penanda FLAC",
+  "元数据块头": "Header blok metadata",
+  "元数据块长度": "Panjang blok metadata",
+  "元数据块内容": "Isi blok metadata",
+  "最小块大小": "Ukuran blok minimum",
+  "最大块大小": "Ukuran blok maksimum",
+  "最小帧大小": "Ukuran frame minimum",
+  "最大帧大小": "Ukuran frame maksimum",
+  "总采样数": "Total sampel",
+  "原始音频 MD5": "MD5 audio mentah",
+  "Ogg 页标识": "Penanda halaman Ogg",
+  "流结构版本": "Versi struktur stream",
+  "页类型标志": "Flag tipe halaman",
+  "绝对位置": "Posisi absolut",
+  "逻辑流序号": "Nomor seri stream logis",
+  "页序号": "Nomor urut halaman",
+  "页校验和": "Checksum halaman",
+  "segment 数": "Jumlah segment",
+  "segment 长度表": "Tabel panjang segment",
+  "页数据": "Payload halaman",
+  "Opus 识别头": "Header identifikasi Opus",
+  "版本": "Versi",
+  "预跳过采样数": "Jumlah sampel pre-skip",
+  "输入采样率": "Laju sampel input",
+  "输出增益": "Gain output",
+  "声道映射族": "Keluarga pemetaan kanal",
+  "识别头": "Header identifikasi",
+  "Vorbis 标识": "Penanda Vorbis",
+  "box 大小": "Ukuran box",
+  "box 类型": "Tipe box",
+  "主品牌": "Brand utama",
+  "次版本": "Versi minor",
+  "兼容品牌": "Brand kompatibel",
+  "标志": "Flag",
+  "时间刻度": "Skala waktu",
+  "时长单位数": "Unit durasi",
+  "处理器类型": "Tipe handler",
+  "样本描述数量": "Jumlah deskripsi sampel",
+  "样本类型": "Tipe sampel",
+  "同步字": "Kata sinkronisasi",
+  "MPEG 版本": "Versi MPEG",
+  "层": "Layer",
+  "CRC 是否省略": "Apakah CRC tidak ada",
+  "采样率索引": "Indeks laju sampel",
+  "声道配置": "Konfigurasi kanal",
+  "ADTS 帧长度": "Panjang frame ADTS",
+  "缓冲 fullness": "Kepenuhan buffer",
+  "原始数据块数量字段": "Kolom jumlah blok data mentah",
+  "ID3v2 标识": "Penanda ID3v2",
+  "ID3 版本": "Versi ID3",
+  "标签长度": "Panjang tag",
+  "帧同步": "Sinkronisasi frame",
+  "MPEG 音频版本": "Versi audio MPEG",
+  "CRC 标志": "Flag CRC",
+  "码率索引": "Indeks bitrate",
+  "声道模式": "Mode kanal"
+};
+
+const HEADER_NOTE_NO: Record<string, string> = {
+  "文件大小 - 8": "Filstørrelse - 8",
+  "子块 ID": "Subchunk-ID",
+  "子块数据长度": "Datalengde for subchunk",
+  "音频数据区域": "Lyddataområde",
+  "未展开子块": "Ikke-utvidet subchunk",
+  "fmt 子块过短": "fmt-subchunk er for kort",
+  "编码格式": "Kodingsformat",
+  "通道数": "Antall kanaler",
+  "采样率": "Samplingsrate",
+  "字节率": "Byterate",
+  "每帧字节数": "Byte per frame",
+  "位深": "Bitdybde",
+  "扩展参数长度": "Lengde på utvidelsesparametere",
+  "有效位深": "Gyldig bitdybde",
+  "声道布局掩码": "Kanallayoutmaske",
+  "FLAC 标识": "FLAC-markør",
+  "元数据块头": "Metadata-blokkhode",
+  "元数据块长度": "Metadata-blokklengde",
+  "元数据块内容": "Metadata-blokkinnhold",
+  "最小块大小": "Minste blokkstørrelse",
+  "最大块大小": "Største blokkstørrelse",
+  "最小帧大小": "Minste framestørrelse",
+  "最大帧大小": "Største framestørrelse",
+  "总采样数": "Totalt antall samples",
+  "原始音频 MD5": "MD5 for rå lyd",
+  "Ogg 页标识": "Ogg-sidemarkør",
+  "流结构版本": "Streamstrukturversjon",
+  "页类型标志": "Sidetypeflagg",
+  "绝对位置": "Absolutt posisjon",
+  "逻辑流序号": "Serienummer for logisk stream",
+  "页序号": "Sidesekvensnummer",
+  "页校验和": "Sidekontrollsum",
+  "segment 数": "Antall segmenter",
+  "segment 长度表": "Segmentlengdetabell",
+  "页数据": "Sidedata",
+  "Opus 识别头": "Opus-identifikasjonshode",
+  "版本": "Versjon",
+  "预跳过采样数": "Antall pre-skip samples",
+  "输入采样率": "Inngangssamplingsrate",
+  "输出增益": "Utgangsforsterkning",
+  "声道映射族": "Kanaltilordningsfamilie",
+  "识别头": "Identifikasjonshode",
+  "Vorbis 标识": "Vorbis-markør",
+  "box 大小": "Box-størrelse",
+  "box 类型": "Box-type",
+  "主品牌": "Hovedmerke",
+  "次版本": "Underversjon",
+  "兼容品牌": "Kompatible merker",
+  "标志": "Flagg",
+  "时间刻度": "Tidsskala",
+  "时长单位数": "Varighetsenheter",
+  "处理器类型": "Handlertype",
+  "样本描述数量": "Antall samplebeskrivelser",
+  "样本类型": "Sampletype",
+  "同步字": "Synkroniseringsord",
+  "MPEG 版本": "MPEG-versjon",
+  "层": "Lag",
+  "CRC 是否省略": "Om CRC mangler",
+  "采样率索引": "Samplingsrateindeks",
+  "声道配置": "Kanalkonfigurasjon",
+  "ADTS 帧长度": "ADTS-framelengde",
+  "缓冲 fullness": "Bufferfylling",
+  "原始数据块数量字段": "Felt for antall rådatablokker",
+  "ID3v2 标识": "ID3v2-markør",
+  "ID3 版本": "ID3-versjon",
+  "标签长度": "Tagglengde",
+  "帧同步": "Framesynkronisering",
+  "MPEG 音频版本": "MPEG-lydversjon",
+  "CRC 标志": "CRC-flagg",
+  "码率索引": "Bitrateindeks",
+  "声道模式": "Kanalmodus"
+};
+
+const HEADER_NOTE_VI: Record<string, string> = {
+  "文件大小 - 8": "Kích thước tệp - 8",
+  "子块 ID": "ID subchunk",
+  "子块数据长度": "Độ dài dữ liệu subchunk",
+  "音频数据区域": "Vùng dữ liệu âm thanh",
+  "未展开子块": "Subchunk chưa mở rộng",
+  "fmt 子块过短": "Subchunk fmt quá ngắn",
+  "编码格式": "Định dạng mã hóa",
+  "通道数": "Số kênh",
+  "采样率": "Tần số lấy mẫu",
+  "字节率": "Tốc độ byte",
+  "每帧字节数": "Byte mỗi frame",
+  "位深": "Độ sâu bit",
+  "扩展参数长度": "Độ dài tham số mở rộng",
+  "有效位深": "Độ sâu bit hợp lệ",
+  "声道布局掩码": "Mặt nạ bố cục kênh",
+  "FLAC 标识": "Dấu FLAC",
+  "元数据块头": "Header khối metadata",
+  "元数据块长度": "Độ dài khối metadata",
+  "元数据块内容": "Nội dung khối metadata",
+  "最小块大小": "Kích thước khối nhỏ nhất",
+  "最大块大小": "Kích thước khối lớn nhất",
+  "最小帧大小": "Kích thước frame nhỏ nhất",
+  "最大帧大小": "Kích thước frame lớn nhất",
+  "总采样数": "Tổng số mẫu",
+  "原始音频 MD5": "MD5 âm thanh thô",
+  "Ogg 页标识": "Dấu trang Ogg",
+  "流结构版本": "Phiên bản cấu trúc stream",
+  "页类型标志": "Cờ loại trang",
+  "绝对位置": "Vị trí tuyệt đối",
+  "逻辑流序号": "Số sê-ri stream logic",
+  "页序号": "Số thứ tự trang",
+  "页校验和": "Checksum trang",
+  "segment 数": "Số segment",
+  "segment 长度表": "Bảng độ dài segment",
+  "页数据": "Payload trang",
+  "Opus 识别头": "Header nhận dạng Opus",
+  "版本": "Phiên bản",
+  "预跳过采样数": "Số mẫu pre-skip",
+  "输入采样率": "Tần số lấy mẫu đầu vào",
+  "输出增益": "Gain đầu ra",
+  "声道映射族": "Họ ánh xạ kênh",
+  "识别头": "Header nhận dạng",
+  "Vorbis 标识": "Dấu Vorbis",
+  "box 大小": "Kích thước box",
+  "box 类型": "Loại box",
+  "主品牌": "Brand chính",
+  "次版本": "Phiên bản phụ",
+  "兼容品牌": "Brand tương thích",
+  "标志": "Cờ",
+  "时间刻度": "Thang thời gian",
+  "时长单位数": "Đơn vị thời lượng",
+  "处理器类型": "Loại handler",
+  "样本描述数量": "Số mô tả mẫu",
+  "样本类型": "Loại mẫu",
+  "同步字": "Từ đồng bộ",
+  "MPEG 版本": "Phiên bản MPEG",
+  "层": "Lớp",
+  "CRC 是否省略": "CRC có bị thiếu không",
+  "采样率索引": "Chỉ mục tần số lấy mẫu",
+  "声道配置": "Cấu hình kênh",
+  "ADTS 帧长度": "Độ dài frame ADTS",
+  "缓冲 fullness": "Độ đầy buffer",
+  "原始数据块数量字段": "Trường số khối dữ liệu thô",
+  "ID3v2 标识": "Dấu ID3v2",
+  "ID3 版本": "Phiên bản ID3",
+  "标签长度": "Độ dài tag",
+  "帧同步": "Đồng bộ frame",
+  "MPEG 音频版本": "Phiên bản âm thanh MPEG",
+  "CRC 标志": "Cờ CRC",
+  "码率索引": "Chỉ mục bitrate",
+  "声道模式": "Chế độ kênh"
+};
+
+const HEADER_NOTES_BY_LOCALE: Partial<Record<LocaleCode, Record<string, string>>> = {
+  "zh-TW": HEADER_NOTE_ZH_TW,
+  en: HEADER_NOTE_EN,
+  ja: HEADER_NOTE_JA,
+  ko: HEADER_NOTE_KO,
+  fr: HEADER_NOTE_FR,
+  de: HEADER_NOTE_DE,
+  es: HEADER_NOTE_ES,
+  it: HEADER_NOTE_IT,
+  pt: HEADER_NOTE_PT,
+  ru: HEADER_NOTE_RU,
+  nl: HEADER_NOTE_NL,
+  pl: HEADER_NOTE_PL,
+  tr: HEADER_NOTE_TR,
+  id: HEADER_NOTE_ID,
+  no: HEADER_NOTE_NO,
+  vi: HEADER_NOTE_VI
+};
+
 export class AudioLensApp {
   private config: AudioLensConfig | undefined;
   private audioBuffer: AudioBuffer | undefined;
@@ -156,6 +1359,7 @@ export class AudioLensApp {
   private readonly lastSpectrogramByChannel = new Map<number, SpectrogramResult>();
   private readonly waveformCache = new Map<string, WaveformPeaks>();
   private worker = createAnalysisWorker();
+  private currentLocale: LocaleCode = "en";
   private messages = getMessages("en");
   private readonly settings: AnalysisSettings = {
     algorithm: "frequency",
@@ -245,8 +1449,13 @@ export class AudioLensApp {
 
   private applyLanguage(config: AudioLensConfig): void {
     const locale = resolveLocale(config.language as LocaleSetting, config.vscodeLanguage);
+    this.currentLocale = locale;
     this.messages = getMessages(locale);
     applyLocale(document, this.messages);
+    if (!this.elements.headerInfoPanel.hidden) {
+      this.renderHeaderInfo();
+      this.positionHeaderInfoPanel();
+    }
     this.updateResetViewButtonState();
     this.updateTrackLabels();
     this.redrawVisuals();
@@ -307,6 +1516,8 @@ export class AudioLensApp {
     this.audioBytes = await this.readAll(metadata.size);
     this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
     this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav";
+    this.elements.headerInfo.hidden = metadata.kind === "pcm";
+    this.elements.headerInfoPanel.hidden = true;
     this.elements.wavPcmPanel.hidden = true;
 
     this.stopPlaybackTicker();
@@ -475,6 +1686,12 @@ export class AudioLensApp {
     this.elements.pcmReveal.addEventListener("click", () => {
       this.showWavPcmPanel();
     });
+    this.elements.headerInfo.addEventListener("click", () => {
+      this.toggleHeaderInfoPanel();
+    });
+    this.elements.headerInfoClose.addEventListener("click", () => {
+      this.hideHeaderInfoPanel();
+    });
     this.elements.wavPcmApply.addEventListener("click", () => {
       void this.applyWavPcmFormat();
     });
@@ -562,6 +1779,9 @@ export class AudioLensApp {
     window.addEventListener("resize", () => {
       if (!this.elements.wavPcmPanel.hidden) {
         this.positionWavPcmPanel();
+      }
+      if (!this.elements.headerInfoPanel.hidden) {
+        this.positionHeaderInfoPanel();
       }
       this.positionPcmStatusTooltip();
       this.redrawVisuals();
@@ -712,6 +1932,11 @@ export class AudioLensApp {
       this.elements.settingsToggle.focus();
       return;
     }
+    if (!this.elements.headerInfoPanel.hidden) {
+      this.hideHeaderInfoPanel();
+      this.elements.headerInfo.focus();
+      return;
+    }
     if (this.helpMenuElement().open) {
       this.helpMenuElement().open = false;
       this.elements.helpMenu.querySelector<HTMLElement>("summary")?.focus();
@@ -745,6 +1970,13 @@ export class AudioLensApp {
     if (this.helpMenuElement().open && !this.elements.helpMenu.contains(target)) {
       this.helpMenuElement().open = false;
     }
+    if (
+      !this.elements.headerInfoPanel.hidden &&
+      !this.elements.headerInfoPanel.contains(target) &&
+      !this.elements.headerInfo.contains(target)
+    ) {
+      this.hideHeaderInfoPanel();
+    }
     this.hideFloatingTooltip();
     if (
       !this.elements.wavPcmPanel.hidden &&
@@ -757,6 +1989,181 @@ export class AudioLensApp {
 
   private helpMenuElement(): HTMLDetailsElement {
     return this.elements.helpMenu as HTMLDetailsElement;
+  }
+
+  private toggleHeaderInfoPanel(): void {
+    if (this.elements.headerInfoPanel.hidden) {
+      this.showHeaderInfoPanel();
+      return;
+    }
+    this.hideHeaderInfoPanel();
+  }
+
+  private showHeaderInfoPanel(): void {
+    this.elements.settingsPanel.hidden = true;
+    this.helpMenuElement().open = false;
+    this.elements.wavPcmPanel.hidden = true;
+    this.renderHeaderInfo();
+    this.elements.headerInfoPanel.hidden = false;
+    this.positionHeaderInfoPanel();
+  }
+
+  private hideHeaderInfoPanel(): void {
+    this.elements.headerInfoPanel.hidden = true;
+  }
+
+  private renderHeaderInfo(): void {
+    this.elements.headerInfoTitle.textContent = `${this.messages.headerInfoTitle} · ${this.currentFileName || "--"}`;
+    this.elements.headerInfoBody.replaceChildren();
+    if (!this.audioBytes) {
+      this.elements.headerInfoBody.append(this.createHeaderInfoEmpty(this.messages.headerInfoAudioUnread));
+      return;
+    }
+
+    const info = readAudioHeaderInfo(this.audioBytes, this.currentFileName);
+    if (!info) {
+      this.elements.headerInfoBody.append(this.createHeaderInfoEmpty(this.messages.headerInfoUnsupported));
+      return;
+    }
+    this.elements.headerInfoTitle.textContent = `${this.messages.headerInfoTitle} · ${info.format}`;
+    if (info.summary) {
+      this.elements.headerInfoBody.append(this.createHeaderInfoSummary(info.summary));
+    }
+    this.elements.headerInfoBody.append(this.createHeaderInfoTable(info));
+  }
+
+  private createHeaderInfoEmpty(message: string): HTMLElement {
+    const element = document.createElement("div");
+    element.className = "headerInfoEmpty";
+    element.textContent = message;
+    return element;
+  }
+
+  private createHeaderInfoSummary(summary: NonNullable<AudioHeaderInfo["summary"]>): HTMLElement {
+    const element = document.createElement("div");
+    element.className = `headerInfoSummary is-${summary.tone}`;
+    const text = document.createElement("strong");
+    const localized = this.localizeHeaderSummary(summary);
+    text.textContent = localized.text;
+    element.append(text);
+    if (localized.detail) {
+      const detail = document.createElement("span");
+      detail.textContent = localized.detail;
+      element.append(detail);
+    }
+    return element;
+  }
+
+  private localizeHeaderSummary(summary: NonNullable<AudioHeaderInfo["summary"]>): { text: string; detail?: string } {
+    if (summary.kind !== "wavHeader") {
+      return { text: summary.text, detail: summary.detail };
+    }
+    if (summary.missingData) {
+      return { text: this.messages.headerInfoWavMissingData, detail: this.messages.headerInfoWavCannotDetermine };
+    }
+    const size = summary.headerSize ?? 0;
+    const text = this.messages.headerInfoWavHeaderLength.replace("{size}", String(size));
+    if (summary.standard) {
+      return { text, detail: this.messages.headerInfoWavStandardPcm };
+    }
+    const reasons = summary.reasons?.map((reason) => {
+      switch (reason.type) {
+        case "fmtExtended":
+          return this.messages.headerInfoWavFmtExtended.replace("{size}", String(reason.size));
+        case "format":
+          return this.messages.headerInfoWavFormat.replace("{format}", String(reason.format)).replace("{name}", reason.name);
+        case "extraChunks":
+          return this.messages.headerInfoWavExtraChunks.replace("{chunks}", reason.chunks.join(", "));
+        case "dataOffset":
+          return this.messages.headerInfoWavDataOffsetNon44;
+      }
+    }) ?? [];
+    const detail = reasons.length > 0 ? `${this.messages.headerInfoWavNonStandardPrefix}: ${reasons.join(this.messages.headerInfoReasonSeparator)}` : `${this.messages.headerInfoWavNonStandardPrefix}: ${this.messages.headerInfoWavDataOffsetNon44}`;
+    return { text, detail };
+  }
+
+  private createHeaderInfoTable(info: AudioHeaderInfo): HTMLTableElement {
+    const hasBits = info.rows.some((row) => row.bits);
+    const table = document.createElement("table");
+    table.className = "headerInfoTable";
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    const columns = hasBits ? [
+      [this.messages.headerInfoByteOffset, "offsetColumn"],
+      [this.messages.headerInfoBits, "bitsColumn"],
+      [this.messages.headerInfoField, "fieldColumn"],
+      [this.messages.headerInfoValue, "valueColumn"],
+      [this.messages.headerInfoDescription, "noteColumn"]
+    ] : [
+      [this.messages.headerInfoOffset, "offsetColumn"],
+      [this.messages.headerInfoSize, "sizeColumn"],
+      [this.messages.headerInfoField, "fieldColumn"],
+      [this.messages.headerInfoValue, "valueColumn"],
+      [this.messages.headerInfoDescription, "noteColumn"]
+    ];
+    for (const [label, className] of columns) {
+      const cell = document.createElement("th");
+      cell.className = className;
+      cell.textContent = label;
+      headerRow.append(cell);
+    }
+    thead.append(headerRow);
+    table.append(thead);
+
+    const tbody = document.createElement("tbody");
+    for (const row of info.rows) {
+      const tr = document.createElement("tr");
+      if (row.kind) {
+        tr.dataset.kind = row.kind;
+      }
+      const values = hasBits ? [
+        `0x${row.offset.toString(16).toUpperCase().padStart(8, "0")}`,
+        row.bits ?? `${row.size * 8} bit`,
+        `${row.treePrefix ? `${row.treePrefix} ` : ""}${row.field}`,
+        row.value,
+        this.localizeHeaderNote(row.note ?? "")
+      ] : [
+        `0x${row.offset.toString(16).toUpperCase().padStart(8, "0")}`,
+        `${row.size} B`,
+        `${row.treePrefix ? `${row.treePrefix} ` : ""}${row.field}`,
+        row.value,
+        this.localizeHeaderNote(row.note ?? "")
+      ];
+      for (const value of values) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        tr.append(cell);
+      }
+      const fieldCell = tr.children[hasBits ? 2 : 2] as HTMLElement | undefined;
+      if (fieldCell && row.depth !== undefined) {
+        fieldCell.style.setProperty("--header-field-depth", String(row.depth));
+      }
+      tbody.append(tr);
+    }
+    table.append(tbody);
+    return table;
+  }
+
+  private localizeHeaderNote(note: string): string {
+    if (!note) {
+      return "";
+    }
+    if (this.currentLocale === "zh-CN") {
+      return note;
+    }
+    const notes = HEADER_NOTES_BY_LOCALE[this.currentLocale] ?? HEADER_NOTE_EN;
+    return notes[note] ?? HEADER_NOTE_EN[note] ?? note;
+  }
+
+  private positionHeaderInfoPanel(): void {
+    const anchor = this.elements.headerInfo.getBoundingClientRect();
+    const panel = this.elements.headerInfoPanel;
+    const margin = 12;
+    const panelWidth = Math.min(680, window.innerWidth - margin * 2);
+    const left = clamp(anchor.right - panelWidth, margin, Math.max(margin, window.innerWidth - panelWidth - margin));
+    panel.style.width = `${panelWidth}px`;
+    panel.style.left = `${left}px`;
+    panel.style.top = `${anchor.bottom + 8}px`;
   }
 
   private bindAnalysisTooltips(): void {

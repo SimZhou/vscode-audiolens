@@ -518,6 +518,19 @@ export function injectStyles(): void {
       flex: 0 0 auto;
       white-space: nowrap;
     }
+    .headerInfoButton {
+      line-height: 1;
+    }
+    .headerInfoIcon {
+      width: 19px;
+      height: 19px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .topPcmPanel {
       flex: 1 1 620px;
       min-width: min(560px, 100%);
@@ -639,6 +652,147 @@ export function injectStyles(): void {
     }
     .wavPcmPanel[hidden] {
       display: none;
+    }
+    .headerInfoPanel {
+      position: fixed;
+      z-index: 42;
+      top: 58px;
+      left: 12px;
+      width: min(680px, calc(100vw - 24px));
+      max-height: min(680px, calc(100vh - 82px));
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      color: var(--vscode-foreground);
+      background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 36px rgb(0 0 0 / 28%);
+    }
+    .headerInfoPanel[hidden] {
+      display: none;
+    }
+    .headerInfoHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .headerInfoBody {
+      min-height: 0;
+      overflow: auto;
+    }
+    .headerInfoEmpty {
+      color: var(--vscode-descriptionForeground);
+      line-height: 1.45;
+    }
+    .headerInfoSummary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 7px 9px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      line-height: 1.35;
+      background: var(--vscode-input-background);
+    }
+    .headerInfoSummary strong {
+      white-space: nowrap;
+    }
+    .headerInfoSummary span {
+      color: var(--vscode-descriptionForeground);
+    }
+    .headerInfoSummary.is-info {
+      border-color: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 62%, var(--vscode-panel-border));
+      background: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 12%, var(--vscode-input-background));
+    }
+    .headerInfoSummary.is-warning {
+      border-color: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 62%, var(--vscode-panel-border));
+      background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 10%, var(--vscode-input-background));
+    }
+    .headerInfoTable {
+      width: max-content;
+      min-width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+      table-layout: auto;
+      font-size: 12px;
+    }
+    .headerInfoTable th,
+    .headerInfoTable td {
+      padding: 3px 6px;
+      border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 72%, transparent);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.3;
+    }
+    .headerInfoTable td {
+      overflow-wrap: anywhere;
+    }
+    .headerInfoTable th:nth-child(1),
+    .headerInfoTable th:nth-child(2),
+    .headerInfoTable td:nth-child(1),
+    .headerInfoTable td:nth-child(2) {
+      white-space: nowrap;
+      overflow-wrap: normal;
+      font-family: var(--vscode-editor-font-family), monospace;
+    }
+    .headerInfoTable th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--vscode-descriptionForeground);
+      background: var(--vscode-editor-background);
+      font-weight: 600;
+    }
+    .headerInfoTable .offsetColumn,
+    .headerInfoTable .sizeColumn {
+      white-space: nowrap;
+      overflow-wrap: normal;
+    }
+    .headerInfoTable .offsetColumn {
+      min-width: 92px;
+    }
+    .headerInfoTable .sizeColumn {
+      min-width: 86px;
+    }
+    .headerInfoTable .bitsColumn {
+      min-width: 118px;
+      max-width: 150px;
+      white-space: nowrap;
+      overflow-wrap: normal;
+    }
+    .headerInfoTable .fieldColumn {
+      min-width: 156px;
+      max-width: 240px;
+    }
+    .headerInfoTable .valueColumn {
+      min-width: 96px;
+      max-width: 190px;
+    }
+    .headerInfoTable .noteColumn {
+      min-width: 128px;
+      max-width: 240px;
+    }
+    .headerInfoTable td:nth-child(3),
+    .headerInfoTable td:nth-child(4),
+    .headerInfoTable td:nth-child(5) {
+      max-width: inherit;
+    }
+    .headerInfoTable td:nth-child(3) {
+      padding-left: calc(6px + var(--header-field-depth, 0) * 16px);
+    }
+    .headerInfoTable tr[data-kind="box"] td {
+      background: color-mix(in srgb, var(--vscode-sideBar-background) 72%, transparent);
+    }
+    .headerInfoTable tr[data-kind="box"] td:nth-child(3) {
+      color: var(--vscode-foreground);
+      font-weight: 700;
     }
     .wavPcmHeader {
       display: flex;

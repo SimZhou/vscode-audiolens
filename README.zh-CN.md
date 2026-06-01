@@ -26,6 +26,7 @@ AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩�
 - 单通道和多通道音频都按真实通道逐条显示，交互方式接近 Audacity。
 - 每个通道可独立选择波形图、语谱图或波形 + 语谱图的多视图。
 - 每个通道都有静音和独奏按钮，播放时会下混到常见的双声道输出。
+- 可在顶部工具栏查看 WAV、FLAC、Ogg、MP4/M4A、AAC 和 MP3 的容器或编码头字段。
 - 支持显式参数读取原始 PCM，包括采样率、通道数、位深、采样格式、端序和起始偏移。
 - 支持把 WAV 文件按 PCM 方式一次性重新读取，适合检查 header 偏移或损坏文件。
 - 支持对选区做时域和频域分析。
@@ -58,8 +59,8 @@ AudioLens 对常见编码格式优先使用 Webview 的浏览器解码能力，�
 
 | 类型 | 扩展名 | 说明 |
 | --- | --- | --- |
-| WAV | `.wav` | 支持多通道 WAV，也支持一次性按原始 PCM 重新读取。 |
-| 编码音频 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 优先使用 VS Code Webview 解码；如果 Webview 不支持且宿主机器可用 FFmpeg，则走 FFmpeg 兜底转码。 |
+| WAV | `.wav` | 支持多通道 WAV、按顺序查看 RIFF chunk、检查是否为标准 44 字节 PCM 头，也支持一次性按原始 PCM 重新读取。 |
+| 编码音频 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 优先使用 VS Code Webview 解码；可查看关键容器或帧头字段，如果 Webview 不支持且宿主机器可用 FFmpeg，则走 FFmpeg 兜底转码。 |
 | 原始 PCM | `.pcm`、`.raw` | 读取前需要用户显式填写 PCM 参数。 |
 
 ## 多通道工作流
@@ -87,6 +88,12 @@ AudioLens 对常见编码格式优先使用 Webview 的浏览器解码能力，�
 当前 PCM 参数可以保存为默认值，后续打开 PCM 文件时继续使用。AudioLens 不会从文件名或目录名推断 PCM 参数，因为原始 PCM 本身不包含可靠元数据。
 
 WAV 文件也可以从顶部菜单按 PCM 方式重新读取。这个操作只针对当前文件生效，适合检查原始 payload、非标准 header 或对偏移敏感的测试文件。
+
+## 文件头信息
+
+点击顶部工具栏的文件图标，可以在 VS Code 内直接查看结构化的文件头字段。AudioLens 会按文件中的出现顺序列出字段；chunk 类格式使用字节偏移，ADTS AAC、MPEG 音频帧这类紧凑头则显示 bit range。
+
+对于 WAV 文件，面板会标出它是否为标准 44 字节 PCM 头，或是否包含 `fmt` 扩展、`LIST` 元数据等额外 chunk。音频 payload 行只标识数据区域，不展开原始采样字节。
 
 ## 选区分析
 
@@ -148,7 +155,7 @@ AudioLens 默认跟随 VS Code 显示语言。也可以通过 `audiolens.languag
 
 AudioLens 是 workspace extension。在 Remote SSH 窗口中，扩展宿主运行在远端工作区，直接读取远端音频文件，并把数据传给本地 Webview 播放和可视化。
 
-如果需要把远端音频保存到本地，可以使用顶部工具栏的下载按钮。
+如果需要保存当前远端音频，可以使用顶部工具栏的下载按钮。VS Code 的保存对话框可能会先显示远端位置；要保存到本机时，在对话框里切换到本地位置即可。
 
 ## 隐私
 
@@ -168,10 +175,10 @@ code --install-extension simzhou.audiolens
 
 ## 从 VSIX 安装
 
-本地测试打包版本：
+可以从 GitHub Releases 下载打包好的 VSIX，或安装本地打包版本：
 
 ```bash
-code --install-extension dist/audiolens-1.0.7.vsix
+code --install-extension dist/audiolens-1.1.0.vsix
 ```
 
 ## 开发

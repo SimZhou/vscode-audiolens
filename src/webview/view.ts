@@ -22,6 +22,11 @@ export interface ViewElements {
   channel: HTMLSelectElement;
   pcmPanel: HTMLElement;
   pcmReveal: HTMLButtonElement;
+  headerInfo: HTMLButtonElement;
+  headerInfoPanel: HTMLElement;
+  headerInfoTitle: HTMLElement;
+  headerInfoBody: HTMLElement;
+  headerInfoClose: HTMLButtonElement;
   pcmSampleRate: HTMLInputElement;
   pcmChannels: HTMLInputElement;
   pcmStartOffset: HTMLInputElement;
@@ -130,6 +135,13 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
+        <button id="headerInfo" class="iconButton secondaryIcon headerInfoButton" data-i18n-title="headerInfo" data-i18n-aria="headerInfo" data-i18n-tooltip="headerInfo" title="Header info" aria-label="Header info" data-tooltip="Header info" hidden>
+          <svg class="headerInfoIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6.75 3.5h7.5L19 8.25v12.25H6.75z" />
+            <path d="M14.25 3.5v4.75H19" />
+            <path d="M9.25 12.25h6.5M9.25 15.25h6.5M9.25 18.25h4.25" />
+          </svg>
+        </button>
         <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">↓</button>
         <details id="helpMenu" class="helpMenu">
           <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
@@ -214,6 +226,14 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           <button id="wavPcmCancel" class="secondary" data-i18n="cancel">Cancel</button>
           <button id="wavPcmApply" class="secondary" data-i18n="read">Read</button>
         </div>
+      </section>
+
+      <section id="headerInfoPanel" class="headerInfoPanel" role="dialog" aria-label="Audio header info" hidden>
+        <div class="headerInfoHeader">
+          <strong id="headerInfoTitle">文件头信息</strong>
+          <button id="headerInfoClose" class="iconButton secondaryIcon" title="Close" aria-label="Close">×</button>
+        </div>
+        <div id="headerInfoBody" class="headerInfoBody"></div>
       </section>
 
       <section class="player">
@@ -553,6 +573,11 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     channel: query("#channel", HTMLSelectElement),
     pcmPanel: query("#pcmPanel", HTMLElement),
     pcmReveal: query("#pcmReveal", HTMLButtonElement),
+    headerInfo: query("#headerInfo", HTMLButtonElement),
+    headerInfoPanel: query("#headerInfoPanel", HTMLElement),
+    headerInfoTitle: query("#headerInfoTitle", HTMLElement),
+    headerInfoBody: query("#headerInfoBody", HTMLElement),
+    headerInfoClose: query("#headerInfoClose", HTMLButtonElement),
     pcmSampleRate: query("#pcmSampleRate", HTMLInputElement),
     pcmChannels: query("#pcmChannels", HTMLInputElement),
     pcmStartOffset: query("#pcmStartOffset", HTMLInputElement),

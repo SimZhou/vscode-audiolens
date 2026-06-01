@@ -26,6 +26,7 @@ Open an audio file and AudioLens shows playback, multi-channel tracks, waveforms
 - Displays mono and multi-channel files as separate Audacity-style tracks.
 - Supports waveform, spectrogram, and combined waveform + spectrogram views per channel.
 - Provides per-channel mute and solo controls with stereo downmix playback.
+- Shows container and codec header fields for WAV, FLAC, Ogg, MP4/M4A, AAC, and MP3 in a top-bar inspector.
 - Reads raw PCM files with explicit sample rate, channel count, bit depth, sample format, byte order, and start offset.
 - Lets WAV files be reopened as raw PCM for header-offset or damaged-file inspection.
 - Analyzes selected regions with time-domain and frequency-domain metrics.
@@ -58,8 +59,8 @@ AudioLens uses the browser audio stack for common encoded formats and extension-
 
 | Type | Extensions | Notes |
 | --- | --- | --- |
-| WAV | `.wav` | Supports multi-channel WAV files and optional one-time raw PCM reread. |
-| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Uses the VS Code Webview decoder first. When available, extension-host FFmpeg is used as a fallback for formats the Webview cannot decode. |
+| WAV | `.wav` | Supports multi-channel WAV files, ordered RIFF chunk inspection, standard 44-byte PCM header checks, and optional one-time raw PCM reread. |
+| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Uses the VS Code Webview decoder first. Header inspection shows key container or frame fields, and extension-host FFmpeg is used as a fallback when available. |
 | Raw PCM | `.pcm`, `.raw` | Requires explicit PCM parameters before reading. |
 
 ## Multi-Channel Workflow
@@ -87,6 +88,12 @@ For `.pcm` and `.raw` files, AudioLens asks for PCM parameters before decoding:
 The current PCM parameters can be saved as defaults for later PCM files. AudioLens does not guess raw PCM parameters from the file name, because raw PCM does not contain reliable metadata.
 
 WAV files can also be reopened as PCM from the top bar. This is a one-time operation for the current file and is useful when inspecting raw payloads, non-standard headers, or offset-sensitive test files.
+
+## Header Inspector
+
+Use the document icon in the top bar to inspect structured header fields without leaving VS Code. AudioLens lists fields in file order and uses byte offsets for chunk-based formats, or bit ranges for packed headers such as ADTS AAC and MPEG audio frames.
+
+For WAV files, the inspector highlights whether the file uses the standard 44-byte PCM header or contains extended chunks such as `fmt` extensions and `LIST` metadata. Audio payload rows identify the data region without dumping raw sample bytes.
 
 ## Selection Analysis
 
@@ -148,7 +155,7 @@ New interface strings fall back to English until a locale has a complete transla
 
 AudioLens is declared as a workspace extension. In a Remote SSH window, the extension host runs in the remote workspace, reads audio files from the remote file system, and streams the data to the local Webview for playback and visualization.
 
-Use the top-bar download button when you want to save the current remote audio file locally.
+Use the top-bar download button when you want to save the current remote audio file. VS Code may open the save dialog on the remote side first; choose the local location option in that dialog when saving to your machine.
 
 ## Privacy
 
@@ -168,10 +175,10 @@ code --install-extension simzhou.audiolens
 
 ## Install From VSIX
 
-For local testing, install a packaged build with:
+Download the packaged VSIX from GitHub Releases, or install a local packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-1.0.7.vsix
+code --install-extension dist/audiolens-1.1.0.vsix
 ```
 
 ## Development

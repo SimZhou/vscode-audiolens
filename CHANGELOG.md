@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+Header inspection update.
+
+- Added a top-bar header inspector for WAV/RIFF, FLAC, Ogg/Opus/Vorbis, MP4/M4A, AAC/ADTS, and MP3/MPEG frame metadata.
+- Added WAV header status highlighting for standard 44-byte PCM headers and extended/non-standard RIFF layouts.
+- Showed AAC and MP3 packed header fields with bit ranges instead of misleading byte-only offsets.
+- Reworked MP4/M4A boxes into a tree-style table so nested container structure is easier to scan.
+- Kept audio payload regions summarized instead of displaying raw sample data as field values.
+- Localized the new header inspector UI and field descriptions across bundled languages.
+- Improved the floating panel positioning and adaptive table widths for compact display.
+
 ## 1.0.7
 
 Interaction and documentation polish update.
