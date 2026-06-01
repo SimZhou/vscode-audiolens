@@ -1480,6 +1480,7 @@ export class AudioLensApp {
     this.pendingAnalysisTargets.clear();
     this.trackViews = [];
     this.elements.trackList.replaceChildren();
+    this.elements.figures.classList.remove("isFirstTrackSelectedAtTop");
     this.elements.seek.value = "0";
     this.updateClock();
   }
@@ -1771,6 +1772,7 @@ export class AudioLensApp {
     }
     this.elements.analyze.addEventListener("click", () => this.analyze());
     this.elements.resetView.addEventListener("click", () => this.resetView());
+    this.elements.trackList.addEventListener("scroll", () => this.updateTimelineBoundaryState());
     this.bindFigureInteraction(this.elements.waveform);
     this.bindFigureInteraction(this.elements.spectrogram);
     this.bindPlotResizer(this.elements.waveformResize, this.elements.waveformPane, "--waveform-height", PLOT_HEIGHT_LIMITS.waveformMin, PLOT_HEIGHT_LIMITS.waveformMax);
@@ -2871,6 +2873,12 @@ export class AudioLensApp {
     this.trackViews.forEach((view) => {
       view.row.classList.toggle("isSelected", view.channel === this.settings.channel);
     });
+    this.updateTimelineBoundaryState();
+  }
+
+  private updateTimelineBoundaryState(): void {
+    const firstTrackSelectedAtTop = this.settings.channel === 0 && this.elements.trackList.scrollTop <= 0.5;
+    this.elements.figures.classList.toggle("isFirstTrackSelectedAtTop", firstTrackSelectedAtTop);
   }
 
   private applyTrackMode(view: TrackView): void {
@@ -2923,9 +2931,7 @@ export class AudioLensApp {
     }
 
     const ratio = window.devicePixelRatio || 1;
-    const left = TRACK_AXIS_WIDTH * ratio;
-    const right = Math.max(left + 1, canvas.width);
-    const rect = { left, top: 0, right, bottom: canvas.height, width: right - left, height: canvas.height };
+    const rect = this.getTimelinePlotRect(canvas);
 
     context.save();
     context.fillStyle = axisTextColor();
@@ -3578,6 +3584,7 @@ export class AudioLensApp {
 
   private visibleSelectionPlotRects(): Array<{ top: number; bottom: number }> {
     const rects: Array<{ top: number; bottom: number }> = [];
+    const viewport = this.elements.trackList.getBoundingClientRect();
     for (const view of this.trackViews) {
       const canvases = [view.waveform, view.spectrogram];
       for (const canvas of canvases) {
@@ -3589,10 +3596,11 @@ export class AudioLensApp {
           continue;
         }
         const plot = this.getCssPlotRect(canvas);
-        rects.push({
-          top: canvasRect.top + plot.top,
-          bottom: canvasRect.top + plot.bottom
-        });
+        const top = Math.max(canvasRect.top + plot.top, viewport.top);
+        const bottom = Math.min(canvasRect.top + plot.bottom, viewport.bottom);
+        if (bottom > top) {
+          rects.push({ top, bottom });
+        }
       }
     }
     return rects;
@@ -3861,6 +3869,15 @@ export class AudioLensApp {
     const plot = this.getPlotRect(canvas);
     const x = (clientX - bounds.left) * (canvas.width / Math.max(1, bounds.width));
     return clamp((x - plot.left) / plot.width, 0, 1);
+  }
+
+  private getTimelinePlotRect(canvas: HTMLCanvasElement): PlotRect {
+    const ratio = window.devicePixelRatio || 1;
+    const left = TRACK_AXIS_WIDTH * ratio;
+    const top = 0;
+    const right = Math.max(left + 1, canvas.width);
+    const bottom = Math.max(top + 1, canvas.height);
+    return { left, top, right, bottom, width: right - left, height: bottom - top };
   }
 
   private applyTimeZoom(nextZoom: number, anchorTime: number, anchorRatio: number): void {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+Timeline usability update.
+
+- Kept the top timeline ruler sticky while scrolling through many channel tracks.
+- Removed the experimental timeline hover tooltip.
+
 ## 1.1.0
 
 Header inspection update.

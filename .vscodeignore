@@ -15,6 +15,7 @@ CLAUDE.md
 GEMINI.md
 README.zh-CN.md
 README.ja.md
+CHANGELOG.zh-CN.md
 docs/roadmap.md
 docs/**
 Cargo.toml

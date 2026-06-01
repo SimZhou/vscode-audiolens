@@ -5714,6 +5714,7 @@
       this.pendingAnalysisTargets.clear();
       this.trackViews = [];
       this.elements.trackList.replaceChildren();
+      this.elements.figures.classList.remove("isFirstTrackSelectedAtTop");
       this.elements.seek.value = "0";
       this.updateClock();
     }
@@ -5994,6 +5995,7 @@
       }
       this.elements.analyze.addEventListener("click", () => this.analyze());
       this.elements.resetView.addEventListener("click", () => this.resetView());
+      this.elements.trackList.addEventListener("scroll", () => this.updateTimelineBoundaryState());
       this.bindFigureInteraction(this.elements.waveform);
       this.bindFigureInteraction(this.elements.spectrogram);
       this.bindPlotResizer(this.elements.waveformResize, this.elements.waveformPane, "--waveform-height", PLOT_HEIGHT_LIMITS.waveformMin, PLOT_HEIGHT_LIMITS.waveformMax);
@@ -7005,6 +7007,11 @@
       this.trackViews.forEach((view) => {
         view.row.classList.toggle("isSelected", view.channel === this.settings.channel);
       });
+      this.updateTimelineBoundaryState();
+    }
+    updateTimelineBoundaryState() {
+      const firstTrackSelectedAtTop = this.settings.channel === 0 && this.elements.trackList.scrollTop <= 0.5;
+      this.elements.figures.classList.toggle("isFirstTrackSelectedAtTop", firstTrackSelectedAtTop);
     }
     applyTrackMode(view) {
       view.row.dataset.mode = view.mode;
@@ -7050,9 +7057,7 @@
         return;
       }
       const ratio = window.devicePixelRatio || 1;
-      const left = TRACK_AXIS_WIDTH * ratio;
-      const right = Math.max(left + 1, canvas.width);
-      const rect = { left, top: 0, right, bottom: canvas.height, width: right - left, height: canvas.height };
+      const rect = this.getTimelinePlotRect(canvas);
       context.save();
       context.fillStyle = axisTextColor();
       context.font = axisFont();
@@ -7649,6 +7654,7 @@
     }
     visibleSelectionPlotRects() {
       const rects = [];
+      const viewport = this.elements.trackList.getBoundingClientRect();
       for (const view of this.trackViews) {
         const canvases = [view.waveform, view.spectrogram];
         for (const canvas of canvases) {
@@ -7660,10 +7666,11 @@
             continue;
           }
           const plot = this.getCssPlotRect(canvas);
-          rects.push({
-            top: canvasRect.top + plot.top,
-            bottom: canvasRect.top + plot.bottom
-          });
+          const top = Math.max(canvasRect.top + plot.top, viewport.top);
+          const bottom = Math.min(canvasRect.top + plot.bottom, viewport.bottom);
+          if (bottom > top) {
+            rects.push({ top, bottom });
+          }
         }
       }
       return rects;
@@ -7912,6 +7919,14 @@
       const plot = this.getPlotRect(canvas);
       const x = (clientX - bounds.left) * (canvas.width / Math.max(1, bounds.width));
       return clamp2((x - plot.left) / plot.width, 0, 1);
+    }
+    getTimelinePlotRect(canvas) {
+      const ratio = window.devicePixelRatio || 1;
+      const left = TRACK_AXIS_WIDTH * ratio;
+      const top = 0;
+      const right = Math.max(left + 1, canvas.width);
+      const bottom = Math.max(top + 1, canvas.height);
+      return { left, top, right, bottom, width: right - left, height: bottom - top };
     }
     applyTimeZoom(nextZoom, anchorTime, anchorRatio) {
       if (!this.audioBuffer) {
@@ -8441,6 +8456,12 @@
     * {
       box-sizing: border-box;
     }
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
     body {
       margin: 0;
       font-family: var(--vscode-font-family);
@@ -8453,9 +8474,11 @@
     }
     .shell {
       position: relative;
-      min-height: 100vh;
+      height: 100vh;
+      min-height: 0;
       display: grid;
       grid-template-rows: auto auto 1fr;
+      overflow: hidden;
     }
     .topbar, .player {
       min-height: 44px;
@@ -8633,6 +8656,7 @@
       min-height: 0;
       display: grid;
       grid-template-columns: 1fr;
+      overflow: hidden;
     }
     .controls, .settingsPanel {
       display: flex;
@@ -8762,11 +8786,12 @@
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
       gap: 0;
-      padding: 12px;
-      overflow: auto;
+      padding: 0 12px 12px;
+      overflow: hidden;
       align-content: start;
       justify-items: stretch;
-      scrollbar-gutter: stable;
+      background: var(--vscode-editor-background);
+      margin-top: -1px;
     }
     .figureHeader {
       display: flex;
@@ -8786,6 +8811,10 @@
       border-radius: 6px;
       overflow: hidden;
       background: var(--vscode-editor-background);
+      box-shadow: 0 1px 0 var(--vscode-editor-background);
+    }
+    .figures.isFirstTrackSelectedAtTop .timelineHeader {
+      border-bottom-color: var(--vscode-focusBorder);
     }
     .timelineRange {
       display: flex;
@@ -8803,6 +8832,11 @@
       min-height: 32px;
       background: var(--vscode-editor-background);
     }
+    .timelineCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
     .plotPane {
       position: relative;
       min-width: 0;
@@ -8816,8 +8850,15 @@
       background: var(--vscode-editor-background);
     }
     .trackList {
+      position: relative;
+      z-index: 2;
+      min-height: 0;
       display: grid;
       gap: 0;
+      overflow: auto;
+      scrollbar-gutter: stable;
+      margin-top: -1px;
+      background: var(--vscode-editor-background);
     }
     .trackRow {
       position: relative;
@@ -8830,7 +8871,7 @@
       background: var(--vscode-editor-background);
     }
     .trackRow:first-child {
-      margin-top: -1px;
+      margin-top: 0;
     }
     .trackRow + .trackRow {
       margin-top: -1px;
@@ -8842,9 +8883,12 @@
       min-height: 220px;
     }
     .trackRow.isSelected {
-      z-index: 2;
+      z-index: 4;
       border-color: var(--vscode-focusBorder);
       border-radius: 6px;
+    }
+    .trackRow:first-child.isSelected::after {
+      content: none;
     }
     .trackSidebar {
       display: flex;

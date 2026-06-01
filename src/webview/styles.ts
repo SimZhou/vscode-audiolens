@@ -7,6 +7,12 @@ export function injectStyles(): void {
     * {
       box-sizing: border-box;
     }
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
     body {
       margin: 0;
       font-family: var(--vscode-font-family);
@@ -19,9 +25,11 @@ export function injectStyles(): void {
     }
     .shell {
       position: relative;
-      min-height: 100vh;
+      height: 100vh;
+      min-height: 0;
       display: grid;
       grid-template-rows: auto auto 1fr;
+      overflow: hidden;
     }
     .topbar, .player {
       min-height: 44px;
@@ -199,6 +207,7 @@ export function injectStyles(): void {
       min-height: 0;
       display: grid;
       grid-template-columns: 1fr;
+      overflow: hidden;
     }
     .controls, .settingsPanel {
       display: flex;
@@ -328,11 +337,12 @@ export function injectStyles(): void {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
       gap: 0;
-      padding: 12px;
-      overflow: auto;
+      padding: 0 12px 12px;
+      overflow: hidden;
       align-content: start;
       justify-items: stretch;
-      scrollbar-gutter: stable;
+      background: var(--vscode-editor-background);
+      margin-top: -1px;
     }
     .figureHeader {
       display: flex;
@@ -352,6 +362,10 @@ export function injectStyles(): void {
       border-radius: 6px;
       overflow: hidden;
       background: var(--vscode-editor-background);
+      box-shadow: 0 1px 0 var(--vscode-editor-background);
+    }
+    .figures.isFirstTrackSelectedAtTop .timelineHeader {
+      border-bottom-color: var(--vscode-focusBorder);
     }
     .timelineRange {
       display: flex;
@@ -369,6 +383,11 @@ export function injectStyles(): void {
       min-height: 32px;
       background: var(--vscode-editor-background);
     }
+    .timelineCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
     .plotPane {
       position: relative;
       min-width: 0;
@@ -382,8 +401,15 @@ export function injectStyles(): void {
       background: var(--vscode-editor-background);
     }
     .trackList {
+      position: relative;
+      z-index: 2;
+      min-height: 0;
       display: grid;
       gap: 0;
+      overflow: auto;
+      scrollbar-gutter: stable;
+      margin-top: -1px;
+      background: var(--vscode-editor-background);
     }
     .trackRow {
       position: relative;
@@ -396,7 +422,7 @@ export function injectStyles(): void {
       background: var(--vscode-editor-background);
     }
     .trackRow:first-child {
-      margin-top: -1px;
+      margin-top: 0;
     }
     .trackRow + .trackRow {
       margin-top: -1px;
@@ -408,9 +434,12 @@ export function injectStyles(): void {
       min-height: 220px;
     }
     .trackRow.isSelected {
-      z-index: 2;
+      z-index: 4;
       border-color: var(--vscode-focusBorder);
       border-radius: 6px;
+    }
+    .trackRow:first-child.isSelected::after {
+      content: none;
     }
     .trackSidebar {
       display: flex;
