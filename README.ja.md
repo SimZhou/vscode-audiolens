@@ -2,7 +2,9 @@
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="180">
 </p>
 
-<p align="center"><font size="6"><strong>AudioLens</strong></font></p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/AudioLens-title.svg" alt="AudioLens" width="300">
+</p>
 
 <p align="center">
   <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.md">English</a> | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.zh-CN.md">简体中文</a> | 日本語
