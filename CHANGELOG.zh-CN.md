@@ -1,5 +1,15 @@
 # 更新日志
 
+## 1.2.0
+
+Kaldi wav ark 支持更新。
+
+- 新增 `AudioLens: Open Kaldi WAV Ark Entry` 命令，可直接打开 `wav.ark:offset` 音频条目。
+- 支持打开 `.ark` 文件时先输入 offset，并校验目标位置必须是 `RIFF/WAVE`。
+- 根据 WAV 头长度只读取 ark 中对应的 WAV entry，不读取整份 ark。
+- 顶部文件信息会显示 ARK offset，ark 来源的 WAV entry 不再显示“按 PCM 读取”入口。
+- VS Code 最低兼容版本声明下调到 `^1.74.0`。
+
 ## 1.1.1
 
 时间轴易用性更新。

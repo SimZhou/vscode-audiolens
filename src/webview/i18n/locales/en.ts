@@ -27,6 +27,7 @@ export const messages = {
   headerInfoWavExtraChunks: "extra chunk(s) before data: {chunks}",
   headerInfoWavDataOffsetNon44: "data starts at an offset other than 44 B",
   headerInfoReasonSeparator: "; ",
+  arkOffsetLabel: "ARK offset",
   settings: "Settings",
   playPause: "Play / pause",
   playbackPosition: "Playback position",

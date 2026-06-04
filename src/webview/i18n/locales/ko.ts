@@ -62,6 +62,7 @@ export const messages = {
   headerInfoWavExtraChunks: "data 앞에 추가 청크가 있습니다: {chunks}",
   headerInfoWavDataOffsetNon44: "data 시작 오프셋이 44 B가 아닙니다",
   headerInfoReasonSeparator: "; ",
+  arkOffsetLabel: "ARK 오프셋",
   settings: "설정",
   pcmReadAs: "PCM으로 읽기",
   pcmParams: "PCM 매개변수",

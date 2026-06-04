@@ -124,6 +124,12 @@ export function injectStyles(): void {
       color: var(--vscode-notificationsInfoIcon-foreground);
       white-space: nowrap;
     }
+    .status.isWarning {
+      color: var(--vscode-notificationsWarningIcon-foreground, var(--vscode-editorWarning-foreground, #cca700));
+    }
+    .status.isError {
+      color: var(--vscode-notificationsErrorIcon-foreground, var(--vscode-errorForeground, #f85149));
+    }
     .status[hidden] {
       display: none;
     }

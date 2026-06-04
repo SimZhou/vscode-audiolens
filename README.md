@@ -22,13 +22,14 @@ Open an audio file and AudioLens shows playback, multi-channel tracks, waveforms
 
 ## Highlights
 
-- Opens `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, `pcm`, and `raw` files.
+- Opens `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, `pcm`, `raw`, and Kaldi wav ark entries.
 - Displays mono and multi-channel files as separate Audacity-style tracks.
 - Supports waveform, spectrogram, and combined waveform + spectrogram views per channel.
 - Provides per-channel mute and solo controls with stereo downmix playback.
 - Shows container and codec header fields for WAV, FLAC, Ogg, MP4/M4A, AAC, and MP3 in a top-bar inspector.
 - Reads raw PCM files with explicit sample rate, channel count, bit depth, sample format, byte order, and start offset.
 - Lets WAV files be reopened as raw PCM for header-offset or damaged-file inspection.
+- Opens Kaldi wav ark entries from `wav.ark:offset` without loading the whole ark file.
 - Analyzes selected regions with time-domain and frequency-domain metrics.
 - Keeps preferences such as spectrogram settings, playback gain, default track view, and PCM defaults.
 - Works in local VS Code windows and Remote SSH workspaces.
@@ -60,6 +61,7 @@ AudioLens uses the browser audio stack for common encoded formats and extension-
 | Type | Extensions | Notes |
 | --- | --- | --- |
 | WAV | `.wav` | Supports multi-channel WAV files, ordered RIFF chunk inspection, standard 44-byte PCM header checks, and optional one-time raw PCM reread. |
+| Kaldi wav ark | `.ark` entries such as `wav.ark:23252` | Use `AudioLens: Open Kaldi WAV Ark Entry` or open an `.ark` file and enter an offset. AudioLens validates `RIFF/WAVE` at the offset and reads only that WAV entry. |
 | Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Uses the VS Code Webview decoder first. Header inspection shows key container or frame fields, and extension-host FFmpeg is used as a fallback when available. |
 | Raw PCM | `.pcm`, `.raw` | Requires explicit PCM parameters before reading. |
 
@@ -88,6 +90,12 @@ For `.pcm` and `.raw` files, AudioLens asks for PCM parameters before decoding:
 The current PCM parameters can be saved as defaults for later PCM files. AudioLens does not guess raw PCM parameters from the file name, because raw PCM does not contain reliable metadata.
 
 WAV files can also be reopened as PCM from the top bar. This is a one-time operation for the current file and is useful when inspecting raw payloads, non-standard headers, or offset-sensitive test files.
+
+## Kaldi WAV Ark Workflow
+
+Run `AudioLens: Open Kaldi WAV Ark Entry` from the Command Palette and enter a `wav.ark:offset` location. If you open an `.ark` file directly, AudioLens asks for the offset before reading.
+
+AudioLens only supports ark entries whose payload starts with a WAV `RIFF/WAVE` header. It uses the WAV header size to read the selected entry and does not scan or load the whole ark file.
 
 ## Header Inspector
 
@@ -167,6 +175,10 @@ Install from the Visual Studio Marketplace:
 
 https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
 
+Or from Open VSX:
+
+https://open-vsx.org/extension/simzhou/audiolens
+
 Or install from the command line:
 
 ```bash
@@ -178,7 +190,7 @@ code --install-extension simzhou.audiolens
 Download the packaged VSIX from GitHub Releases, or install a local packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-1.1.0.vsix
+code --install-extension dist/audiolens-1.2.0.vsix
 ```
 
 ## Development

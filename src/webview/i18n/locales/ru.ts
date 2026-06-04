@@ -62,6 +62,7 @@ export const messages = {
   headerInfoWavExtraChunks: "дополнительные chunk перед data: {chunks}",
   headerInfoWavDataOffsetNon44: "data начинается не со смещения 44 B",
   headerInfoReasonSeparator: "; ",
+  arkOffsetLabel: "Смещение ARK",
   settings: "Настройки",
   pcmReadAs: "Читать как PCM",
   pcmParams: "Параметры PCM",

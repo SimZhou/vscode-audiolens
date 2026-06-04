@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+Kaldi wav ark support update.
+
+- Added `AudioLens: Open Kaldi WAV Ark Entry` for opening `wav.ark:offset` entries directly.
+- Added `.ark` file handling that asks for an offset before reading and validates that the target entry starts with `RIFF/WAVE`.
+- Reads only the selected WAV entry from the ark file using the WAV header size, instead of loading the whole ark.
+- Shows ARK offset information in the top file metadata and hides the WAV-as-PCM action for ark-backed WAV entries.
+- Lowered the declared VS Code compatibility floor to `^1.74.0`.
+
 ## 1.1.1
 
 Timeline usability update.

@@ -22,13 +22,14 @@ AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張�
 
 ## 主な機能
 
-- `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` ファイルを開けます。
+- `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` ファイル、および Kaldi wav ark エントリを開けます。
 - モノラルとマルチチャンネル音声を、Audacity 風の独立したトラックとして表示します。
 - 各チャンネルごとに波形、スペクトログラム、波形 + スペクトログラムの複合表示を選べます。
 - チャンネルごとのミュートとソロに対応し、再生時は通常のステレオ出力へダウンミックスします。
 - 上部バーから WAV、FLAC、Ogg、MP4/M4A、AAC、MP3 のコンテナまたはコーデックヘッダーを確認できます。
 - サンプルレート、チャンネル数、ビット深度、サンプル形式、エンディアン、開始オフセットを指定して raw PCM を読み込めます。
 - WAV ファイルを raw PCM として一時的に読み直せるため、ヘッダーオフセットや破損ファイルの確認に使えます。
+- `wav.ark:offset` から Kaldi wav ark 音声エントリを開け、ark ファイル全体は読み込みません。
 - 選択範囲に対して時間領域と周波数領域の解析指標を計算します。
 - スペクトログラム設定、再生ゲイン、デフォルトのトラック表示、PCM 既定値などを保存します。
 - ローカル VS Code と Remote SSH ワークスペースの両方で動作します。
@@ -60,6 +61,7 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 | 種類 | 拡張子 | 備考 |
 | --- | --- | --- |
 | WAV | `.wav` | マルチチャンネル WAV、RIFF chunk の順序表示、標準 44 バイト PCM ヘッダー確認、一時的な raw PCM 読み直しに対応します。 |
+| Kaldi wav ark | `wav.ark:23252` のような `.ark` エントリ | `AudioLens: Open Kaldi WAV Ark Entry` コマンドを使うか、`.ark` ファイルを直接開いて offset を入力します。AudioLens は offset 位置が `RIFF/WAVE` であることを確認し、その WAV entry だけを読み込みます。 |
 | エンコード音声 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | まず VS Code Webview のデコーダを使います。主要なコンテナまたはフレームヘッダーを確認でき、必要に応じて拡張ホスト側の FFmpeg によるフォールバック変換を使います。 |
 | Raw PCM | `.pcm`、`.raw` | 読み込み前に PCM パラメータを明示的に指定する必要があります。 |
 
@@ -88,6 +90,12 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 現在の PCM パラメータは既定値として保存でき、次回以降の PCM ファイルに再利用できます。Raw PCM には信頼できるメタデータが含まれないため、AudioLens はファイル名やディレクトリ名からパラメータを推定しません。
 
 WAV ファイルも上部バーから PCM として読み直せます。この操作は現在のファイルに対する一時的な処理で、raw payload、非標準ヘッダー、オフセットに敏感なテストファイルの確認に役立ちます。
+
+## Kaldi WAV Ark ワークフロー
+
+Command Palette から `AudioLens: Open Kaldi WAV Ark Entry` を実行し、`wav.ark:offset` の場所を入力します。`.ark` ファイルを直接開いた場合は、AudioLens が読み込む offset を求めます。
+
+AudioLens が対応するのは、payload が WAV `RIFF/WAVE` ヘッダーから始まる ark エントリだけです。WAV ヘッダーのサイズを使って選択された entry だけを読み込み、ark ファイル全体をスキャンしたり読み込んだりしません。
 
 ## ヘッダー情報
 
@@ -167,6 +175,10 @@ Visual Studio Marketplace からインストール:
 
 https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
 
+Open VSX からもインストールできます:
+
+https://open-vsx.org/extension/simzhou/audiolens
+
 またはコマンドラインからインストール:
 
 ```bash
@@ -178,7 +190,7 @@ code --install-extension simzhou.audiolens
 GitHub Releases から VSIX をダウンロードするか、ローカルで作成したパッケージをインストールできます:
 
 ```bash
-code --install-extension dist/audiolens-1.1.0.vsix
+code --install-extension dist/audiolens-1.2.0.vsix
 ```
 
 ## 開発

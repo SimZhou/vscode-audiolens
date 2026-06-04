@@ -62,6 +62,8 @@ interface AudioFileMetadata {
   trusted: boolean;
   extension: string;
   kind: "encoded" | "pcm";
+  sourceKind?: "ark";
+  sourceOffset?: number;
 }
 
 interface TimeSelectionState {
@@ -1329,6 +1331,7 @@ export class AudioLensApp {
   private trackViews: TrackView[] = [];
   private defaultPcmFormat: PcmFormat | undefined;
   private currentFileName = "";
+  private currentSourceLabel = "";
   private objectUrl: string | undefined;
   private requestSeq = 1;
   private pendingAnalysisKeys = new Set<string>();
@@ -1421,7 +1424,7 @@ export class AudioLensApp {
         this.rejectTranscode(message);
         break;
       case "error":
-        this.setStatus(message.message);
+        this.setStatus(message.message, "warning");
         break;
     }
   }
@@ -1497,7 +1500,8 @@ export class AudioLensApp {
 
   private async load(metadata: AudioFileMetadata): Promise<void> {
     this.currentFileName = metadata.fileName;
-    this.elements.fileMeta.textContent = `${metadata.fileName} · ${formatBytes(metadata.size)}`;
+    this.currentSourceLabel = metadata.sourceKind === "ark" && metadata.sourceOffset !== undefined ? ` · ${this.messages.arkOffsetLabel} ${metadata.sourceOffset}` : "";
+    this.elements.fileMeta.textContent = `${metadata.fileName} · ${formatBytes(metadata.size)}${this.currentSourceLabel}`;
 
     if (!metadata.trusted) {
       this.setStatus(this.messages.workspaceNotTrusted);
@@ -1516,7 +1520,7 @@ export class AudioLensApp {
     this.setStatus(this.messages.readingAudio);
     this.audioBytes = await this.readAll(metadata.size);
     this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
-    this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav";
+    this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav" || metadata.sourceKind === "ark";
     this.elements.headerInfo.hidden = metadata.kind === "pcm";
     this.elements.headerInfoPanel.hidden = true;
     this.elements.wavPcmPanel.hidden = true;
@@ -2205,7 +2209,7 @@ export class AudioLensApp {
 
   private reportPlaybackError(message: string): void {
     const detail = `${this.messages.playbackFailed}: ${message}`;
-    this.setStatus(detail);
+    this.setStatus(detail, "error");
     this.vscode.postMessage({ type: "showError", message: detail });
   }
 
@@ -2515,7 +2519,7 @@ export class AudioLensApp {
     this.elements.audio.load();
     this.elements.seek.value = "0";
     this.updateClock();
-    this.elements.fileMeta.textContent = `${fileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz`;
+    this.elements.fileMeta.textContent = `${fileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
   }
 
   private async applyPcmFormat(format: PcmFormat, statusElement = this.elements.pcmStatus): Promise<void> {
@@ -3264,8 +3268,10 @@ export class AudioLensApp {
     this.elements.clock.textContent = `${current} / ${duration}`;
   }
 
-  private setStatus(message: string): void {
+  private setStatus(message: string, tone: "info" | "warning" | "error" = "info"): void {
     this.elements.status.textContent = message;
+    this.elements.status.classList.toggle("isWarning", tone === "warning");
+    this.elements.status.classList.toggle("isError", tone === "error");
     this.elements.status.hidden = !this.shouldShowStatus(message);
   }
 

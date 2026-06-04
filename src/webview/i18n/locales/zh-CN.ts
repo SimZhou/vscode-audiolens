@@ -27,6 +27,7 @@ export const messages = {
   headerInfoWavExtraChunks: "data 前有额外子块 {chunks}",
   headerInfoWavDataOffsetNon44: "data 起始偏移不是 44 B",
   headerInfoReasonSeparator: "；",
+  arkOffsetLabel: "ARK 偏移",
   settings: "设置",
   playPause: "播放 / 暂停",
   playbackPosition: "播放位置",

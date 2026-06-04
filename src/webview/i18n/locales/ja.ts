@@ -27,6 +27,7 @@ export const messages = {
   headerInfoWavExtraChunks: "data の前に追加チャンクがあります: {chunks}",
   headerInfoWavDataOffsetNon44: "data の開始オフセットが 44 B ではありません",
   headerInfoReasonSeparator: "；",
+  arkOffsetLabel: "ARK オフセット",
   settings: "設定",
   playPause: "再生 / 一時停止",
   playbackPosition: "再生位置",

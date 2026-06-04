@@ -46,6 +46,7 @@ export interface LocaleMessages {
   headerInfoWavExtraChunks: string;
   headerInfoWavDataOffsetNon44: string;
   headerInfoReasonSeparator: string;
+  arkOffsetLabel: string;
   settings: string;
   playPause: string;
   playbackPosition: string;

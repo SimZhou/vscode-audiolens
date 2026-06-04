@@ -58,6 +58,8 @@ export interface AudioMetadata {
   trusted: boolean;
   extension: string;
   kind: "encoded" | "pcm";
+  sourceKind?: "ark";
+  sourceOffset?: number;
 }
 
 export type ExtensionMessage =

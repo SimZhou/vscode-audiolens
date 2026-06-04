@@ -903,6 +903,7 @@
     headerInfoWavExtraChunks: "zus\xE4tzliche Chunks vor data: {chunks}",
     headerInfoWavDataOffsetNon44: "data beginnt nicht bei Offset 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "ARK-Offset",
     settings: "Einstellungen",
     pcmReadAs: "Als PCM lesen",
     pcmParams: "PCM-Parameter",
@@ -1033,6 +1034,7 @@
     headerInfoWavExtraChunks: "extra chunk(s) before data: {chunks}",
     headerInfoWavDataOffsetNon44: "data starts at an offset other than 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "ARK offset",
     settings: "Settings",
     playPause: "Play / pause",
     playbackPosition: "Playback position",
@@ -1233,6 +1235,7 @@
     headerInfoWavExtraChunks: "chunk(s) extra antes de data: {chunks}",
     headerInfoWavDataOffsetNon44: "data comienza en un desplazamiento distinto de 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "Offset ARK",
     settings: "Ajustes",
     pcmReadAs: "Leer como PCM",
     pcmParams: "Par\xE1metros PCM",
@@ -1398,6 +1401,7 @@
     headerInfoWavExtraChunks: "chunk(s) suppl\xE9mentaire(s) avant data : {chunks}",
     headerInfoWavDataOffsetNon44: "data commence \xE0 un d\xE9calage diff\xE9rent de 44 B",
     headerInfoReasonSeparator: " ; ",
+    arkOffsetLabel: "Offset ARK",
     settings: "R\xE9glages",
     pcmReadAs: "Lire en PCM",
     pcmParams: "Param\xE8tres PCM",
@@ -1563,6 +1567,7 @@
     headerInfoWavExtraChunks: "chunk tambahan sebelum data: {chunks}",
     headerInfoWavDataOffsetNon44: "data dimulai pada offset selain 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "Offset ARK",
     settings: "Pengaturan",
     pcmReadAs: "Baca sebagai PCM",
     pcmParams: "Parameter PCM",
@@ -1728,6 +1733,7 @@
     headerInfoWavExtraChunks: "chunk extra prima di data: {chunks}",
     headerInfoWavDataOffsetNon44: "data inizia a un offset diverso da 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "Offset ARK",
     settings: "Impostazioni",
     pcmReadAs: "Leggi come PCM",
     pcmParams: "Parametri PCM",
@@ -1858,6 +1864,7 @@
     headerInfoWavExtraChunks: "data \u306E\u524D\u306B\u8FFD\u52A0\u30C1\u30E3\u30F3\u30AF\u304C\u3042\u308A\u307E\u3059: {chunks}",
     headerInfoWavDataOffsetNon44: "data \u306E\u958B\u59CB\u30AA\u30D5\u30BB\u30C3\u30C8\u304C 44 B \u3067\u306F\u3042\u308A\u307E\u305B\u3093",
     headerInfoReasonSeparator: "\uFF1B",
+    arkOffsetLabel: "ARK \u30AA\u30D5\u30BB\u30C3\u30C8",
     settings: "\u8A2D\u5B9A",
     playPause: "\u518D\u751F / \u4E00\u6642\u505C\u6B62",
     playbackPosition: "\u518D\u751F\u4F4D\u7F6E",
@@ -2058,6 +2065,7 @@
     headerInfoWavExtraChunks: "data \uC55E\uC5D0 \uCD94\uAC00 \uCCAD\uD06C\uAC00 \uC788\uC2B5\uB2C8\uB2E4: {chunks}",
     headerInfoWavDataOffsetNon44: "data \uC2DC\uC791 \uC624\uD504\uC14B\uC774 44 B\uAC00 \uC544\uB2D9\uB2C8\uB2E4",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "ARK \uC624\uD504\uC14B",
     settings: "\uC124\uC815",
     pcmReadAs: "PCM\uC73C\uB85C \uC77D\uAE30",
     pcmParams: "PCM \uB9E4\uAC1C\uBCC0\uC218",
@@ -2223,6 +2231,7 @@
     headerInfoWavExtraChunks: "extra chunk(s) v\xF3\xF3r data: {chunks}",
     headerInfoWavDataOffsetNon44: "data begint op een andere offset dan 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "ARK-offset",
     settings: "Instellingen",
     pcmReadAs: "Als PCM lezen",
     pcmParams: "PCM-parameters",
@@ -2388,6 +2397,7 @@
     headerInfoWavExtraChunks: "ekstra chunk(er) f\xF8r data: {chunks}",
     headerInfoWavDataOffsetNon44: "data starter p\xE5 en annen offset enn 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "ARK-offset",
     settings: "Innstillinger",
     pcmReadAs: "Les som PCM",
     pcmParams: "PCM-parametere",
@@ -2553,6 +2563,7 @@
     headerInfoWavExtraChunks: "dodatkowe chunki przed data: {chunks}",
     headerInfoWavDataOffsetNon44: "data zaczyna si\u0119 od offsetu innego ni\u017C 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "Offset ARK",
     settings: "Ustawienia",
     pcmReadAs: "Czytaj jako PCM",
     pcmParams: "Parametry PCM",
@@ -2718,6 +2729,7 @@
     headerInfoWavExtraChunks: "chunk(s) extra antes de data: {chunks}",
     headerInfoWavDataOffsetNon44: "data come\xE7a em um deslocamento diferente de 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "Offset ARK",
     settings: "Ajustes",
     pcmReadAs: "Ler como PCM",
     pcmParams: "Par\xE2metros PCM",
@@ -2883,6 +2895,7 @@
     headerInfoWavExtraChunks: "\u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 chunk \u043F\u0435\u0440\u0435\u0434 data: {chunks}",
     headerInfoWavDataOffsetNon44: "data \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0442\u0441\u044F \u043D\u0435 \u0441\u043E \u0441\u043C\u0435\u0449\u0435\u043D\u0438\u044F 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "\u0421\u043C\u0435\u0449\u0435\u043D\u0438\u0435 ARK",
     settings: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     pcmReadAs: "\u0427\u0438\u0442\u0430\u0442\u044C \u043A\u0430\u043A PCM",
     pcmParams: "\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B PCM",
@@ -3048,6 +3061,7 @@
     headerInfoWavExtraChunks: "data \xF6ncesinde ek chunk(lar): {chunks}",
     headerInfoWavDataOffsetNon44: "data 44 B d\u0131\u015F\u0131nda bir ofsette ba\u015Fl\u0131yor",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "ARK offseti",
     settings: "Ayarlar",
     pcmReadAs: "PCM olarak oku",
     pcmParams: "PCM parametreleri",
@@ -3213,6 +3227,7 @@
     headerInfoWavExtraChunks: "chunk b\u1ED5 sung tr\u01B0\u1EDBc data: {chunks}",
     headerInfoWavDataOffsetNon44: "data b\u1EAFt \u0111\u1EA7u \u1EDF offset kh\xE1c 44 B",
     headerInfoReasonSeparator: "; ",
+    arkOffsetLabel: "Offset ARK",
     settings: "C\xE0i \u0111\u1EB7t",
     pcmReadAs: "\u0110\u1ECDc nh\u01B0 PCM",
     pcmParams: "Tham s\u1ED1 PCM",
@@ -3343,6 +3358,7 @@
     headerInfoWavExtraChunks: "data \u524D\u6709\u989D\u5916\u5B50\u5757 {chunks}",
     headerInfoWavDataOffsetNon44: "data \u8D77\u59CB\u504F\u79FB\u4E0D\u662F 44 B",
     headerInfoReasonSeparator: "\uFF1B",
+    arkOffsetLabel: "ARK \u504F\u79FB",
     settings: "\u8BBE\u7F6E",
     playPause: "\u64AD\u653E / \u6682\u505C",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
@@ -3543,6 +3559,7 @@
     headerInfoWavExtraChunks: "data \u524D\u6709\u984D\u5916\u5B50\u5340\u584A {chunks}",
     headerInfoWavDataOffsetNon44: "data \u8D77\u59CB\u504F\u79FB\u4E0D\u662F 44 B",
     headerInfoReasonSeparator: "\uFF1B",
+    arkOffsetLabel: "ARK \u504F\u79FB",
     settings: "\u8A2D\u5B9A",
     pcmReadAs: "\u6309 PCM \u8B80\u53D6",
     pcmParams: "PCM \u53C3\u6578",
@@ -5582,6 +5599,7 @@
     trackViews = [];
     defaultPcmFormat;
     currentFileName = "";
+    currentSourceLabel = "";
     objectUrl;
     requestSeq = 1;
     pendingAnalysisKeys = /* @__PURE__ */ new Set();
@@ -5660,7 +5678,7 @@
           this.rejectTranscode(message);
           break;
         case "error":
-          this.setStatus(message.message);
+          this.setStatus(message.message, "warning");
           break;
       }
     }
@@ -5729,7 +5747,8 @@
     }
     async load(metadata) {
       this.currentFileName = metadata.fileName;
-      this.elements.fileMeta.textContent = `${metadata.fileName} \xB7 ${formatBytes(metadata.size)}`;
+      this.currentSourceLabel = metadata.sourceKind === "ark" && metadata.sourceOffset !== void 0 ? ` \xB7 ${this.messages.arkOffsetLabel} ${metadata.sourceOffset}` : "";
+      this.elements.fileMeta.textContent = `${metadata.fileName} \xB7 ${formatBytes(metadata.size)}${this.currentSourceLabel}`;
       if (!metadata.trusted) {
         this.setStatus(this.messages.workspaceNotTrusted);
         return;
@@ -5745,7 +5764,7 @@
       this.setStatus(this.messages.readingAudio);
       this.audioBytes = await this.readAll(metadata.size);
       this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
-      this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav";
+      this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav" || metadata.sourceKind === "ark";
       this.elements.headerInfo.hidden = metadata.kind === "pcm";
       this.elements.headerInfoPanel.hidden = true;
       this.elements.wavPcmPanel.hidden = true;
@@ -6390,7 +6409,7 @@
     }
     reportPlaybackError(message) {
       const detail = `${this.messages.playbackFailed}: ${message}`;
-      this.setStatus(detail);
+      this.setStatus(detail, "error");
       this.vscode.postMessage({ type: "showError", message: detail });
     }
     downloadCurrentAudio() {
@@ -6680,7 +6699,7 @@
       this.elements.audio.load();
       this.elements.seek.value = "0";
       this.updateClock();
-      this.elements.fileMeta.textContent = `${fileName} \xB7 ${this.audioBuffer.numberOfChannels}ch \xB7 ${this.audioBuffer.sampleRate} Hz`;
+      this.elements.fileMeta.textContent = `${fileName} \xB7 ${this.audioBuffer.numberOfChannels}ch \xB7 ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
     }
     async applyPcmFormat(format, statusElement = this.elements.pcmStatus) {
       if (!this.audioBytes) {
@@ -7367,8 +7386,10 @@
       const duration = formatTime(Number.isFinite(this.elements.audio.duration) ? this.elements.audio.duration : 0);
       this.elements.clock.textContent = `${current} / ${duration}`;
     }
-    setStatus(message) {
+    setStatus(message, tone = "info") {
       this.elements.status.textContent = message;
+      this.elements.status.classList.toggle("isWarning", tone === "warning");
+      this.elements.status.classList.toggle("isError", tone === "error");
       this.elements.status.hidden = !this.shouldShowStatus(message);
     }
     shouldShowStatus(message) {
@@ -8572,6 +8593,12 @@
     .status {
       color: var(--vscode-notificationsInfoIcon-foreground);
       white-space: nowrap;
+    }
+    .status.isWarning {
+      color: var(--vscode-notificationsWarningIcon-foreground, var(--vscode-editorWarning-foreground, #cca700));
+    }
+    .status.isError {
+      color: var(--vscode-notificationsErrorIcon-foreground, var(--vscode-errorForeground, #f85149));
     }
     .status[hidden] {
       display: none;

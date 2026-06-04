@@ -62,6 +62,7 @@ export const messages = {
   headerInfoWavExtraChunks: "data 前有額外子區塊 {chunks}",
   headerInfoWavDataOffsetNon44: "data 起始偏移不是 44 B",
   headerInfoReasonSeparator: "；",
+  arkOffsetLabel: "ARK 偏移",
   settings: "設定",
   pcmReadAs: "按 PCM 讀取",
   pcmParams: "PCM 參數",

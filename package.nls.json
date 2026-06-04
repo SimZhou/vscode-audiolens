@@ -1,4 +1,5 @@
 {
   "command.category": "AudioLens",
-  "command.selectLanguage.title": "Switch Language"
+  "command.selectLanguage.title": "Switch Language",
+  "command.openKaldiWavArk.title": "Open Kaldi WAV Ark Entry"
 }

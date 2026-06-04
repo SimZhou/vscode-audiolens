@@ -22,13 +22,14 @@ AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩�
 
 ## 主要能力
 
-- 支持打开 `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm` 和 `raw` 文件。
+- 支持打开 `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` 文件，以及 Kaldi wav ark 音频条目。
 - 单通道和多通道音频都按真实通道逐条显示，交互方式接近 Audacity。
 - 每个通道可独立选择波形图、语谱图或波形 + 语谱图的多视图。
 - 每个通道都有静音和独奏按钮，播放时会下混到常见的双声道输出。
 - 可在顶部工具栏查看 WAV、FLAC、Ogg、MP4/M4A、AAC 和 MP3 的容器或编码头字段。
 - 支持显式参数读取原始 PCM，包括采样率、通道数、位深、采样格式、端序和起始偏移。
 - 支持把 WAV 文件按 PCM 方式一次性重新读取，适合检查 header 偏移或损坏文件。
+- 支持从 `wav.ark:offset` 打开 Kaldi wav ark 音频条目，不读取整份 ark 文件。
 - 支持对选区做时域和频域分析。
 - 保存常用偏好，包括语谱图参数、播放增益、默认音轨视图和 PCM 默认参数。
 - 支持本地 VS Code 和 Remote SSH 工作区。
@@ -60,6 +61,7 @@ AudioLens 对常见编码格式优先使用 Webview 的浏览器解码能力，�
 | 类型 | 扩展名 | 说明 |
 | --- | --- | --- |
 | WAV | `.wav` | 支持多通道 WAV、按顺序查看 RIFF chunk、检查是否为标准 44 字节 PCM 头，也支持一次性按原始 PCM 重新读取。 |
+| Kaldi wav ark | 例如 `wav.ark:23252` 的 `.ark` 条目 | 使用 `AudioLens: Open Kaldi WAV Ark Entry` 命令，或直接打开 `.ark` 文件后输入 offset。AudioLens 会校验 offset 处必须是 `RIFF/WAVE`，并只读取对应 WAV entry。 |
 | 编码音频 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 优先使用 VS Code Webview 解码；可查看关键容器或帧头字段，如果 Webview 不支持且宿主机器可用 FFmpeg，则走 FFmpeg 兜底转码。 |
 | 原始 PCM | `.pcm`、`.raw` | 读取前需要用户显式填写 PCM 参数。 |
 
@@ -88,6 +90,12 @@ AudioLens 对常见编码格式优先使用 Webview 的浏览器解码能力，�
 当前 PCM 参数可以保存为默认值，后续打开 PCM 文件时继续使用。AudioLens 不会从文件名或目录名推断 PCM 参数，因为原始 PCM 本身不包含可靠元数据。
 
 WAV 文件也可以从顶部菜单按 PCM 方式重新读取。这个操作只针对当前文件生效，适合检查原始 payload、非标准 header 或对偏移敏感的测试文件。
+
+## Kaldi WAV Ark 工作流
+
+从 Command Palette 运行 `AudioLens: Open Kaldi WAV Ark Entry`，输入 `wav.ark:offset` 位置即可打开。如果直接打开 `.ark` 文件，AudioLens 会先要求输入 offset。
+
+AudioLens 只支持 payload 以 WAV `RIFF/WAVE` 头开始的 ark 条目。它会根据 WAV 头长度读取被选中的 entry，不会扫描或加载整份 ark 文件。
 
 ## 文件头信息
 
@@ -167,6 +175,10 @@ AudioLens 不会把音频上传到任何第三方服务。音频内容由 VS Cod
 
 https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
 
+也可以从 Open VSX 安装：
+
+https://open-vsx.org/extension/simzhou/audiolens
+
 或使用命令行安装：
 
 ```bash
@@ -178,7 +190,7 @@ code --install-extension simzhou.audiolens
 可以从 GitHub Releases 下载打包好的 VSIX，或安装本地打包版本：
 
 ```bash
-code --install-extension dist/audiolens-1.1.0.vsix
+code --install-extension dist/audiolens-1.2.0.vsix
 ```
 
 ## 开发

@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens",
   "description": "Audio preview and viewer with waveform inspection and spectrogram analysis for VS Code.",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/SimZhou/vscode-audiolens#readme",
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Visualization",
@@ -55,7 +55,8 @@
   ],
   "activationEvents": [
     "onCustomEditor:audiolens.audioPreview",
-    "onCommand:audiolens.selectLanguage"
+    "onCommand:audiolens.selectLanguage",
+    "onCommand:audiolens.openKaldiWavArk"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -63,6 +64,11 @@
       {
         "command": "audiolens.selectLanguage",
         "title": "%command.selectLanguage.title%",
+        "category": "%command.category%"
+      },
+      {
+        "command": "audiolens.openKaldiWavArk",
+        "title": "%command.openKaldiWavArk.title%",
         "category": "%command.category%"
       }
     ],
@@ -97,6 +103,9 @@
           },
           {
             "filenamePattern": "*.raw"
+          },
+          {
+            "filenamePattern": "*.ark"
           }
         ],
         "priority": "default"
@@ -228,12 +237,12 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.1.1.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.2.0.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
-    "@types/vscode": "^1.95.0",
+    "@types/vscode": "1.74.0",
     "esbuild": "^0.24.2",
     "typescript": "^5.7.2"
   }

@@ -62,6 +62,7 @@ export const messages = {
   headerInfoWavExtraChunks: "chunk tambahan sebelum data: {chunks}",
   headerInfoWavDataOffsetNon44: "data dimulai pada offset selain 44 B",
   headerInfoReasonSeparator: "; ",
+  arkOffsetLabel: "Offset ARK",
   settings: "Pengaturan",
   pcmReadAs: "Baca sebagai PCM",
   pcmParams: "Parameter PCM",
