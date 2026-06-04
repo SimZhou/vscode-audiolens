@@ -1,5 +1,7 @@
 {
   "command.category": "AudioLens",
   "command.selectLanguage.title": "언어 전환",
-  "command.openKaldiWavArk.title": "Kaldi WAV Ark 항목 열기"
+  "command.openKaldiWavArk.title": "Kaldi WAV Ark 항목 열기",
+  "command.toggleAudioPathLinks.title": "오디오 경로 링크 전환",
+  "command.configureAudioPathLinks.title": "오디오 경로 링크 구성"
 }

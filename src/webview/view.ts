@@ -30,8 +30,7 @@ export interface ViewElements {
   pcmSampleRate: HTMLInputElement;
   pcmChannels: HTMLInputElement;
   pcmStartOffset: HTMLInputElement;
-  pcmBitDepth: HTMLSelectElement;
-  pcmSampleFormat: HTMLSelectElement;
+  pcmEncoding: HTMLSelectElement;
   pcmEndianness: HTMLSelectElement;
   pcmApply: HTMLButtonElement;
   pcmSaveDefault: HTMLButtonElement;
@@ -41,8 +40,7 @@ export interface ViewElements {
   wavPcmSampleRate: HTMLInputElement;
   wavPcmChannels: HTMLInputElement;
   wavPcmStartOffset: HTMLInputElement;
-  wavPcmBitDepth: HTMLSelectElement;
-  wavPcmSampleFormat: HTMLSelectElement;
+  wavPcmEncoding: HTMLSelectElement;
   wavPcmEndianness: HTMLSelectElement;
   wavPcmApply: HTMLButtonElement;
   wavPcmCancel: HTMLButtonElement;
@@ -109,24 +107,31 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <input id="pcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
           </label>
           <label>
-            <span data-i18n="bitDepth">Bit depth (bit)</span>
-            <select id="pcmBitDepth">
-              <option value="8">8</option>
-              <option value="16">16</option>
-              <option value="24">24</option>
-              <option value="32">32</option>
-            </select>
-          </label>
-          <label>
-            <span data-i18n="sampleFormat">Format</span>
-            <select id="pcmSampleFormat">
-              <option value="signed-int">Int</option>
-              <option value="float">Float</option>
+            <span data-i18n="bitDepth">Encoding</span>
+            <select id="pcmEncoding">
+              <option value="signed-8">Signed 8-bit PCM</option>
+              <option value="signed-16" selected>Signed 16-bit PCM</option>
+              <option value="signed-24">Signed 24-bit PCM</option>
+              <option value="signed-32">Signed 32-bit PCM</option>
+              <option value="unsigned-8">Unsigned 8-bit PCM</option>
+              <option value="float-32">32-bit float</option>
+              <option value="float-64">64-bit float</option>
+              <option value="u-law" disabled>U-law (soon)</option>
+              <option value="a-law" disabled>A-law (soon)</option>
+              <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
+              <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
+              <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
+              <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
+              <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
+              <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
             </select>
           </label>
           <label>
             <span data-i18n="endianness">Endian</span>
             <select id="pcmEndianness">
+              <option value="none">None</option>
               <option value="little">LE</option>
               <option value="big">BE</option>
             </select>
@@ -198,24 +203,31 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <input id="wavPcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
           </label>
           <label>
-            <span data-i18n="bitDepth">Bit depth (bit)</span>
-            <select id="wavPcmBitDepth">
-              <option value="8">8</option>
-              <option value="16">16</option>
-              <option value="24">24</option>
-              <option value="32">32</option>
-            </select>
-          </label>
-          <label>
-            <span data-i18n="sampleFormat">Format</span>
-            <select id="wavPcmSampleFormat">
-              <option value="signed-int">Int</option>
-              <option value="float">Float</option>
+            <span data-i18n="bitDepth">Encoding</span>
+            <select id="wavPcmEncoding">
+              <option value="signed-8">Signed 8-bit PCM</option>
+              <option value="signed-16" selected>Signed 16-bit PCM</option>
+              <option value="signed-24">Signed 24-bit PCM</option>
+              <option value="signed-32">Signed 32-bit PCM</option>
+              <option value="unsigned-8">Unsigned 8-bit PCM</option>
+              <option value="float-32">32-bit float</option>
+              <option value="float-64">64-bit float</option>
+              <option value="u-law" disabled>U-law (soon)</option>
+              <option value="a-law" disabled>A-law (soon)</option>
+              <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
+              <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
+              <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
+              <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
+              <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
+              <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
             </select>
           </label>
           <label>
             <span data-i18n="endianness">Endian</span>
             <select id="wavPcmEndianness">
+              <option value="none">None</option>
               <option value="little">LE</option>
               <option value="big">BE</option>
             </select>
@@ -581,8 +593,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     pcmSampleRate: query("#pcmSampleRate", HTMLInputElement),
     pcmChannels: query("#pcmChannels", HTMLInputElement),
     pcmStartOffset: query("#pcmStartOffset", HTMLInputElement),
-    pcmBitDepth: query("#pcmBitDepth", HTMLSelectElement),
-    pcmSampleFormat: query("#pcmSampleFormat", HTMLSelectElement),
+    pcmEncoding: query("#pcmEncoding", HTMLSelectElement),
     pcmEndianness: query("#pcmEndianness", HTMLSelectElement),
     pcmApply: query("#pcmApply", HTMLButtonElement),
     pcmSaveDefault: query("#pcmSaveDefault", HTMLButtonElement),
@@ -592,8 +603,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     wavPcmSampleRate: query("#wavPcmSampleRate", HTMLInputElement),
     wavPcmChannels: query("#wavPcmChannels", HTMLInputElement),
     wavPcmStartOffset: query("#wavPcmStartOffset", HTMLInputElement),
-    wavPcmBitDepth: query("#wavPcmBitDepth", HTMLSelectElement),
-    wavPcmSampleFormat: query("#wavPcmSampleFormat", HTMLSelectElement),
+    wavPcmEncoding: query("#wavPcmEncoding", HTMLSelectElement),
     wavPcmEndianness: query("#wavPcmEndianness", HTMLSelectElement),
     wavPcmApply: query("#wavPcmApply", HTMLButtonElement),
     wavPcmCancel: query("#wavPcmCancel", HTMLButtonElement),

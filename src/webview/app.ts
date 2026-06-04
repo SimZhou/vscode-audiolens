@@ -24,6 +24,9 @@ import { LocaleCode, LocaleMessages, LocaleSetting } from "./i18n/types";
 import {
   createAudioBufferFromChannels,
   decodePcm,
+  pcmEncodingToFormat,
+  pcmFormatToEncoding,
+  PcmEncoding,
   PcmEndianness,
   PcmFormat,
   PcmSampleFormat,
@@ -65,6 +68,10 @@ interface AudioFileMetadata {
   sourceKind?: "ark";
   sourceOffset?: number;
 }
+
+type PcmStatusState =
+  | { kind: "current"; format: PcmFormat }
+  | { kind: "savedDefault"; format: PcmFormat };
 
 interface TimeSelectionState {
   start: number;
@@ -1361,6 +1368,7 @@ export class AudioLensApp {
   private readonly spectrogramRangeCache = new Map<string, SpectrogramRangeState>();
   private readonly lastSpectrogramByChannel = new Map<number, SpectrogramResult>();
   private readonly waveformCache = new Map<string, WaveformPeaks>();
+  private readonly pcmStatusStates = new WeakMap<HTMLElement, PcmStatusState>();
   private worker = createAnalysisWorker();
   private currentLocale: LocaleCode = "en";
   private messages = getMessages("en");
@@ -1459,6 +1467,7 @@ export class AudioLensApp {
       this.renderHeaderInfo();
       this.positionHeaderInfoPanel();
     }
+    this.refreshPcmStatusTexts();
     this.updateResetViewButtonState();
     this.updateTrackLabels();
     this.redrawVisuals();
@@ -1521,7 +1530,7 @@ export class AudioLensApp {
     this.audioBytes = await this.readAll(metadata.size);
     this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
     this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav" || metadata.sourceKind === "ark";
-    this.elements.headerInfo.hidden = metadata.kind === "pcm";
+    this.elements.headerInfo.hidden = !this.audioHasHeaderInfo(metadata);
     this.elements.headerInfoPanel.hidden = true;
     this.elements.wavPcmPanel.hidden = true;
 
@@ -1582,6 +1591,9 @@ export class AudioLensApp {
     } catch (error) {
       console.warn("AudioLens encoded decode fallback:", error);
       await audioContext.close().catch(() => undefined);
+      if (await this.tryLoadWavePcmDirectly(fileName)) {
+        return;
+      }
       await this.loadEncodedViaFfmpeg(fileName);
       return;
     } finally {
@@ -1595,18 +1607,60 @@ export class AudioLensApp {
       const bytes = await this.requestTranscodedAudio();
       const audioContext = new AudioContext();
       try {
-        this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, bytes, ENCODED_DECODE_TIMEOUT_MS);
-        this.sourceSampleRate = this.audioBuffer.sampleRate;
+        try {
+          this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, bytes, ENCODED_DECODE_TIMEOUT_MS);
+          this.sourceSampleRate = this.audioBuffer.sampleRate;
+        } catch (decodeError) {
+          console.warn("AudioLens FFmpeg WAV decode fallback:", decodeError);
+          if (!this.loadWavePcmBytes(bytes, audioContext)) {
+            throw decodeError;
+          }
+        }
       } finally {
         await audioContext.close().catch(() => undefined);
       }
-      this.installAudioElementFromBytes(`${fileName}.wav`, bytes, "audio/wav");
+      this.installAudioElementFromBuffer(`${fileName}.wav`);
     } catch (error) {
       console.warn("AudioLens FFmpeg fallback failed:", error);
       this.clearDecodedAudio();
       const detail = error instanceof Error ? error.message : String(error);
       this.setStatus(`${this.messages.encodedPlaybackOnly} ${detail}`);
     }
+  }
+
+  private async tryLoadWavePcmDirectly(fileName: string): Promise<boolean> {
+    if (!this.audioBytes) {
+      return false;
+    }
+
+    try {
+      const audioContext = new AudioContext();
+      try {
+        if (!this.loadWavePcmBytes(this.audioBytes, audioContext)) {
+          return false;
+        }
+      } finally {
+        await audioContext.close().catch(() => undefined);
+      }
+      this.installAudioElementFromBuffer(fileName);
+      return true;
+    } catch (error) {
+      console.warn("AudioLens direct WAV PCM decode failed:", error);
+      this.clearDecodedAudio();
+      return false;
+    }
+  }
+
+  private loadWavePcmBytes(bytes: Uint8Array, audioContext: BaseAudioContext): boolean {
+    const parsed = parseWavePcmFormat(bytes);
+    if (!parsed) {
+      return false;
+    }
+
+    const decoded = decodePcm(parsed.bytes, parsed.format);
+    this.audioBuffer = createAudioBufferFromChannels(audioContext, decoded);
+    this.sourceSampleRate = decoded.sampleRate;
+    return true;
   }
 
   private async loadPcm(_metadata: AudioFileMetadata): Promise<boolean> {
@@ -1663,6 +1717,10 @@ export class AudioLensApp {
     });
     this.elements.audio.addEventListener("error", () => {
       const detail = this.elements.audio.error?.message || this.messages.audioCannotPlay;
+      if (this.audioBuffer) {
+        this.setStatus(`${this.messages.playbackFailed}: ${detail}`, "error");
+        return;
+      }
       this.reportPlaybackError(detail);
     });
     this.elements.audio.addEventListener("timeupdate", () => {
@@ -1703,6 +1761,12 @@ export class AudioLensApp {
     this.elements.wavPcmCancel.addEventListener("click", () => {
       this.hideWavPcmPanel();
     });
+    this.elements.pcmPanel.addEventListener("keydown", (event) => {
+      this.handlePcmPanelEnter(event, () => this.applyPcmFormat(this.readPcmControls()));
+    });
+    this.elements.wavPcmPanel.addEventListener("keydown", (event) => {
+      this.handlePcmPanelEnter(event, () => this.applyWavPcmFormat());
+    });
     document.addEventListener("pointerdown", (event) => {
       this.closeFloatingMenusFromPointer(event);
     });
@@ -1740,6 +1804,12 @@ export class AudioLensApp {
       this.updateSelectionAnalysis();
       this.redrawVisuals();
       this.renderTrackSelection();
+    });
+    this.elements.pcmEncoding.addEventListener("change", () => {
+      this.syncPcmEndiannessControl(this.elements.pcmEncoding, this.elements.pcmEndianness);
+    });
+    this.elements.wavPcmEncoding.addEventListener("change", () => {
+      this.syncPcmEndiannessControl(this.elements.wavPcmEncoding, this.elements.wavPcmEndianness);
     });
     this.elements.pcmApply.addEventListener("click", () => {
       void this.applyPcmFormat(this.readPcmControls());
@@ -1965,6 +2035,18 @@ export class AudioLensApp {
     this.redrawVisuals();
   }
 
+  private handlePcmPanelEnter(event: KeyboardEvent, action: () => Promise<unknown>): void {
+    if (event.key !== "Enter" || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) {
+      return;
+    }
+    event.preventDefault();
+    void action();
+  }
+
   private closeFloatingMenusFromPointer(event: PointerEvent): void {
     const target = event.target;
     if (!(target instanceof Node)) {
@@ -1998,11 +2080,20 @@ export class AudioLensApp {
   }
 
   private toggleHeaderInfoPanel(): void {
+    if (this.elements.headerInfo.hidden) {
+      this.hideHeaderInfoPanel();
+      return;
+    }
     if (this.elements.headerInfoPanel.hidden) {
       this.showHeaderInfoPanel();
       return;
     }
     this.hideHeaderInfoPanel();
+  }
+
+  private audioHasHeaderInfo(metadata: AudioFileMetadata): boolean {
+    const extension = metadata.extension.toLowerCase();
+    return metadata.kind !== "pcm" && extension !== "pcm" && extension !== "raw";
   }
 
   private showHeaderInfoPanel(): void {
@@ -2522,15 +2613,15 @@ export class AudioLensApp {
     this.elements.fileMeta.textContent = `${fileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
   }
 
-  private async applyPcmFormat(format: PcmFormat, statusElement = this.elements.pcmStatus): Promise<void> {
+  private async applyPcmFormat(format: PcmFormat, statusElement = this.elements.pcmStatus): Promise<boolean> {
     if (!this.audioBytes) {
-      return;
+      return false;
     }
     const error = validatePcmFormat(this.audioBytes, format);
     if (error) {
       this.setPcmStatus(statusElement, error);
       this.setStatus(error);
-      return;
+      return false;
     }
     this.writePcmControls(format);
     const decoded = decodePcm(this.audioBytes, format);
@@ -2556,8 +2647,9 @@ export class AudioLensApp {
     if (this.config?.autoAnalyze) {
       this.scheduleAnalyze(0);
     }
-    this.setPcmStatus(statusElement, `${this.messages.currentPcmFormat}: ${formatPcmFormat(format)}`);
+    this.setPcmStatus(statusElement, this.formatPcmStatus({ kind: "current", format }), { kind: "current", format });
     this.setStatus(this.messages.ready);
+    return true;
   }
 
   private showWavPcmPanel(): void {
@@ -2572,8 +2664,8 @@ export class AudioLensApp {
   }
 
   private async applyWavPcmFormat(): Promise<void> {
-    await this.applyPcmFormat(this.readWavPcmControls(), this.elements.wavPcmStatus);
-    if (this.elements.wavPcmStatus.textContent?.startsWith(`${this.messages.currentPcmFormat}:`)) {
+    const loaded = await this.applyPcmFormat(this.readWavPcmControls(), this.elements.wavPcmStatus);
+    if (loaded) {
       this.hideWavPcmPanel();
     }
   }
@@ -2637,10 +2729,15 @@ export class AudioLensApp {
     }
     this.defaultPcmFormat = format;
     this.vscode.postMessage({ type: "updatePreferences", preferences: this.collectPreferences() });
-    this.setPcmStatus(this.elements.pcmStatus, `${this.messages.savedDefaultPcmFormat}: ${formatPcmFormat(format)}`);
+    this.setPcmStatus(this.elements.pcmStatus, this.formatPcmStatus({ kind: "savedDefault", format }), { kind: "savedDefault", format });
   }
 
-  private setPcmStatus(element: HTMLElement, message: string): void {
+  private setPcmStatus(element: HTMLElement, message: string, state?: PcmStatusState): void {
+    if (state) {
+      this.pcmStatusStates.set(element, state);
+    } else {
+      this.pcmStatusStates.delete(element);
+    }
     if (element === this.elements.pcmStatus) {
       this.elements.pcmStatusText.textContent = message;
       this.positionPcmStatusTooltip();
@@ -2648,6 +2745,20 @@ export class AudioLensApp {
       element.textContent = message;
     }
     element.dataset.tooltip = message;
+  }
+
+  private refreshPcmStatusTexts(): void {
+    for (const element of [this.elements.pcmStatus, this.elements.wavPcmStatus]) {
+      const state = this.pcmStatusStates.get(element);
+      if (state) {
+        this.setPcmStatus(element, this.formatPcmStatus(state), state);
+      }
+    }
+  }
+
+  private formatPcmStatus(state: PcmStatusState): string {
+    const prefix = state.kind === "current" ? this.messages.currentPcmFormat : this.messages.savedDefaultPcmFormat;
+    return `${prefix}: ${formatPcmFormat(state.format)}`;
   }
 
   private positionPcmStatusTooltip(): void {
@@ -2663,12 +2774,14 @@ export class AudioLensApp {
   }
 
   private readPcmControls(): PcmFormat {
+    const encoding = this.elements.pcmEncoding.value as PcmEncoding;
+    const encodingFormat = pcmEncodingToFormat(encoding);
+    const endianness = encodingFormat.bitDepth === 8 ? "none" : this.elements.pcmEndianness.value === "none" ? "little" : this.elements.pcmEndianness.value as PcmEndianness;
     return {
       sampleRate: Math.max(1, Math.floor(Number(this.elements.pcmSampleRate.value) || 16000)),
       channels: Math.max(1, Math.floor(Number(this.elements.pcmChannels.value) || 1)),
-      bitDepth: Number(this.elements.pcmBitDepth.value) as PcmFormat["bitDepth"],
-      sampleFormat: this.elements.pcmSampleFormat.value as PcmSampleFormat,
-      endianness: this.elements.pcmEndianness.value as PcmEndianness,
+      ...encodingFormat,
+      endianness,
       startOffsetBytes: Math.max(0, Math.floor(Number(this.elements.pcmStartOffset.value) || 0))
     };
   }
@@ -2677,18 +2790,20 @@ export class AudioLensApp {
     this.elements.pcmSampleRate.value = String(format.sampleRate);
     this.elements.pcmChannels.value = String(format.channels);
     this.elements.pcmStartOffset.value = String(format.startOffsetBytes ?? 0);
-    this.elements.pcmBitDepth.value = String(format.bitDepth);
-    this.elements.pcmSampleFormat.value = format.sampleFormat;
+    this.elements.pcmEncoding.value = pcmFormatToEncoding(format);
     this.elements.pcmEndianness.value = format.endianness;
+    this.syncPcmEndiannessControl(this.elements.pcmEncoding, this.elements.pcmEndianness);
   }
 
   private readWavPcmControls(): PcmFormat {
+    const encoding = this.elements.wavPcmEncoding.value as PcmEncoding;
+    const encodingFormat = pcmEncodingToFormat(encoding);
+    const endianness = encodingFormat.bitDepth === 8 ? "none" : this.elements.wavPcmEndianness.value === "none" ? "little" : this.elements.wavPcmEndianness.value as PcmEndianness;
     return {
       sampleRate: Math.max(1, Math.floor(Number(this.elements.wavPcmSampleRate.value) || 16000)),
       channels: Math.max(1, Math.floor(Number(this.elements.wavPcmChannels.value) || 1)),
-      bitDepth: Number(this.elements.wavPcmBitDepth.value) as PcmFormat["bitDepth"],
-      sampleFormat: this.elements.wavPcmSampleFormat.value as PcmSampleFormat,
-      endianness: this.elements.wavPcmEndianness.value as PcmEndianness,
+      ...encodingFormat,
+      endianness,
       startOffsetBytes: Math.max(0, Math.floor(Number(this.elements.wavPcmStartOffset.value) || 0))
     };
   }
@@ -2697,9 +2812,22 @@ export class AudioLensApp {
     this.elements.wavPcmSampleRate.value = String(format.sampleRate);
     this.elements.wavPcmChannels.value = String(format.channels);
     this.elements.wavPcmStartOffset.value = String(format.startOffsetBytes ?? 0);
-    this.elements.wavPcmBitDepth.value = String(format.bitDepth);
-    this.elements.wavPcmSampleFormat.value = format.sampleFormat;
+    this.elements.wavPcmEncoding.value = pcmFormatToEncoding(format);
     this.elements.wavPcmEndianness.value = format.endianness;
+    this.syncPcmEndiannessControl(this.elements.wavPcmEncoding, this.elements.wavPcmEndianness);
+  }
+
+  private syncPcmEndiannessControl(encodingSelect: HTMLSelectElement, endiannessSelect: HTMLSelectElement): void {
+    const encodingFormat = pcmEncodingToFormat(encodingSelect.value as PcmEncoding);
+    if (encodingFormat.bitDepth === 8) {
+      endiannessSelect.value = "none";
+      endiannessSelect.disabled = true;
+      return;
+    }
+    endiannessSelect.disabled = false;
+    if (endiannessSelect.value === "none") {
+      endiannessSelect.value = "little";
+    }
   }
 
   private populateChannels(): void {
@@ -4178,10 +4306,100 @@ function formatAmplitudeAxis(value: number): string {
 }
 
 function formatPcmFormat(format: PcmFormat): string {
-  const sampleFormat = format.sampleFormat === "float" ? "f" : "s";
-  const endian = format.endianness === "little" ? "le" : "be";
+  const encoding = {
+    "signed-8": "Signed 8-bit PCM",
+    "signed-16": "Signed 16-bit PCM",
+    "signed-24": "Signed 24-bit PCM",
+    "signed-32": "Signed 32-bit PCM",
+    "unsigned-8": "Unsigned 8-bit PCM",
+    "float-32": "32-bit float",
+    "float-64": "64-bit float"
+  }[pcmFormatToEncoding(format)];
+  const endian = format.endianness === "none" ? "no endian" : format.endianness === "little" ? "little-endian" : "big-endian";
   const offset = format.startOffsetBytes ? ` · offset ${format.startOffsetBytes}B` : "";
-  return `${format.sampleRate} Hz · ${format.channels}ch · ${sampleFormat}${format.bitDepth}${endian}${offset}`;
+  return `${format.sampleRate} Hz · ${format.channels}ch · ${encoding} · ${endian}${offset}`;
+}
+
+function parseWavePcmFormat(bytes: Uint8Array): { bytes: Uint8Array; format: PcmFormat } | undefined {
+  if (bytes.byteLength < 44 || asciiAt(bytes, 0, 4) !== "RIFF" || asciiAt(bytes, 8, 4) !== "WAVE") {
+    return undefined;
+  }
+
+  let offset = 12;
+  let fmtOffset: number | undefined;
+  let fmtSize = 0;
+  let dataOffset: number | undefined;
+  let dataSize = 0;
+  while (offset + 8 <= bytes.byteLength) {
+    const chunkId = asciiAt(bytes, offset, 4);
+    const chunkSize = readUint32Le(bytes, offset + 4);
+    const payloadOffset = offset + 8;
+    if (payloadOffset + chunkSize > bytes.byteLength) {
+      return undefined;
+    }
+    if (chunkId === "fmt ") {
+      fmtOffset = payloadOffset;
+      fmtSize = chunkSize;
+    } else if (chunkId === "data") {
+      dataOffset = payloadOffset;
+      dataSize = chunkSize;
+      break;
+    }
+    offset = payloadOffset + chunkSize + (chunkSize % 2);
+  }
+
+  if (fmtOffset === undefined || dataOffset === undefined || fmtSize < 16) {
+    return undefined;
+  }
+
+  let audioFormat = readUint16Le(bytes, fmtOffset);
+  const channels = readUint16Le(bytes, fmtOffset + 2);
+  const sampleRate = readUint32Le(bytes, fmtOffset + 4);
+  const blockAlign = readUint16Le(bytes, fmtOffset + 12);
+  const bitsPerSample = readUint16Le(bytes, fmtOffset + 14);
+  if (audioFormat === 0xfffe) {
+    if (fmtSize < 40) {
+      return undefined;
+    }
+    audioFormat = readUint16Le(bytes, fmtOffset + 24);
+  }
+
+  const sampleFormat = waveAudioFormatToPcmSampleFormat(audioFormat, bitsPerSample);
+  if (
+    !sampleFormat ||
+    ![8, 16, 24, 32, 64].includes(bitsPerSample) ||
+    (sampleFormat === "float" && bitsPerSample !== 32 && bitsPerSample !== 64) ||
+    (sampleFormat === "unsigned-int" && bitsPerSample !== 8) ||
+    channels <= 0 ||
+    sampleRate <= 0 ||
+    blockAlign !== channels * (bitsPerSample / 8)
+  ) {
+    return undefined;
+  }
+
+  const payloadBytes = bytes.subarray(dataOffset, dataOffset + dataSize);
+
+  return {
+    bytes: payloadBytes,
+    format: {
+      sampleRate,
+      channels,
+      bitDepth: bitsPerSample as PcmFormat["bitDepth"],
+      sampleFormat,
+      endianness: bitsPerSample === 8 ? "none" : "little",
+      startOffsetBytes: 0
+    }
+  };
+}
+
+function waveAudioFormatToPcmSampleFormat(audioFormat: number, bitsPerSample: number): PcmSampleFormat | undefined {
+  if (audioFormat === 1) {
+    return bitsPerSample === 8 ? "unsigned-int" : "signed-int";
+  }
+  if (audioFormat === 3) {
+    return "float";
+  }
+  return undefined;
 }
 
 function asciiAt(bytes: Uint8Array, offset: number, length: number): string {
@@ -4190,6 +4408,10 @@ function asciiAt(bytes: Uint8Array, offset: number, length: number): string {
     value += String.fromCharCode(bytes[offset + index] ?? 0);
   }
   return value;
+}
+
+function readUint16Le(bytes: Uint8Array, offset: number): number {
+  return (bytes[offset] ?? 0) | ((bytes[offset + 1] ?? 0) << 8);
 }
 
 function readUint32Le(bytes: Uint8Array, offset: number): number {

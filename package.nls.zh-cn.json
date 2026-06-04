@@ -1,5 +1,7 @@
 {
   "command.category": "AudioLens",
   "command.selectLanguage.title": "切换语言",
-  "command.openKaldiWavArk.title": "打开 Kaldi WAV Ark 音频"
+  "command.openKaldiWavArk.title": "打开 Kaldi WAV Ark 音频",
+  "command.toggleAudioPathLinks.title": "音频路径链接开关",
+  "command.configureAudioPathLinks.title": "配置音频路径链接"
 }

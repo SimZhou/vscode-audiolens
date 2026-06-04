@@ -25,11 +25,12 @@ AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩�
 ## 主要能力
 
 - 支持打开 `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` 文件，以及 Kaldi wav ark 音频条目。
+- 支持把文本文件里的普通音频路径识别为可点击链接，并用 AudioLens 打开。
 - 单通道和多通道音频都按真实通道逐条显示，交互方式接近 Audacity。
 - 每个通道可独立选择波形图、语谱图或波形 + 语谱图的多视图。
 - 每个通道都有静音和独奏按钮，播放时会下混到常见的双声道输出。
 - 可在顶部工具栏查看 WAV、FLAC、Ogg、MP4/M4A、AAC 和 MP3 的容器或编码头字段。
-- 支持显式参数读取原始 PCM，包括采样率、通道数、位深、采样格式、端序和起始偏移。
+- 支持显式参数读取原始 PCM，包括采样率、通道数、编码、字节序和起始偏移。
 - 支持把 WAV 文件按 PCM 方式一次性重新读取，适合检查 header 偏移或损坏文件。
 - 支持从 `wav.ark:offset` 打开 Kaldi wav ark 音频条目，不读取整份 ark 文件。
 - 支持对选区做时域和频域分析。
@@ -84,9 +85,8 @@ AudioLens 对常见编码格式优先使用 Webview 的浏览器解码能力，�
 
 - 采样率
 - 通道数
-- 位深
-- 整数或浮点采样格式
-- Little-endian 或 Big-endian
+- 编码，例如 Signed 16-bit PCM、Unsigned 8-bit PCM、32-bit float 或 64-bit float
+- 字节序；8-bit 编码会自动使用无字节序设置
 - 起始偏移字节数
 
 当前 PCM 参数可以保存为默认值，后续打开 PCM 文件时继续使用。AudioLens 不会从文件名或目录名推断 PCM 参数，因为原始 PCM 本身不包含可靠元数据。
@@ -98,6 +98,14 @@ WAV 文件也可以从顶部菜单按 PCM 方式重新读取。这个操作只�
 从 Command Palette 运行 `AudioLens: Open Kaldi WAV Ark Entry`，输入 `wav.ark:offset` 位置即可打开。如果直接打开 `.ark` 文件，AudioLens 会先要求输入 offset。
 
 AudioLens 只支持 payload 以 WAV `RIFF/WAVE` 头开始的 ark 条目。它会根据 WAV 头长度读取被选中的 entry，不会扫描或加载整份 ark 文件。
+
+## 音频路径链接
+
+AudioLens 可以识别普通文本文件中的受支持音频路径，并直接用 AudioLens 编辑器打开。支持绝对路径，以及基于当前文本文件目录、workspace 目录和可选配置 base directory 解析的相对路径。
+
+可以从 Command Palette 运行 `AudioLens: Toggle Audio Path Links` 开启或关闭这个功能，也可以运行 `AudioLens: Configure Audio Path Links` 直接打开相关设置。默认开启。`audiolens.audioPathLinks.*` 设置项可控制扫描上限，默认最多扫描 150,000 行、生成 20,000 个链接，也可配置相对路径额外 base directory。
+
+Kaldi `*.ark:offset` 链接会刻意留给 Kaldi Reader 处理。
 
 ## 文件头信息
 

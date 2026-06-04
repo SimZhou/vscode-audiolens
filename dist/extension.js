@@ -34,7 +34,7 @@ __export(extension_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(extension_exports);
-var vscode2 = __toESM(require("vscode"));
+var vscode3 = __toESM(require("vscode"));
 
 // src/audioLensEditor.ts
 var import_node_child_process = require("node:child_process");
@@ -781,7 +781,7 @@ async function readUriRange(uri, offset, length) {
   return data.slice(offset, offset + length);
 }
 async function runFfmpegToWav(inputPath) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve2, reject) => {
     const child = (0, import_node_child_process.spawn)("ffmpeg", [
       "-hide_banner",
       "-loglevel",
@@ -812,13 +812,261 @@ async function runFfmpegToWav(inputPath) {
     });
     child.on("close", (code) => {
       if (code === 0) {
-        resolve(new Uint8Array(Buffer.concat(stdout)));
+        resolve2(new Uint8Array(Buffer.concat(stdout)));
         return;
       }
       const detail = Buffer.concat(stderr).toString("utf8").trim();
       reject(new Error(detail || `FFmpeg exited with code ${code ?? "unknown"}.`));
     });
   });
+}
+
+// src/audioPathLinks.ts
+var path2 = __toESM(require("node:path"));
+var vscode2 = __toESM(require("vscode"));
+var AUDIO_LENS_VIEW_TYPE = "audiolens.audioPreview";
+var OPEN_AUDIO_PATH_COMMAND = "audiolens.openAudioPathLink";
+var TOGGLE_AUDIO_PATH_LINKS_COMMAND = "audiolens.toggleAudioPathLinks";
+var CONFIGURE_AUDIO_PATH_LINKS_COMMAND = "audiolens.configureAudioPathLinks";
+var AUDIO_PATH_LINKS_ENABLED_CONFIG = "audioPathLinks.enabled";
+var AUDIO_PATH_LINK_BASE_DIRECTORIES_CONFIG = "audioPathLinks.baseDirectories";
+var MAX_SCAN_LINES_CONFIG = "audioPathLinks.maxScanLines";
+var MAX_LINE_LENGTH_CONFIG = "audioPathLinks.maxLineLength";
+var MAX_LINKS_PER_DOCUMENT_CONFIG = "audioPathLinks.maxLinksPerDocument";
+var DEFAULT_MAX_SCAN_LINES = 15e4;
+var DEFAULT_MAX_LINE_LENGTH = 2e4;
+var DEFAULT_MAX_LINKS_PER_DOCUMENT = 2e4;
+var AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "opus", "m4a", "aac", "pcm", "raw"];
+var EXT_PATTERN = AUDIO_EXTENSIONS.join("|");
+var QUOTED_AUDIO_PATH_RE = new RegExp(`(["'\`])([^"'\`\\r\\n]*?\\.(${EXT_PATTERN}))\\1`, "gi");
+var UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}])`, "gi");
+var AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
+var TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
+var linkLimitNotifiedDocuments = /* @__PURE__ */ new Set();
+function registerAudioPathLinks() {
+  return vscode2.Disposable.from(
+    vscode2.languages.registerDocumentLinkProvider({ scheme: "file" }, new AudioPathDocumentLinkProvider()),
+    vscode2.commands.registerCommand(OPEN_AUDIO_PATH_COMMAND, async (args) => {
+      await openAudioPathLink(args);
+    }),
+    vscode2.commands.registerCommand(TOGGLE_AUDIO_PATH_LINKS_COMMAND, async () => {
+      await toggleAudioPathLinks();
+    }),
+    vscode2.commands.registerCommand(CONFIGURE_AUDIO_PATH_LINKS_COMMAND, async () => {
+      await vscode2.commands.executeCommand("workbench.action.openSettings", "audiolens.audioPathLinks");
+    })
+  );
+}
+var AudioPathDocumentLinkProvider = class {
+  provideDocumentLinks(document, token) {
+    const options = getAudioPathLinkOptions();
+    if (!options.enabled || document.uri.scheme !== "file") {
+      return [];
+    }
+    const links = [];
+    const linesToScan = Math.min(document.lineCount, options.maxScanLines);
+    for (let lineIndex = 0; lineIndex < linesToScan; lineIndex += 1) {
+      if (token.isCancellationRequested) {
+        return [];
+      }
+      const line = document.lineAt(lineIndex).text;
+      if (line.length > options.maxLineLength) {
+        continue;
+      }
+      if (!lineMayContainAudioPath(line)) {
+        continue;
+      }
+      collectQuotedLinks(document, line, lineIndex, links, options.maxLinksPerDocument);
+      collectUnquotedLinks(document, line, lineIndex, links, options.maxLinksPerDocument);
+      if (links.length >= options.maxLinksPerDocument) {
+        notifyLinkLimitReached(document, options.maxLinksPerDocument);
+        return links;
+      }
+    }
+    if (document.lineCount > options.maxScanLines) {
+      notifyScanLineLimitReached(document, options.maxScanLines);
+    }
+    return links;
+  }
+};
+function lineMayContainAudioPath(line) {
+  const lower = line.toLowerCase();
+  return AUDIO_EXTENSIONS.some((extension) => lower.includes(`.${extension}`));
+}
+function collectQuotedLinks(document, line, lineIndex, links, maxLinks) {
+  QUOTED_AUDIO_PATH_RE.lastIndex = 0;
+  for (let match = QUOTED_AUDIO_PATH_RE.exec(line); match; match = QUOTED_AUDIO_PATH_RE.exec(line)) {
+    const text = trimAudioPathCandidate(match[2]);
+    if (!shouldLinkAudioPath(text)) {
+      continue;
+    }
+    const start = (match.index ?? 0) + 1;
+    addAudioPathLink(document, lineIndex, start, text, links, maxLinks);
+  }
+}
+function collectUnquotedLinks(document, line, lineIndex, links, maxLinks) {
+  UNQUOTED_AUDIO_PATH_RE.lastIndex = 0;
+  for (let match = UNQUOTED_AUDIO_PATH_RE.exec(line); match; match = UNQUOTED_AUDIO_PATH_RE.exec(line)) {
+    const text = trimAudioPathCandidate(match[1]);
+    if (!shouldLinkAudioPath(text)) {
+      continue;
+    }
+    addAudioPathLink(document, lineIndex, match.index ?? 0, text, links, maxLinks);
+  }
+}
+function trimAudioPathCandidate(value) {
+  return value.trim().replace(TRAILING_PUNCTUATION_RE, "");
+}
+function shouldLinkAudioPath(value) {
+  if (!value || /^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    return false;
+  }
+  return AUDIO_EXTENSION_RE.test(value);
+}
+function addAudioPathLink(document, lineIndex, startCharacter, text, links, maxLinks) {
+  const range = new vscode2.Range(
+    lineIndex,
+    startCharacter,
+    lineIndex,
+    startCharacter + text.length
+  );
+  if (links.length >= maxLinks) {
+    return;
+  }
+  if (links.some((link2) => link2.range.isEqual(range))) {
+    return;
+  }
+  const args = {
+    text,
+    documentUri: document.uri.toString()
+  };
+  const target = vscode2.Uri.parse(
+    `command:${OPEN_AUDIO_PATH_COMMAND}?${encodeURIComponent(JSON.stringify([args]))}`
+  );
+  const link = new vscode2.DocumentLink(range, target);
+  link.tooltip = "Open with AudioLens";
+  links.push(link);
+}
+async function openAudioPathLink(args) {
+  if (!args?.text || !args.documentUri) {
+    return;
+  }
+  const sourceUri = vscode2.Uri.parse(args.documentUri);
+  const resolved = await resolveAudioPath(args.text, sourceUri);
+  if (!resolved) {
+    void vscode2.window.showWarningMessage(`AudioLens cannot resolve audio path: ${args.text}`);
+    return;
+  }
+  await vscode2.commands.executeCommand("vscode.openWith", resolved, AUDIO_LENS_VIEW_TYPE);
+}
+async function toggleAudioPathLinks() {
+  const config = vscode2.workspace.getConfiguration("audiolens");
+  const enabled = config.get(AUDIO_PATH_LINKS_ENABLED_CONFIG, true);
+  const nextEnabled = !enabled;
+  await config.update(AUDIO_PATH_LINKS_ENABLED_CONFIG, nextEnabled, vscode2.ConfigurationTarget.Global);
+  void vscode2.window.showInformationMessage(
+    nextEnabled ? resolveToggleMessage().enabled : resolveToggleMessage().disabled
+  );
+}
+async function resolveAudioPath(value, sourceUri) {
+  const candidates = buildAudioPathCandidates(value, sourceUri);
+  for (const candidate of candidates) {
+    try {
+      const stat = await vscode2.workspace.fs.stat(candidate);
+      if (stat.type === vscode2.FileType.File) {
+        return candidate;
+      }
+    } catch {
+    }
+  }
+  return void 0;
+}
+function buildAudioPathCandidates(value, sourceUri) {
+  const candidates = [];
+  if (path2.isAbsolute(value)) {
+    return [vscode2.Uri.file(value)];
+  }
+  addCandidate(candidates, vscode2.Uri.file(path2.resolve(path2.dirname(sourceUri.fsPath), value)));
+  const owningWorkspace = vscode2.workspace.getWorkspaceFolder(sourceUri);
+  if (owningWorkspace?.uri.scheme === "file") {
+    addCandidate(candidates, vscode2.Uri.file(path2.resolve(owningWorkspace.uri.fsPath, value)));
+  }
+  for (const folder of vscode2.workspace.workspaceFolders ?? []) {
+    if (folder.uri.scheme === "file") {
+      addCandidate(candidates, vscode2.Uri.file(path2.resolve(folder.uri.fsPath, value)));
+    }
+  }
+  for (const base of getConfiguredBaseDirectories()) {
+    addCandidate(candidates, vscode2.Uri.file(path2.resolve(base, value)));
+  }
+  return candidates;
+}
+function addCandidate(candidates, uri) {
+  if (!candidates.some((existing) => existing.fsPath === uri.fsPath)) {
+    candidates.push(uri);
+  }
+}
+function getConfiguredBaseDirectories() {
+  const values = vscode2.workspace.getConfiguration("audiolens").get(AUDIO_PATH_LINK_BASE_DIRECTORIES_CONFIG, []);
+  return values.map((value) => value.trim()).filter((value) => value.length > 0).map((value) => value.startsWith("~/") ? path2.join(process.env.HOME ?? "", value.slice(2)) : value).filter((value) => path2.isAbsolute(value));
+}
+function getAudioPathLinkOptions() {
+  const config = vscode2.workspace.getConfiguration("audiolens");
+  return {
+    enabled: config.get(AUDIO_PATH_LINKS_ENABLED_CONFIG, true),
+    maxScanLines: getPositiveIntegerConfig(config, MAX_SCAN_LINES_CONFIG, DEFAULT_MAX_SCAN_LINES),
+    maxLineLength: getPositiveIntegerConfig(config, MAX_LINE_LENGTH_CONFIG, DEFAULT_MAX_LINE_LENGTH),
+    maxLinksPerDocument: getPositiveIntegerConfig(
+      config,
+      MAX_LINKS_PER_DOCUMENT_CONFIG,
+      DEFAULT_MAX_LINKS_PER_DOCUMENT
+    )
+  };
+}
+function getPositiveIntegerConfig(config, key, fallback) {
+  const value = config.get(key, fallback);
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+function resolveToggleMessage() {
+  const language = vscode2.env.language.toLowerCase();
+  if (language === "zh-cn" || language.startsWith("zh-hans")) {
+    return {
+      enabled: "AudioLens \u97F3\u9891\u8DEF\u5F84\u94FE\u63A5\u5DF2\u5F00\u542F\u3002",
+      disabled: "AudioLens \u97F3\u9891\u8DEF\u5F84\u94FE\u63A5\u5DF2\u5173\u95ED\u3002"
+    };
+  }
+  if (language === "zh-tw" || language.startsWith("zh-hant")) {
+    return {
+      enabled: "AudioLens \u97F3\u8A0A\u8DEF\u5F91\u9023\u7D50\u5DF2\u958B\u555F\u3002",
+      disabled: "AudioLens \u97F3\u8A0A\u8DEF\u5F91\u9023\u7D50\u5DF2\u95DC\u9589\u3002"
+    };
+  }
+  return {
+    enabled: "AudioLens audio path links enabled.",
+    disabled: "AudioLens audio path links disabled."
+  };
+}
+function notifyLinkLimitReached(document, limit) {
+  const key = `${document.uri.toString()}#${limit}`;
+  if (linkLimitNotifiedDocuments.has(key)) {
+    return;
+  }
+  linkLimitNotifiedDocuments.add(key);
+  vscode2.window.setStatusBarMessage(
+    `AudioLens limited audio path links to ${limit}. Adjust audiolens.audioPathLinks.maxLinksPerDocument to show more.`,
+    8e3
+  );
+}
+function notifyScanLineLimitReached(document, limit) {
+  const key = `${document.uri.toString()}#scan#${limit}`;
+  if (linkLimitNotifiedDocuments.has(key)) {
+    return;
+  }
+  linkLimitNotifiedDocuments.add(key);
+  vscode2.window.setStatusBarMessage(
+    `AudioLens scanned the first ${limit} lines for audio path links. Adjust audiolens.audioPathLinks.maxScanLines to scan more.`,
+    8e3
+  );
 }
 
 // src/extension.ts
@@ -845,10 +1093,11 @@ var LANGUAGE_OPTIONS = [
 function activate(context) {
   context.subscriptions.push(
     AudioLensEditorProvider.register(context),
-    vscode2.commands.registerCommand("audiolens.selectLanguage", async () => {
-      const config = vscode2.workspace.getConfiguration("audiolens");
+    registerAudioPathLinks(),
+    vscode3.commands.registerCommand("audiolens.selectLanguage", async () => {
+      const config = vscode3.workspace.getConfiguration("audiolens");
       const current = config.get("language", "auto");
-      const picked = await vscode2.window.showQuickPick(
+      const picked = await vscode3.window.showQuickPick(
         LANGUAGE_OPTIONS.map((option) => ({
           label: option.label,
           description: option.value === current ? "\u5F53\u524D" : "",
@@ -863,8 +1112,8 @@ function activate(context) {
       if (!picked) {
         return;
       }
-      await config.update("language", picked.value, vscode2.ConfigurationTarget.Global);
-      void vscode2.window.showInformationMessage(`AudioLens \u8BED\u8A00\u5DF2\u5207\u6362\u4E3A ${picked.label}`);
+      await config.update("language", picked.value, vscode3.ConfigurationTarget.Global);
+      void vscode3.window.showInformationMessage(`AudioLens \u8BED\u8A00\u5DF2\u5207\u6362\u4E3A ${picked.label}`);
     })
   );
 }

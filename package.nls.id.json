@@ -1,5 +1,7 @@
 {
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Ganti Bahasa",
-  "command.openKaldiWavArk.title": "Buka Entri Kaldi WAV Ark"
+  "command.openKaldiWavArk.title": "Buka Entri Kaldi WAV Ark",
+  "command.toggleAudioPathLinks.title": "Alihkan Tautan Jalur Audio",
+  "command.configureAudioPathLinks.title": "Konfigurasi Tautan Jalur Audio"
 }

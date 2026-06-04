@@ -44,9 +44,9 @@ export interface AudioLensPreferences {
   defaultPcmFormat?: {
     sampleRate: number;
     channels: number;
-    bitDepth: 8 | 16 | 24 | 32;
-    sampleFormat: "signed-int" | "float";
-    endianness: "little" | "big";
+    bitDepth: 8 | 16 | 24 | 32 | 64;
+    sampleFormat: "signed-int" | "unsigned-int" | "float";
+    endianness: "none" | "little" | "big";
     startOffsetBytes?: number;
   };
 }

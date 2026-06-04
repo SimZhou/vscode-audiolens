@@ -25,11 +25,12 @@ Open an audio file and AudioLens shows playback, multi-channel tracks, waveforms
 ## Highlights
 
 - Opens `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, `pcm`, `raw`, and Kaldi wav ark entries.
+- Turns supported audio paths in text files into links that open with AudioLens.
 - Displays mono and multi-channel files as separate Audacity-style tracks.
 - Supports waveform, spectrogram, and combined waveform + spectrogram views per channel.
 - Provides per-channel mute and solo controls with stereo downmix playback.
 - Shows container and codec header fields for WAV, FLAC, Ogg, MP4/M4A, AAC, and MP3 in a top-bar inspector.
-- Reads raw PCM files with explicit sample rate, channel count, bit depth, sample format, byte order, and start offset.
+- Reads raw PCM files with explicit sample rate, channel count, encoding, byte order, and start offset.
 - Lets WAV files be reopened as raw PCM for header-offset or damaged-file inspection.
 - Opens Kaldi wav ark entries from `wav.ark:offset` without loading the whole ark file.
 - Analyzes selected regions with time-domain and frequency-domain metrics.
@@ -84,9 +85,8 @@ For `.pcm` and `.raw` files, AudioLens asks for PCM parameters before decoding:
 
 - sample rate
 - channel count
-- bit depth
-- integer or float sample format
-- little-endian or big-endian byte order
+- encoding, such as Signed 16-bit PCM, Unsigned 8-bit PCM, 32-bit float, or 64-bit float
+- byte order, with 8-bit encodings automatically using no endian setting
 - start offset in bytes
 
 The current PCM parameters can be saved as defaults for later PCM files. AudioLens does not guess raw PCM parameters from the file name, because raw PCM does not contain reliable metadata.
@@ -98,6 +98,14 @@ WAV files can also be reopened as PCM from the top bar. This is a one-time opera
 Run `AudioLens: Open Kaldi WAV Ark Entry` from the Command Palette and enter a `wav.ark:offset` location. If you open an `.ark` file directly, AudioLens asks for the offset before reading.
 
 AudioLens only supports ark entries whose payload starts with a WAV `RIFF/WAVE` header. It uses the WAV header size to read the selected entry and does not scan or load the whole ark file.
+
+## Audio Path Links
+
+AudioLens can detect supported audio paths in ordinary text files and open them directly with the AudioLens editor. It supports absolute paths and relative paths resolved from the current text file, workspace folders, and optional configured base directories.
+
+Run `AudioLens: Toggle Audio Path Links` from the Command Palette to turn this feature on or off. Use `AudioLens: Configure Audio Path Links` to open the related settings. It is enabled by default. The `audiolens.audioPathLinks.*` settings control scan limits, including the default 150,000-line scan cap and 20,000-link cap, plus extra base directories for relative paths.
+
+Kaldi `*.ark:offset` links are intentionally left to Kaldi Reader.
 
 ## Header Inspector
 

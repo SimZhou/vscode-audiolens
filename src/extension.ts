@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { AudioLensEditorProvider } from "./audioLensEditor";
+import { registerAudioPathLinks } from "./audioPathLinks";
 
 const LANGUAGE_OPTIONS = [
   { value: "auto", label: "跟随 VS Code / Auto", detail: "使用 VS Code 当前显示语言" },
@@ -25,6 +26,7 @@ const LANGUAGE_OPTIONS = [
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     AudioLensEditorProvider.register(context),
+    registerAudioPathLinks(),
     vscode.commands.registerCommand("audiolens.selectLanguage", async () => {
       const config = vscode.workspace.getConfiguration("audiolens");
       const current = config.get<string>("language", "auto");

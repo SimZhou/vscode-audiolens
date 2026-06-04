@@ -1,5 +1,7 @@
 {
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Cambia lingua",
-  "command.openKaldiWavArk.title": "Apri voce Kaldi WAV Ark"
+  "command.openKaldiWavArk.title": "Apri voce Kaldi WAV Ark",
+  "command.toggleAudioPathLinks.title": "Attiva/disattiva link ai percorsi audio",
+  "command.configureAudioPathLinks.title": "Configura link ai percorsi audio"
 }

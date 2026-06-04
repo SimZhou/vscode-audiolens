@@ -912,9 +912,9 @@
     sampleRate: "Abtastrate",
     channels: "Kan\xE4le",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Bittiefe (bit)",
+    bitDepth: "Kodierung",
     sampleFormat: "Format",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Lesen",
     saveDefault: "Standard speichern",
     cancel: "Abbrechen",
@@ -1080,9 +1080,9 @@
     sampleRate: "Sample rate",
     channels: "Channels",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Bit depth (bit)",
+    bitDepth: "Encoding",
     sampleFormat: "Format",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Read",
     saveDefault: "Save default",
     cancel: "Cancel",
@@ -1244,9 +1244,9 @@
     sampleRate: "Frecuencia de muestreo",
     channels: "Canales",
     startOffsetBytes: "Desplazamiento (B)",
-    bitDepth: "Profundidad (bit)",
+    bitDepth: "Codificaci\xF3n",
     sampleFormat: "Formato",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Leer",
     saveDefault: "Guardar predeterminado",
     cancel: "Cancelar",
@@ -1410,9 +1410,9 @@
     sampleRate: "Fr\xE9quence d'\xE9chantillonnage",
     channels: "Canaux",
     startOffsetBytes: "D\xE9calage (B)",
-    bitDepth: "R\xE9solution (bit)",
+    bitDepth: "Encodage",
     sampleFormat: "Format",
-    endianness: "Boutisme",
+    endianness: "Ordre des octets",
     read: "Lire",
     saveDefault: "Enregistrer par d\xE9faut",
     cancel: "Annuler",
@@ -1576,9 +1576,9 @@
     sampleRate: "Sample rate",
     channels: "Jumlah kanal",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Bit depth (bit)",
+    bitDepth: "Encoding",
     sampleFormat: "Format",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Baca",
     saveDefault: "Simpan default",
     cancel: "Batal",
@@ -1742,9 +1742,9 @@
     sampleRate: "Frequenza di campionamento",
     channels: "Canali",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Profondit\xE0 (bit)",
+    bitDepth: "Codifica",
     sampleFormat: "Formato",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Leggi",
     saveDefault: "Salva predefinito",
     cancel: "Annulla",
@@ -1910,9 +1910,9 @@
     sampleRate: "\u30B5\u30F3\u30D7\u30EB\u30EC\u30FC\u30C8",
     channels: "\u30C1\u30E3\u30F3\u30CD\u30EB\u6570",
     startOffsetBytes: "\u30AA\u30D5\u30BB\u30C3\u30C8(B)",
-    bitDepth: "\u30D3\u30C3\u30C8\u6DF1\u5EA6(bit)",
+    bitDepth: "\u30A8\u30F3\u30B3\u30FC\u30C9",
     sampleFormat: "\u5F62\u5F0F",
-    endianness: "\u30A8\u30F3\u30C7\u30A3\u30A2\u30F3",
+    endianness: "\u30D0\u30A4\u30C8\u9806",
     read: "\u8AAD\u307F\u8FBC\u307F",
     saveDefault: "\u65E2\u5B9A\u5024\u3092\u4FDD\u5B58",
     cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
@@ -2074,9 +2074,9 @@
     sampleRate: "\uC0D8\uD50C\uB808\uC774\uD2B8",
     channels: "\uCC44\uB110 \uC218",
     startOffsetBytes: "\uC624\uD504\uC14B(B)",
-    bitDepth: "\uBE44\uD2B8 \uAE4A\uC774(bit)",
+    bitDepth: "\uC778\uCF54\uB529",
     sampleFormat: "\uD615\uC2DD",
-    endianness: "\uC5D4\uB514\uC5B8",
+    endianness: "\uBC14\uC774\uD2B8 \uC21C\uC11C",
     read: "\uC77D\uAE30",
     saveDefault: "\uAE30\uBCF8\uAC12 \uC800\uC7A5",
     cancel: "\uCDE8\uC18C",
@@ -2240,9 +2240,9 @@
     sampleRate: "Samplefrequentie",
     channels: "Kanalen",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Bitdiepte (bit)",
+    bitDepth: "Codering",
     sampleFormat: "Formaat",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Lezen",
     saveDefault: "Standaard opslaan",
     cancel: "Annuleren",
@@ -2406,9 +2406,9 @@
     sampleRate: "Samplingsrate",
     channels: "Kanaler",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Bitdybde (bit)",
+    bitDepth: "Koding",
     sampleFormat: "Format",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Les",
     saveDefault: "Lagre standard",
     cancel: "Avbryt",
@@ -2572,9 +2572,9 @@
     sampleRate: "Cz\u0119stotliwo\u015B\u0107 pr\xF3bkowania",
     channels: "Kana\u0142y",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "G\u0142\u0119bia bitowa (bit)",
+    bitDepth: "Kodowanie",
     sampleFormat: "Format",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Czytaj",
     saveDefault: "Zapisz domy\u015Blne",
     cancel: "Anuluj",
@@ -2738,9 +2738,9 @@
     sampleRate: "Taxa de amostragem",
     channels: "Canais",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Profundidade (bit)",
+    bitDepth: "Codifica\xE7\xE3o",
     sampleFormat: "Formato",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Ler",
     saveDefault: "Salvar padr\xE3o",
     cancel: "Cancelar",
@@ -2904,9 +2904,9 @@
     sampleRate: "\u0427\u0430\u0441\u0442\u043E\u0442\u0430 \u0434\u0438\u0441\u043A\u0440\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
     channels: "\u041A\u0430\u043D\u0430\u043B\u044B",
     startOffsetBytes: "\u0421\u043C\u0435\u0449\u0435\u043D\u0438\u0435 (B)",
-    bitDepth: "\u0411\u0438\u0442\u043D\u043E\u0441\u0442\u044C (bit)",
+    bitDepth: "\u041A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435",
     sampleFormat: "\u0424\u043E\u0440\u043C\u0430\u0442",
-    endianness: "\u041F\u043E\u0440\u044F\u0434\u043E\u043A \u0431\u0430\u0439\u0442",
+    endianness: "\u041F\u043E\u0440\u044F\u0434\u043E\u043A \u0431\u0430\u0439\u0442\u043E\u0432",
     read: "\u0427\u0438\u0442\u0430\u0442\u044C",
     saveDefault: "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
     cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
@@ -3070,9 +3070,9 @@
     sampleRate: "\xD6rnekleme h\u0131z\u0131",
     channels: "Kanallar",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "Bit derinli\u011Fi (bit)",
+    bitDepth: "Kodlama",
     sampleFormat: "Format",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "Oku",
     saveDefault: "Varsay\u0131lan\u0131 kaydet",
     cancel: "\u0130ptal",
@@ -3236,9 +3236,9 @@
     sampleRate: "T\u1EA7n s\u1ED1 l\u1EA5y m\u1EABu",
     channels: "S\u1ED1 k\xEAnh",
     startOffsetBytes: "Offset (B)",
-    bitDepth: "\u0110\u1ED9 s\xE2u bit (bit)",
+    bitDepth: "M\xE3 h\xF3a",
     sampleFormat: "\u0110\u1ECBnh d\u1EA1ng",
-    endianness: "Endian",
+    endianness: "Byte order",
     read: "\u0110\u1ECDc",
     saveDefault: "L\u01B0u m\u1EB7c \u0111\u1ECBnh",
     cancel: "H\u1EE7y",
@@ -3404,9 +3404,9 @@
     sampleRate: "\u91C7\u6837\u7387",
     channels: "\u901A\u9053\u6570",
     startOffsetBytes: "\u504F\u79FB(B)",
-    bitDepth: "\u4F4D\u6DF1(bit)",
+    bitDepth: "\u7F16\u7801",
     sampleFormat: "\u683C\u5F0F",
-    endianness: "\u7AEF\u5E8F",
+    endianness: "\u5B57\u8282\u5E8F",
     read: "\u8BFB\u53D6",
     saveDefault: "\u4FDD\u5B58\u9ED8\u8BA4",
     cancel: "\u53D6\u6D88",
@@ -3568,9 +3568,9 @@
     sampleRate: "\u53D6\u6A23\u7387",
     channels: "\u8072\u9053\u6578",
     startOffsetBytes: "\u504F\u79FB(B)",
-    bitDepth: "\u4F4D\u5143\u6DF1\u5EA6(bit)",
+    bitDepth: "\u7DE8\u78BC",
     sampleFormat: "\u683C\u5F0F",
-    endianness: "\u7AEF\u5E8F",
+    endianness: "\u5B57\u7BC0\u5E8F",
     read: "\u8B80\u53D6",
     saveDefault: "\u5132\u5B58\u9810\u8A2D",
     cancel: "\u53D6\u6D88",
@@ -3717,10 +3717,48 @@
   }
 
   // src/webview/pcm.ts
+  function pcmEncodingToFormat(encoding) {
+    switch (encoding) {
+      case "signed-8":
+        return { bitDepth: 8, sampleFormat: "signed-int", endianness: "none" };
+      case "signed-16":
+        return { bitDepth: 16, sampleFormat: "signed-int", endianness: "little" };
+      case "signed-24":
+        return { bitDepth: 24, sampleFormat: "signed-int", endianness: "little" };
+      case "signed-32":
+        return { bitDepth: 32, sampleFormat: "signed-int", endianness: "little" };
+      case "unsigned-8":
+        return { bitDepth: 8, sampleFormat: "unsigned-int", endianness: "none" };
+      case "float-64":
+        return { bitDepth: 64, sampleFormat: "float", endianness: "little" };
+      case "float-32":
+      default:
+        return { bitDepth: 32, sampleFormat: "float", endianness: "little" };
+    }
+  }
+  function pcmFormatToEncoding(format) {
+    if (format.sampleFormat === "float") {
+      return format.bitDepth === 64 ? "float-64" : "float-32";
+    }
+    if (format.sampleFormat === "unsigned-int") {
+      return "unsigned-8";
+    }
+    if (format.bitDepth === 8) {
+      return "signed-8";
+    }
+    if (format.bitDepth === 24) {
+      return "signed-24";
+    }
+    if (format.bitDepth === 32) {
+      return "signed-32";
+    }
+    return "signed-16";
+  }
   function decodePcm(bytes, format) {
-    const data = pcmPayloadBytes(bytes, format);
-    const bytesPerSample = getBytesPerSample(format);
-    const frameSize = getFrameSize(format);
+    const normalized = normalizePcmFormat(format);
+    const data = pcmPayloadBytes(bytes, normalized);
+    const bytesPerSample = getBytesPerSample(normalized);
+    const frameSize = getFrameSize(normalized);
     if (bytesPerSample <= 0 || frameSize <= 0 || data.byteLength % frameSize !== 0) {
       throw new Error("PCM parameters do not match the file size.");
     }
@@ -3730,7 +3768,7 @@
       const frameOffset = frame * frameSize;
       for (let channel = 0; channel < format.channels; channel += 1) {
         const offset = frameOffset + channel * bytesPerSample;
-        channels[channel][frame] = readSample(data, offset, format);
+        channels[channel][frame] = readSample(data, offset, normalized);
       }
     }
     return { sampleRate: format.sampleRate, channels };
@@ -3742,6 +3780,7 @@
     return audioBuffer;
   }
   function validatePcmFormat(bytes, format) {
+    const normalized = normalizePcmFormat(format);
     const startOffsetBytes = format.startOffsetBytes ?? 0;
     if (!Number.isFinite(format.sampleRate) || format.sampleRate <= 0) {
       return "PCM sample rate must be greater than 0.";
@@ -3749,11 +3788,17 @@
     if (!Number.isInteger(format.channels) || format.channels <= 0) {
       return "PCM channel count must be a positive integer.";
     }
-    if (![8, 16, 24, 32].includes(format.bitDepth)) {
-      return "PCM bit depth must be 8/16/24/32-bit.";
+    if (![8, 16, 24, 32, 64].includes(normalized.bitDepth)) {
+      return "PCM encoding must be Signed 8/16/24/32-bit PCM, Unsigned 8-bit PCM, 32-bit float, or 64-bit float.";
     }
-    if (format.sampleFormat === "float" && format.bitDepth !== 32) {
-      return "Float PCM currently supports 32-bit only.";
+    if (normalized.sampleFormat === "float" && normalized.bitDepth !== 32 && normalized.bitDepth !== 64) {
+      return "Float PCM supports 32-bit or 64-bit only.";
+    }
+    if (normalized.sampleFormat === "unsigned-int" && normalized.bitDepth !== 8) {
+      return "Unsigned PCM currently supports 8-bit only.";
+    }
+    if (normalized.bitDepth > 8 && normalized.endianness === "none") {
+      return "Byte order is required for multi-byte PCM encodings.";
     }
     if (!Number.isInteger(startOffsetBytes) || startOffsetBytes < 0) {
       return "PCM start offset must be a non-negative integer.";
@@ -3762,7 +3807,7 @@
       return `PCM start offset ${startOffsetBytes} bytes exceeds the file size.`;
     }
     const dataBytes = bytes.byteLength - startOffsetBytes;
-    const frameSize = getFrameSize(format);
+    const frameSize = getFrameSize(normalized);
     if (frameSize <= 0 || dataBytes % frameSize !== 0) {
       return `Data size after offset (${dataBytes} bytes) is not aligned to the current PCM parameters.`;
     }
@@ -3774,9 +3819,13 @@
   function readSample(bytes, offset, format) {
     const view = new DataView(bytes.buffer, bytes.byteOffset + offset, getBytesPerSample(format));
     if (format.sampleFormat === "float") {
-      return clamp3(view.getFloat32(0, format.endianness === "little"), -1, 1);
+      const little = format.endianness === "little";
+      return clamp3(format.bitDepth === 64 ? view.getFloat64(0, little) : view.getFloat32(0, little), -1, 1);
     }
     if (format.bitDepth === 8) {
+      if (format.sampleFormat === "unsigned-int") {
+        return (view.getUint8(0) - 128) / 128;
+      }
       return view.getInt8(0) / 128;
     }
     if (format.bitDepth === 16) {
@@ -3793,13 +3842,23 @@
     return value & 8388608 ? value | ~16777215 : value;
   }
   function getBytesPerSample(format) {
-    return format.sampleFormat === "float" ? 4 : format.bitDepth / 8;
+    return format.bitDepth / 8;
   }
   function getFrameSize(format) {
     return getBytesPerSample(format) * format.channels;
   }
   function clamp3(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+  function normalizePcmFormat(format) {
+    const encoding = pcmFormatToEncoding(format);
+    const encodingFormat = pcmEncodingToFormat(encoding);
+    const endianness = encodingFormat.bitDepth === 8 ? "none" : format.endianness === "none" ? encodingFormat.endianness : format.endianness;
+    return {
+      ...format,
+      ...encodingFormat,
+      endianness
+    };
   }
 
   // src/webview/view.ts
@@ -3829,24 +3888,31 @@
             <input id="pcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
           </label>
           <label>
-            <span data-i18n="bitDepth">Bit depth (bit)</span>
-            <select id="pcmBitDepth">
-              <option value="8">8</option>
-              <option value="16">16</option>
-              <option value="24">24</option>
-              <option value="32">32</option>
-            </select>
-          </label>
-          <label>
-            <span data-i18n="sampleFormat">Format</span>
-            <select id="pcmSampleFormat">
-              <option value="signed-int">Int</option>
-              <option value="float">Float</option>
+            <span data-i18n="bitDepth">Encoding</span>
+            <select id="pcmEncoding">
+              <option value="signed-8">Signed 8-bit PCM</option>
+              <option value="signed-16" selected>Signed 16-bit PCM</option>
+              <option value="signed-24">Signed 24-bit PCM</option>
+              <option value="signed-32">Signed 32-bit PCM</option>
+              <option value="unsigned-8">Unsigned 8-bit PCM</option>
+              <option value="float-32">32-bit float</option>
+              <option value="float-64">64-bit float</option>
+              <option value="u-law" disabled>U-law (soon)</option>
+              <option value="a-law" disabled>A-law (soon)</option>
+              <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
+              <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
+              <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
+              <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
+              <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
+              <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
             </select>
           </label>
           <label>
             <span data-i18n="endianness">Endian</span>
             <select id="pcmEndianness">
+              <option value="none">None</option>
               <option value="little">LE</option>
               <option value="big">BE</option>
             </select>
@@ -3918,24 +3984,31 @@
             <input id="wavPcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
           </label>
           <label>
-            <span data-i18n="bitDepth">Bit depth (bit)</span>
-            <select id="wavPcmBitDepth">
-              <option value="8">8</option>
-              <option value="16">16</option>
-              <option value="24">24</option>
-              <option value="32">32</option>
-            </select>
-          </label>
-          <label>
-            <span data-i18n="sampleFormat">Format</span>
-            <select id="wavPcmSampleFormat">
-              <option value="signed-int">Int</option>
-              <option value="float">Float</option>
+            <span data-i18n="bitDepth">Encoding</span>
+            <select id="wavPcmEncoding">
+              <option value="signed-8">Signed 8-bit PCM</option>
+              <option value="signed-16" selected>Signed 16-bit PCM</option>
+              <option value="signed-24">Signed 24-bit PCM</option>
+              <option value="signed-32">Signed 32-bit PCM</option>
+              <option value="unsigned-8">Unsigned 8-bit PCM</option>
+              <option value="float-32">32-bit float</option>
+              <option value="float-64">64-bit float</option>
+              <option value="u-law" disabled>U-law (soon)</option>
+              <option value="a-law" disabled>A-law (soon)</option>
+              <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
+              <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
+              <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
+              <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
+              <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
+              <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
+              <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
             </select>
           </label>
           <label>
             <span data-i18n="endianness">Endian</span>
             <select id="wavPcmEndianness">
+              <option value="none">None</option>
               <option value="little">LE</option>
               <option value="big">BE</option>
             </select>
@@ -4300,8 +4373,7 @@
       pcmSampleRate: query("#pcmSampleRate", HTMLInputElement),
       pcmChannels: query("#pcmChannels", HTMLInputElement),
       pcmStartOffset: query("#pcmStartOffset", HTMLInputElement),
-      pcmBitDepth: query("#pcmBitDepth", HTMLSelectElement),
-      pcmSampleFormat: query("#pcmSampleFormat", HTMLSelectElement),
+      pcmEncoding: query("#pcmEncoding", HTMLSelectElement),
       pcmEndianness: query("#pcmEndianness", HTMLSelectElement),
       pcmApply: query("#pcmApply", HTMLButtonElement),
       pcmSaveDefault: query("#pcmSaveDefault", HTMLButtonElement),
@@ -4311,8 +4383,7 @@
       wavPcmSampleRate: query("#wavPcmSampleRate", HTMLInputElement),
       wavPcmChannels: query("#wavPcmChannels", HTMLInputElement),
       wavPcmStartOffset: query("#wavPcmStartOffset", HTMLInputElement),
-      wavPcmBitDepth: query("#wavPcmBitDepth", HTMLSelectElement),
-      wavPcmSampleFormat: query("#wavPcmSampleFormat", HTMLSelectElement),
+      wavPcmEncoding: query("#wavPcmEncoding", HTMLSelectElement),
       wavPcmEndianness: query("#wavPcmEndianness", HTMLSelectElement),
       wavPcmApply: query("#wavPcmApply", HTMLButtonElement),
       wavPcmCancel: query("#wavPcmCancel", HTMLButtonElement),
@@ -5626,6 +5697,7 @@
     spectrogramRangeCache = /* @__PURE__ */ new Map();
     lastSpectrogramByChannel = /* @__PURE__ */ new Map();
     waveformCache = /* @__PURE__ */ new Map();
+    pcmStatusStates = /* @__PURE__ */ new WeakMap();
     worker = createAnalysisWorker();
     currentLocale = "en";
     messages = getMessages("en");
@@ -5710,6 +5782,7 @@
         this.renderHeaderInfo();
         this.positionHeaderInfoPanel();
       }
+      this.refreshPcmStatusTexts();
       this.updateResetViewButtonState();
       this.updateTrackLabels();
       this.redrawVisuals();
@@ -5765,7 +5838,7 @@
       this.audioBytes = await this.readAll(metadata.size);
       this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
       this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav" || metadata.sourceKind === "ark";
-      this.elements.headerInfo.hidden = metadata.kind === "pcm";
+      this.elements.headerInfo.hidden = !this.audioHasHeaderInfo(metadata);
       this.elements.headerInfoPanel.hidden = true;
       this.elements.wavPcmPanel.hidden = true;
       this.stopPlaybackTicker();
@@ -5823,6 +5896,9 @@
       } catch (error) {
         console.warn("AudioLens encoded decode fallback:", error);
         await audioContext.close().catch(() => void 0);
+        if (await this.tryLoadWavePcmDirectly(fileName)) {
+          return;
+        }
         await this.loadEncodedViaFfmpeg(fileName);
         return;
       } finally {
@@ -5835,18 +5911,56 @@
         const bytes = await this.requestTranscodedAudio();
         const audioContext = new AudioContext();
         try {
-          this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, bytes, ENCODED_DECODE_TIMEOUT_MS);
-          this.sourceSampleRate = this.audioBuffer.sampleRate;
+          try {
+            this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, bytes, ENCODED_DECODE_TIMEOUT_MS);
+            this.sourceSampleRate = this.audioBuffer.sampleRate;
+          } catch (decodeError) {
+            console.warn("AudioLens FFmpeg WAV decode fallback:", decodeError);
+            if (!this.loadWavePcmBytes(bytes, audioContext)) {
+              throw decodeError;
+            }
+          }
         } finally {
           await audioContext.close().catch(() => void 0);
         }
-        this.installAudioElementFromBytes(`${fileName}.wav`, bytes, "audio/wav");
+        this.installAudioElementFromBuffer(`${fileName}.wav`);
       } catch (error) {
         console.warn("AudioLens FFmpeg fallback failed:", error);
         this.clearDecodedAudio();
         const detail = error instanceof Error ? error.message : String(error);
         this.setStatus(`${this.messages.encodedPlaybackOnly} ${detail}`);
       }
+    }
+    async tryLoadWavePcmDirectly(fileName) {
+      if (!this.audioBytes) {
+        return false;
+      }
+      try {
+        const audioContext = new AudioContext();
+        try {
+          if (!this.loadWavePcmBytes(this.audioBytes, audioContext)) {
+            return false;
+          }
+        } finally {
+          await audioContext.close().catch(() => void 0);
+        }
+        this.installAudioElementFromBuffer(fileName);
+        return true;
+      } catch (error) {
+        console.warn("AudioLens direct WAV PCM decode failed:", error);
+        this.clearDecodedAudio();
+        return false;
+      }
+    }
+    loadWavePcmBytes(bytes, audioContext) {
+      const parsed = parseWavePcmFormat(bytes);
+      if (!parsed) {
+        return false;
+      }
+      const decoded = decodePcm(parsed.bytes, parsed.format);
+      this.audioBuffer = createAudioBufferFromChannels(audioContext, decoded);
+      this.sourceSampleRate = decoded.sampleRate;
+      return true;
     }
     async loadPcm(_metadata) {
       if (!this.audioBytes) {
@@ -5901,6 +6015,10 @@
       });
       this.elements.audio.addEventListener("error", () => {
         const detail = this.elements.audio.error?.message || this.messages.audioCannotPlay;
+        if (this.audioBuffer) {
+          this.setStatus(`${this.messages.playbackFailed}: ${detail}`, "error");
+          return;
+        }
         this.reportPlaybackError(detail);
       });
       this.elements.audio.addEventListener("timeupdate", () => {
@@ -5941,6 +6059,12 @@
       this.elements.wavPcmCancel.addEventListener("click", () => {
         this.hideWavPcmPanel();
       });
+      this.elements.pcmPanel.addEventListener("keydown", (event) => {
+        this.handlePcmPanelEnter(event, () => this.applyPcmFormat(this.readPcmControls()));
+      });
+      this.elements.wavPcmPanel.addEventListener("keydown", (event) => {
+        this.handlePcmPanelEnter(event, () => this.applyWavPcmFormat());
+      });
       document.addEventListener("pointerdown", (event) => {
         this.closeFloatingMenusFromPointer(event);
       });
@@ -5978,6 +6102,12 @@
         this.updateSelectionAnalysis();
         this.redrawVisuals();
         this.renderTrackSelection();
+      });
+      this.elements.pcmEncoding.addEventListener("change", () => {
+        this.syncPcmEndiannessControl(this.elements.pcmEncoding, this.elements.pcmEndianness);
+      });
+      this.elements.wavPcmEncoding.addEventListener("change", () => {
+        this.syncPcmEndiannessControl(this.elements.wavPcmEncoding, this.elements.wavPcmEndianness);
       });
       this.elements.pcmApply.addEventListener("click", () => {
         void this.applyPcmFormat(this.readPcmControls());
@@ -6191,6 +6321,17 @@
       this.updateClock();
       this.redrawVisuals();
     }
+    handlePcmPanelEnter(event, action) {
+      if (event.key !== "Enter" || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) {
+        return;
+      }
+      event.preventDefault();
+      void action();
+    }
     closeFloatingMenusFromPointer(event) {
       const target = event.target;
       if (!(target instanceof Node)) {
@@ -6214,11 +6355,19 @@
       return this.elements.helpMenu;
     }
     toggleHeaderInfoPanel() {
+      if (this.elements.headerInfo.hidden) {
+        this.hideHeaderInfoPanel();
+        return;
+      }
       if (this.elements.headerInfoPanel.hidden) {
         this.showHeaderInfoPanel();
         return;
       }
       this.hideHeaderInfoPanel();
+    }
+    audioHasHeaderInfo(metadata) {
+      const extension = metadata.extension.toLowerCase();
+      return metadata.kind !== "pcm" && extension !== "pcm" && extension !== "raw";
     }
     showHeaderInfoPanel() {
       this.elements.settingsPanel.hidden = true;
@@ -6703,13 +6852,13 @@
     }
     async applyPcmFormat(format, statusElement = this.elements.pcmStatus) {
       if (!this.audioBytes) {
-        return;
+        return false;
       }
       const error = validatePcmFormat(this.audioBytes, format);
       if (error) {
         this.setPcmStatus(statusElement, error);
         this.setStatus(error);
-        return;
+        return false;
       }
       this.writePcmControls(format);
       const decoded = decodePcm(this.audioBytes, format);
@@ -6735,8 +6884,9 @@
       if (this.config?.autoAnalyze) {
         this.scheduleAnalyze(0);
       }
-      this.setPcmStatus(statusElement, `${this.messages.currentPcmFormat}: ${formatPcmFormat(format)}`);
+      this.setPcmStatus(statusElement, this.formatPcmStatus({ kind: "current", format }), { kind: "current", format });
       this.setStatus(this.messages.ready);
+      return true;
     }
     showWavPcmPanel() {
       if (!this.audioBytes) {
@@ -6749,8 +6899,8 @@
       this.positionWavPcmPanel();
     }
     async applyWavPcmFormat() {
-      await this.applyPcmFormat(this.readWavPcmControls(), this.elements.wavPcmStatus);
-      if (this.elements.wavPcmStatus.textContent?.startsWith(`${this.messages.currentPcmFormat}:`)) {
+      const loaded = await this.applyPcmFormat(this.readWavPcmControls(), this.elements.wavPcmStatus);
+      if (loaded) {
         this.hideWavPcmPanel();
       }
     }
@@ -6808,9 +6958,14 @@
       }
       this.defaultPcmFormat = format;
       this.vscode.postMessage({ type: "updatePreferences", preferences: this.collectPreferences() });
-      this.setPcmStatus(this.elements.pcmStatus, `${this.messages.savedDefaultPcmFormat}: ${formatPcmFormat(format)}`);
+      this.setPcmStatus(this.elements.pcmStatus, this.formatPcmStatus({ kind: "savedDefault", format }), { kind: "savedDefault", format });
     }
-    setPcmStatus(element, message) {
+    setPcmStatus(element, message, state) {
+      if (state) {
+        this.pcmStatusStates.set(element, state);
+      } else {
+        this.pcmStatusStates.delete(element);
+      }
       if (element === this.elements.pcmStatus) {
         this.elements.pcmStatusText.textContent = message;
         this.positionPcmStatusTooltip();
@@ -6818,6 +6973,18 @@
         element.textContent = message;
       }
       element.dataset.tooltip = message;
+    }
+    refreshPcmStatusTexts() {
+      for (const element of [this.elements.pcmStatus, this.elements.wavPcmStatus]) {
+        const state = this.pcmStatusStates.get(element);
+        if (state) {
+          this.setPcmStatus(element, this.formatPcmStatus(state), state);
+        }
+      }
+    }
+    formatPcmStatus(state) {
+      const prefix = state.kind === "current" ? this.messages.currentPcmFormat : this.messages.savedDefaultPcmFormat;
+      return `${prefix}: ${formatPcmFormat(state.format)}`;
     }
     positionPcmStatusTooltip() {
       const rect = this.elements.pcmStatus.getBoundingClientRect();
@@ -6831,12 +6998,14 @@
       this.elements.pcmStatus.style.setProperty("--pcm-status-tooltip-top", `${rect.bottom + 8}px`);
     }
     readPcmControls() {
+      const encoding = this.elements.pcmEncoding.value;
+      const encodingFormat = pcmEncodingToFormat(encoding);
+      const endianness = encodingFormat.bitDepth === 8 ? "none" : this.elements.pcmEndianness.value === "none" ? "little" : this.elements.pcmEndianness.value;
       return {
         sampleRate: Math.max(1, Math.floor(Number(this.elements.pcmSampleRate.value) || 16e3)),
         channels: Math.max(1, Math.floor(Number(this.elements.pcmChannels.value) || 1)),
-        bitDepth: Number(this.elements.pcmBitDepth.value),
-        sampleFormat: this.elements.pcmSampleFormat.value,
-        endianness: this.elements.pcmEndianness.value,
+        ...encodingFormat,
+        endianness,
         startOffsetBytes: Math.max(0, Math.floor(Number(this.elements.pcmStartOffset.value) || 0))
       };
     }
@@ -6844,17 +7013,19 @@
       this.elements.pcmSampleRate.value = String(format.sampleRate);
       this.elements.pcmChannels.value = String(format.channels);
       this.elements.pcmStartOffset.value = String(format.startOffsetBytes ?? 0);
-      this.elements.pcmBitDepth.value = String(format.bitDepth);
-      this.elements.pcmSampleFormat.value = format.sampleFormat;
+      this.elements.pcmEncoding.value = pcmFormatToEncoding(format);
       this.elements.pcmEndianness.value = format.endianness;
+      this.syncPcmEndiannessControl(this.elements.pcmEncoding, this.elements.pcmEndianness);
     }
     readWavPcmControls() {
+      const encoding = this.elements.wavPcmEncoding.value;
+      const encodingFormat = pcmEncodingToFormat(encoding);
+      const endianness = encodingFormat.bitDepth === 8 ? "none" : this.elements.wavPcmEndianness.value === "none" ? "little" : this.elements.wavPcmEndianness.value;
       return {
         sampleRate: Math.max(1, Math.floor(Number(this.elements.wavPcmSampleRate.value) || 16e3)),
         channels: Math.max(1, Math.floor(Number(this.elements.wavPcmChannels.value) || 1)),
-        bitDepth: Number(this.elements.wavPcmBitDepth.value),
-        sampleFormat: this.elements.wavPcmSampleFormat.value,
-        endianness: this.elements.wavPcmEndianness.value,
+        ...encodingFormat,
+        endianness,
         startOffsetBytes: Math.max(0, Math.floor(Number(this.elements.wavPcmStartOffset.value) || 0))
       };
     }
@@ -6862,9 +7033,21 @@
       this.elements.wavPcmSampleRate.value = String(format.sampleRate);
       this.elements.wavPcmChannels.value = String(format.channels);
       this.elements.wavPcmStartOffset.value = String(format.startOffsetBytes ?? 0);
-      this.elements.wavPcmBitDepth.value = String(format.bitDepth);
-      this.elements.wavPcmSampleFormat.value = format.sampleFormat;
+      this.elements.wavPcmEncoding.value = pcmFormatToEncoding(format);
       this.elements.wavPcmEndianness.value = format.endianness;
+      this.syncPcmEndiannessControl(this.elements.wavPcmEncoding, this.elements.wavPcmEndianness);
+    }
+    syncPcmEndiannessControl(encodingSelect, endiannessSelect) {
+      const encodingFormat = pcmEncodingToFormat(encodingSelect.value);
+      if (encodingFormat.bitDepth === 8) {
+        endiannessSelect.value = "none";
+        endiannessSelect.disabled = true;
+        return;
+      }
+      endiannessSelect.disabled = false;
+      if (endiannessSelect.value === "none") {
+        endiannessSelect.value = "little";
+      }
     }
     populateChannels() {
       if (!this.audioBuffer) {
@@ -8199,10 +8382,84 @@
     return value.toFixed(3);
   }
   function formatPcmFormat(format) {
-    const sampleFormat = format.sampleFormat === "float" ? "f" : "s";
-    const endian = format.endianness === "little" ? "le" : "be";
+    const encoding = {
+      "signed-8": "Signed 8-bit PCM",
+      "signed-16": "Signed 16-bit PCM",
+      "signed-24": "Signed 24-bit PCM",
+      "signed-32": "Signed 32-bit PCM",
+      "unsigned-8": "Unsigned 8-bit PCM",
+      "float-32": "32-bit float",
+      "float-64": "64-bit float"
+    }[pcmFormatToEncoding(format)];
+    const endian = format.endianness === "none" ? "no endian" : format.endianness === "little" ? "little-endian" : "big-endian";
     const offset = format.startOffsetBytes ? ` \xB7 offset ${format.startOffsetBytes}B` : "";
-    return `${format.sampleRate} Hz \xB7 ${format.channels}ch \xB7 ${sampleFormat}${format.bitDepth}${endian}${offset}`;
+    return `${format.sampleRate} Hz \xB7 ${format.channels}ch \xB7 ${encoding} \xB7 ${endian}${offset}`;
+  }
+  function parseWavePcmFormat(bytes) {
+    if (bytes.byteLength < 44 || asciiAt(bytes, 0, 4) !== "RIFF" || asciiAt(bytes, 8, 4) !== "WAVE") {
+      return void 0;
+    }
+    let offset = 12;
+    let fmtOffset;
+    let fmtSize = 0;
+    let dataOffset;
+    let dataSize = 0;
+    while (offset + 8 <= bytes.byteLength) {
+      const chunkId = asciiAt(bytes, offset, 4);
+      const chunkSize = readUint32Le(bytes, offset + 4);
+      const payloadOffset = offset + 8;
+      if (payloadOffset + chunkSize > bytes.byteLength) {
+        return void 0;
+      }
+      if (chunkId === "fmt ") {
+        fmtOffset = payloadOffset;
+        fmtSize = chunkSize;
+      } else if (chunkId === "data") {
+        dataOffset = payloadOffset;
+        dataSize = chunkSize;
+        break;
+      }
+      offset = payloadOffset + chunkSize + chunkSize % 2;
+    }
+    if (fmtOffset === void 0 || dataOffset === void 0 || fmtSize < 16) {
+      return void 0;
+    }
+    let audioFormat = readUint16Le(bytes, fmtOffset);
+    const channels = readUint16Le(bytes, fmtOffset + 2);
+    const sampleRate = readUint32Le(bytes, fmtOffset + 4);
+    const blockAlign = readUint16Le(bytes, fmtOffset + 12);
+    const bitsPerSample = readUint16Le(bytes, fmtOffset + 14);
+    if (audioFormat === 65534) {
+      if (fmtSize < 40) {
+        return void 0;
+      }
+      audioFormat = readUint16Le(bytes, fmtOffset + 24);
+    }
+    const sampleFormat = waveAudioFormatToPcmSampleFormat(audioFormat, bitsPerSample);
+    if (!sampleFormat || ![8, 16, 24, 32, 64].includes(bitsPerSample) || sampleFormat === "float" && bitsPerSample !== 32 && bitsPerSample !== 64 || sampleFormat === "unsigned-int" && bitsPerSample !== 8 || channels <= 0 || sampleRate <= 0 || blockAlign !== channels * (bitsPerSample / 8)) {
+      return void 0;
+    }
+    const payloadBytes = bytes.subarray(dataOffset, dataOffset + dataSize);
+    return {
+      bytes: payloadBytes,
+      format: {
+        sampleRate,
+        channels,
+        bitDepth: bitsPerSample,
+        sampleFormat,
+        endianness: bitsPerSample === 8 ? "none" : "little",
+        startOffsetBytes: 0
+      }
+    };
+  }
+  function waveAudioFormatToPcmSampleFormat(audioFormat, bitsPerSample) {
+    if (audioFormat === 1) {
+      return bitsPerSample === 8 ? "unsigned-int" : "signed-int";
+    }
+    if (audioFormat === 3) {
+      return "float";
+    }
+    return void 0;
   }
   function asciiAt(bytes, offset, length) {
     let value = "";
@@ -8210,6 +8467,9 @@
       value += String.fromCharCode(bytes[offset + index] ?? 0);
     }
     return value;
+  }
+  function readUint16Le(bytes, offset) {
+    return (bytes[offset] ?? 0) | (bytes[offset + 1] ?? 0) << 8;
   }
   function readUint32Le(bytes, offset) {
     return ((bytes[offset] ?? 0) | (bytes[offset + 1] ?? 0) << 8 | (bytes[offset + 2] ?? 0) << 16 | (bytes[offset + 3] ?? 0) << 24) >>> 0;
@@ -8618,6 +8878,9 @@
       background: var(--vscode-button-background);
       cursor: pointer;
     }
+    [hidden] {
+      display: none !important;
+    }
     .secondaryIcon {
       position: relative;
       color: var(--vscode-button-secondaryForeground);
@@ -8730,6 +8993,12 @@
       border: 1px solid var(--vscode-input-border, transparent);
       border-radius: 4px;
       padding: 3px 6px;
+    }
+    .pcmPanel select,
+    .wavPcmGrid select {
+      min-width: 58px;
+      padding-right: 22px;
+      text-align: left;
     }
     .numericText {
       direction: ltr;
@@ -9070,6 +9339,8 @@
       min-height: 26px;
       padding-top: 2px;
       padding-bottom: 2px;
+    }
+    .topPcmPanel input {
       text-align: center;
     }
     .topPcmPanel button {
@@ -9086,14 +9357,11 @@
     .topPcmPanel #pcmStartOffset {
       width: 8ch;
     }
-    .topPcmPanel #pcmBitDepth {
-      width: 6ch;
-    }
-    .topPcmPanel #pcmSampleFormat {
-      width: 8ch;
+    .topPcmPanel #pcmEncoding {
+      width: 168px;
     }
     .topPcmPanel #pcmEndianness {
-      width: 6ch;
+      width: 78px;
     }
     .topPcmPanel #pcmStatus {
       position: relative;

@@ -1,5 +1,7 @@
 {
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Bytt språk",
-  "command.openKaldiWavArk.title": "Åpne Kaldi WAV Ark-oppføring"
+  "command.openKaldiWavArk.title": "Åpne Kaldi WAV Ark-oppføring",
+  "command.toggleAudioPathLinks.title": "Slå lydstilinker av/på",
+  "command.configureAudioPathLinks.title": "Konfigurer lydstilinker"
 }

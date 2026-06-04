@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+Text-link and PCM workflow update.
+
+- Added lightweight audio path links in text and code files. Links are scanned from already-open documents, skip Kaldi `*.ark:offset` entries, only resolve files when clicked, and can be toggled or configured from the Command Palette. Defaults scan up to 150,000 lines and 20,000 links per document.
+- Reworked PCM / RAW loading controls from separate bit-depth and sample-format selectors into an Audacity-like encoding selector, with byte order kept as a separate setting. Added Unsigned 8-bit PCM and 64-bit float support.
+- Added disabled placeholder entries for future RAW encodings such as U-law, A-law, GSM 6.10, DWVW, VOX ADPCM, and NMS ADPCM.
+- Improved PCM loading ergonomics: pressing Enter in PCM parameter fields now reads immediately, PCM/RAW files hide the header-info button, and dynamic PCM status text updates when switching languages.
+- Improved WAV decoding robustness for PCM-like WAV files that the Webview decoder rejects, including WAVE_FORMAT_EXTENSIBLE PCM cases.
+
 ## 1.2.1
 
 Marketplace presentation update.

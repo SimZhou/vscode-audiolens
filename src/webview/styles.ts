@@ -148,6 +148,9 @@ export function injectStyles(): void {
       background: var(--vscode-button-background);
       cursor: pointer;
     }
+    [hidden] {
+      display: none !important;
+    }
     .secondaryIcon {
       position: relative;
       color: var(--vscode-button-secondaryForeground);
@@ -260,6 +263,12 @@ export function injectStyles(): void {
       border: 1px solid var(--vscode-input-border, transparent);
       border-radius: 4px;
       padding: 3px 6px;
+    }
+    .pcmPanel select,
+    .wavPcmGrid select {
+      min-width: 58px;
+      padding-right: 22px;
+      text-align: left;
     }
     .numericText {
       direction: ltr;
@@ -600,6 +609,8 @@ export function injectStyles(): void {
       min-height: 26px;
       padding-top: 2px;
       padding-bottom: 2px;
+    }
+    .topPcmPanel input {
       text-align: center;
     }
     .topPcmPanel button {
@@ -616,14 +627,11 @@ export function injectStyles(): void {
     .topPcmPanel #pcmStartOffset {
       width: 8ch;
     }
-    .topPcmPanel #pcmBitDepth {
-      width: 6ch;
-    }
-    .topPcmPanel #pcmSampleFormat {
-      width: 8ch;
+    .topPcmPanel #pcmEncoding {
+      width: 168px;
     }
     .topPcmPanel #pcmEndianness {
-      width: 6ch;
+      width: 78px;
     }
     .topPcmPanel #pcmStatus {
       position: relative;

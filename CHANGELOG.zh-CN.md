@@ -1,5 +1,15 @@
 # 更新日志
 
+## 1.3.0
+
+文本路径链接与 PCM 工作流更新。
+
+- 新增普通文本和代码文件中的音频路径超链。链接只扫描已打开文本内容，跳过 Kaldi `*.ark:offset`，只在点击时解析文件，并可从 Command Palette 开关或打开配置；默认最多扫描 150,000 行、生成 20,000 个链接。
+- 优化 PCM / RAW 读取控件，将独立的位深和采样格式选择合并为类似 Audacity 的“编码”选择，字节序保留为独立设置；新增 Unsigned 8-bit PCM 和 64-bit float 支持。
+- 为 U-law、A-law、GSM 6.10、DWVW、VOX ADPCM、NMS ADPCM 等后续 RAW 编码加入灰色不可选占位项。
+- 优化 PCM 读取体验：在 PCM 参数输入框中按 Enter 可直接读取；PCM/RAW 文件不再显示文件头信息按钮；切换语言后动态 PCM 状态文本会同步更新。
+- 增强 WAV 解码鲁棒性，支持部分 Webview 解码器拒绝的 PCM-like WAV，包括 WAVE_FORMAT_EXTENSIBLE PCM 场景。
+
 ## 1.2.1
 
 商店展示信息更新。

@@ -1,5 +1,7 @@
 {
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Dili Değiştir",
-  "command.openKaldiWavArk.title": "Kaldi WAV Ark Girdisini Aç"
+  "command.openKaldiWavArk.title": "Kaldi WAV Ark Girdisini Aç",
+  "command.toggleAudioPathLinks.title": "Ses yolu bağlantılarını değiştir",
+  "command.configureAudioPathLinks.title": "Ses yolu bağlantılarını yapılandır"
 }

@@ -1,13 +1,55 @@
-export type PcmSampleFormat = "signed-int" | "float";
-export type PcmEndianness = "little" | "big";
+export type PcmEncoding = "signed-8" | "signed-16" | "signed-24" | "signed-32" | "unsigned-8" | "float-32" | "float-64";
+export type PcmSampleFormat = "signed-int" | "unsigned-int" | "float";
+export type PcmEndianness = "none" | "little" | "big";
 
 export interface PcmFormat {
   sampleRate: number;
   channels: number;
-  bitDepth: 8 | 16 | 24 | 32;
+  bitDepth: 8 | 16 | 24 | 32 | 64;
   sampleFormat: PcmSampleFormat;
   endianness: PcmEndianness;
   startOffsetBytes?: number;
+}
+
+export const PCM_ENCODINGS: readonly PcmEncoding[] = ["signed-8", "signed-16", "signed-24", "signed-32", "unsigned-8", "float-32", "float-64"];
+
+export function pcmEncodingToFormat(encoding: PcmEncoding): Pick<PcmFormat, "bitDepth" | "sampleFormat" | "endianness"> {
+  switch (encoding) {
+    case "signed-8":
+      return { bitDepth: 8, sampleFormat: "signed-int", endianness: "none" };
+    case "signed-16":
+      return { bitDepth: 16, sampleFormat: "signed-int", endianness: "little" };
+    case "signed-24":
+      return { bitDepth: 24, sampleFormat: "signed-int", endianness: "little" };
+    case "signed-32":
+      return { bitDepth: 32, sampleFormat: "signed-int", endianness: "little" };
+    case "unsigned-8":
+      return { bitDepth: 8, sampleFormat: "unsigned-int", endianness: "none" };
+    case "float-64":
+      return { bitDepth: 64, sampleFormat: "float", endianness: "little" };
+    case "float-32":
+    default:
+      return { bitDepth: 32, sampleFormat: "float", endianness: "little" };
+  }
+}
+
+export function pcmFormatToEncoding(format: PcmFormat): PcmEncoding {
+  if (format.sampleFormat === "float") {
+    return format.bitDepth === 64 ? "float-64" : "float-32";
+  }
+  if (format.sampleFormat === "unsigned-int") {
+    return "unsigned-8";
+  }
+  if (format.bitDepth === 8) {
+    return "signed-8";
+  }
+  if (format.bitDepth === 24) {
+    return "signed-24";
+  }
+  if (format.bitDepth === 32) {
+    return "signed-32";
+  }
+  return "signed-16";
 }
 
 export interface DecodedPcmAudio {
@@ -16,9 +58,10 @@ export interface DecodedPcmAudio {
 }
 
 export function decodePcm(bytes: Uint8Array, format: PcmFormat): DecodedPcmAudio {
-  const data = pcmPayloadBytes(bytes, format);
-  const bytesPerSample = getBytesPerSample(format);
-  const frameSize = getFrameSize(format);
+  const normalized = normalizePcmFormat(format);
+  const data = pcmPayloadBytes(bytes, normalized);
+  const bytesPerSample = getBytesPerSample(normalized);
+  const frameSize = getFrameSize(normalized);
   if (bytesPerSample <= 0 || frameSize <= 0 || data.byteLength % frameSize !== 0) {
     throw new Error("PCM parameters do not match the file size.");
   }
@@ -29,7 +72,7 @@ export function decodePcm(bytes: Uint8Array, format: PcmFormat): DecodedPcmAudio
     const frameOffset = frame * frameSize;
     for (let channel = 0; channel < format.channels; channel += 1) {
       const offset = frameOffset + channel * bytesPerSample;
-      channels[channel][frame] = readSample(data, offset, format);
+      channels[channel][frame] = readSample(data, offset, normalized);
     }
   }
   return { sampleRate: format.sampleRate, channels };
@@ -43,6 +86,7 @@ export function createAudioBufferFromChannels(audioContext: BaseAudioContext, de
 }
 
 export function validatePcmFormat(bytes: Uint8Array, format: PcmFormat): string | undefined {
+  const normalized = normalizePcmFormat(format);
   const startOffsetBytes = format.startOffsetBytes ?? 0;
   if (!Number.isFinite(format.sampleRate) || format.sampleRate <= 0) {
     return "PCM sample rate must be greater than 0.";
@@ -50,11 +94,17 @@ export function validatePcmFormat(bytes: Uint8Array, format: PcmFormat): string 
   if (!Number.isInteger(format.channels) || format.channels <= 0) {
     return "PCM channel count must be a positive integer.";
   }
-  if (![8, 16, 24, 32].includes(format.bitDepth)) {
-    return "PCM bit depth must be 8/16/24/32-bit.";
+  if (![8, 16, 24, 32, 64].includes(normalized.bitDepth)) {
+    return "PCM encoding must be Signed 8/16/24/32-bit PCM, Unsigned 8-bit PCM, 32-bit float, or 64-bit float.";
   }
-  if (format.sampleFormat === "float" && format.bitDepth !== 32) {
-    return "Float PCM currently supports 32-bit only.";
+  if (normalized.sampleFormat === "float" && normalized.bitDepth !== 32 && normalized.bitDepth !== 64) {
+    return "Float PCM supports 32-bit or 64-bit only.";
+  }
+  if (normalized.sampleFormat === "unsigned-int" && normalized.bitDepth !== 8) {
+    return "Unsigned PCM currently supports 8-bit only.";
+  }
+  if (normalized.bitDepth > 8 && normalized.endianness === "none") {
+    return "Byte order is required for multi-byte PCM encodings.";
   }
   if (!Number.isInteger(startOffsetBytes) || startOffsetBytes < 0) {
     return "PCM start offset must be a non-negative integer.";
@@ -63,7 +113,7 @@ export function validatePcmFormat(bytes: Uint8Array, format: PcmFormat): string 
     return `PCM start offset ${startOffsetBytes} bytes exceeds the file size.`;
   }
   const dataBytes = bytes.byteLength - startOffsetBytes;
-  const frameSize = getFrameSize(format);
+  const frameSize = getFrameSize(normalized);
   if (frameSize <= 0 || dataBytes % frameSize !== 0) {
     return `Data size after offset (${dataBytes} bytes) is not aligned to the current PCM parameters.`;
   }
@@ -77,9 +127,13 @@ function pcmPayloadBytes(bytes: Uint8Array, format: PcmFormat): Uint8Array {
 function readSample(bytes: Uint8Array, offset: number, format: PcmFormat): number {
   const view = new DataView(bytes.buffer, bytes.byteOffset + offset, getBytesPerSample(format));
   if (format.sampleFormat === "float") {
-    return clamp(view.getFloat32(0, format.endianness === "little"), -1, 1);
+    const little = format.endianness === "little";
+    return clamp(format.bitDepth === 64 ? view.getFloat64(0, little) : view.getFloat32(0, little), -1, 1);
   }
   if (format.bitDepth === 8) {
+    if (format.sampleFormat === "unsigned-int") {
+      return (view.getUint8(0) - 128) / 128;
+    }
     return view.getInt8(0) / 128;
   }
   if (format.bitDepth === 16) {
@@ -100,7 +154,7 @@ function signExtend24(value: number): number {
 }
 
 function getBytesPerSample(format: PcmFormat): number {
-  return format.sampleFormat === "float" ? 4 : format.bitDepth / 8;
+  return format.bitDepth / 8;
 }
 
 function getFrameSize(format: PcmFormat): number {
@@ -109,4 +163,15 @@ function getFrameSize(format: PcmFormat): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function normalizePcmFormat(format: PcmFormat): PcmFormat {
+  const encoding = pcmFormatToEncoding(format);
+  const encodingFormat = pcmEncodingToFormat(encoding);
+  const endianness = encodingFormat.bitDepth === 8 ? "none" : format.endianness === "none" ? encodingFormat.endianness : format.endianness;
+  return {
+    ...format,
+    ...encodingFormat,
+    endianness
+  };
 }

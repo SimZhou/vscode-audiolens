@@ -25,6 +25,7 @@ AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張�
 ## 主な機能
 
 - `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` ファイル、および Kaldi wav ark エントリを開けます。
+- テキストファイル内の対応音声パスをリンク化し、AudioLens で開けます。
 - モノラルとマルチチャンネル音声を、Audacity 風の独立したトラックとして表示します。
 - 各チャンネルごとに波形、スペクトログラム、波形 + スペクトログラムの複合表示を選べます。
 - チャンネルごとのミュートとソロに対応し、再生時は通常のステレオ出力へダウンミックスします。
@@ -98,6 +99,14 @@ WAV ファイルも上部バーから PCM として読み直せます。この�
 Command Palette から `AudioLens: Open Kaldi WAV Ark Entry` を実行し、`wav.ark:offset` の場所を入力します。`.ark` ファイルを直接開いた場合は、AudioLens が読み込む offset を求めます。
 
 AudioLens が対応するのは、payload が WAV `RIFF/WAVE` ヘッダーから始まる ark エントリだけです。WAV ヘッダーのサイズを使って選択された entry だけを読み込み、ark ファイル全体をスキャンしたり読み込んだりしません。
+
+## 音声パスリンク
+
+AudioLens は通常のテキストファイル内にある対応音声パスを検出し、AudioLens エディタで直接開けます。絶対パスに加えて、現在のテキストファイルのディレクトリ、workspace フォルダー、任意設定の base directory から相対パスを解決します。
+
+Command Palette から `AudioLens: Toggle Audio Path Links` を実行すると、この機能をオン/オフできます。`AudioLens: Configure Audio Path Links` で関連設定を直接開けます。既定では有効です。`audiolens.audioPathLinks.*` 設定で、既定 150,000 行までのスキャン上限、20,000 リンク上限、相対パス用の追加 base directory を調整できます。
+
+Kaldi の `*.ark:offset` リンクは意図的に Kaldi Reader に任せます。
 
 ## ヘッダー情報
 
