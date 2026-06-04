@@ -200,7 +200,7 @@ code --install-extension simzhou.audiolens
 可以从 GitHub Releases 下载打包好的 VSIX，或安装本地打包版本：
 
 ```bash
-code --install-extension dist/audiolens-1.2.1.vsix
+code --install-extension dist/audiolens-1.3.0.vsix
 ```
 
 ## 开发

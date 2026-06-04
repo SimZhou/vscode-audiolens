@@ -30,7 +30,7 @@ AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張�
 - 各チャンネルごとに波形、スペクトログラム、波形 + スペクトログラムの複合表示を選べます。
 - チャンネルごとのミュートとソロに対応し、再生時は通常のステレオ出力へダウンミックスします。
 - 上部バーから WAV、FLAC、Ogg、MP4/M4A、AAC、MP3 のコンテナまたはコーデックヘッダーを確認できます。
-- サンプルレート、チャンネル数、ビット深度、サンプル形式、エンディアン、開始オフセットを指定して raw PCM を読み込めます。
+- サンプルレート、チャンネル数、エンコード、バイト順、開始オフセットを指定して raw PCM を読み込めます。
 - WAV ファイルを raw PCM として一時的に読み直せるため、ヘッダーオフセットや破損ファイルの確認に使えます。
 - `wav.ark:offset` から Kaldi wav ark 音声エントリを開け、ark ファイル全体は読み込みません。
 - 選択範囲に対して時間領域と周波数領域の解析指標を計算します。
@@ -85,9 +85,8 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 
 - サンプルレート
 - チャンネル数
-- ビット深度
-- 整数または浮動小数点のサンプル形式
-- Little-endian または Big-endian
+- エンコード。例: Signed 16-bit PCM、Unsigned 8-bit PCM、32-bit float、64-bit float
+- バイト順。8-bit エンコードでは自動的にバイト順なしになります
 - 開始オフセットのバイト数
 
 現在の PCM パラメータは既定値として保存でき、次回以降の PCM ファイルに再利用できます。Raw PCM には信頼できるメタデータが含まれないため、AudioLens はファイル名やディレクトリ名からパラメータを推定しません。
@@ -201,7 +200,7 @@ code --install-extension simzhou.audiolens
 GitHub Releases から VSIX をダウンロードするか、ローカルで作成したパッケージをインストールできます:
 
 ```bash
-code --install-extension dist/audiolens-1.2.1.vsix
+code --install-extension dist/audiolens-1.3.0.vsix
 ```
 
 ## 開発
