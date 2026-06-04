@@ -2,13 +2,15 @@
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="180">
 </p>
 
-<h1 align="center">AudioLens</h1>
+<p align="center"><strong>AudioLens</strong></p>
 
 <p align="center">
   <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.md">English</a> | 简体中文 | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.ja.md">日本語</a>
 </p>
 
 <p align="center"><em>"很惭愧，做了一点微小的工作。"</em></p>
+
+---
 
 AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩展。它面向语音、音频算法、机器学习和数据标注工作流，让音频文件可以和代码、标签、脚本、测试数据放在同一个工作区里直接检查。
 
