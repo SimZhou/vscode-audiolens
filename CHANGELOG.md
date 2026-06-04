@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+Marketplace presentation update.
+
+- Renamed the extension display title to `AudioLens — Audio inspection for VS Code`.
+- Polished the README header layout for GitHub and Marketplace rendering.
+
 ## 1.2.0
 
 Kaldi wav ark support update.

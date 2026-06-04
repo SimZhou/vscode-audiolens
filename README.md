@@ -2,9 +2,7 @@
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="180">
 </p>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/AudioLens-title.svg" alt="AudioLens" width="300">
-</p>
+<h1 align="center">AudioLens</h1>
 
 <p align="center">
   English | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.zh-CN.md">简体中文</a> | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.ja.md">日本語</a>
@@ -194,7 +192,7 @@ code --install-extension simzhou.audiolens
 Download the packaged VSIX from GitHub Releases, or install a local packaged build with:
 
 ```bash
-code --install-extension dist/audiolens-1.2.0.vsix
+code --install-extension dist/audiolens-1.2.1.vsix
 ```
 
 ## Development

@@ -1,5 +1,12 @@
 # 更新日志
 
+## 1.2.1
+
+商店展示信息更新。
+
+- 扩展展示标题改为 `AudioLens — Audio inspection for VS Code`，让用户更快理解用途。
+- 优化 README 顶部布局，兼顾 GitHub 和 Marketplace 渲染效果。
+
 ## 1.2.0
 
 Kaldi wav ark 支持更新。
