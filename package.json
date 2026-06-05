@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens — Audio inspection for VS Code",
   "description": "Audio preview and viewer with waveform inspection and spectrogram analysis for VS Code.",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
@@ -59,8 +59,8 @@
     "onCommand:audiolens.selectLanguage",
     "onCommand:audiolens.openKaldiWavArk",
     "onCommand:audiolens.openAudioPathLink",
-    "onCommand:audiolens.toggleAudioPathLinks",
-    "onCommand:audiolens.configureAudioPathLinks"
+    "onCommand:audiolens.openAudioPathAtCursor",
+    "onCommand:audiolens.toggleAudioPathLinks"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -76,13 +76,13 @@
         "category": "%command.category%"
       },
       {
-        "command": "audiolens.toggleAudioPathLinks",
-        "title": "%command.toggleAudioPathLinks.title%",
+        "command": "audiolens.openAudioPathAtCursor",
+        "title": "%command.openAudioPathAtCursor.title%",
         "category": "%command.category%"
       },
       {
-        "command": "audiolens.configureAudioPathLinks",
-        "title": "%command.configureAudioPathLinks.title%",
+        "command": "audiolens.toggleAudioPathLinks",
+        "title": "%command.toggleAudioPathLinks.title%",
         "category": "%command.category%"
       }
     ],
@@ -239,25 +239,13 @@
         "audiolens.audioPathLinks.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "启用普通文本文件中的音频路径超链。关闭后 AudioLens 不再扫描文本内容。"
-        },
-        "audiolens.audioPathLinks.maxScanLines": {
-          "type": "number",
-          "default": 150000,
-          "minimum": 1,
-          "description": "音频路径超链单文档最多扫描前多少行。超过该行数的后续内容不再扫描，以避免影响大文件编辑性能。"
+          "description": "启用普通文本文件中的音频路径入口。关闭后 AudioLens 不再提供 hover、状态栏或命令打开入口。"
         },
         "audiolens.audioPathLinks.maxLineLength": {
           "type": "number",
           "default": 20000,
           "minimum": 1,
-          "description": "音频路径超链单行最大扫描字符数。超过该长度的行会被跳过。"
-        },
-        "audiolens.audioPathLinks.maxLinksPerDocument": {
-          "type": "number",
-          "default": 20000,
-          "minimum": 1,
-          "description": "音频路径超链单文档最多生成链接数量。"
+          "description": "音频路径入口单行最大解析字符数。超过该长度的行会被跳过，以避免超长行影响编辑性能。"
         },
         "audiolens.audioPathLinks.baseDirectories": {
           "type": "array",
@@ -282,7 +270,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.3.1.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.3.2.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

@@ -12,9 +12,9 @@
 
 ---
 
-AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩展。它面向语音、音频算法、机器学习和数据标注工作流，让音频文件可以和代码、标签、脚本、测试数据放在同一个工作区里直接检查。
+AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩展。它适合语音、音频算法、机器学习和数据标注场景，让音频文件可以和代码、标签、脚本、测试数据放在同一个工作区里查看。
 
-打开音频后，AudioLens 会在只读编辑器中显示播放控制、多通道音轨、波形图、语谱图、选区播放、PCM 参数和常用分析指标。
+打开音频后，AudioLens 会在只读编辑器里显示播放控制、多通道音轨、波形图、语谱图、选区播放、PCM 参数和常用分析指标。
 
 ## 预览
 
@@ -24,160 +24,18 @@ AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩�
 
 ## 主要能力
 
-- 支持打开 `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` 文件，以及 Kaldi wav ark 音频条目。
-- 支持把文本文件里的普通音频路径识别为可点击链接，并用 AudioLens 打开。
+- 可以打开 `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` 文件，也可以打开 Kaldi wav ark 音频条目。
+- 可以从代码、标注文件、日志等普通文本里直接打开音频地址。
 - 单通道和多通道音频都按真实通道逐条显示，交互方式接近 Audacity。
 - 每个通道可独立选择波形图、语谱图或波形 + 语谱图的多视图。
-- 每个通道都有静音和独奏按钮，播放时会下混到常见的双声道输出。
-- 可在顶部工具栏查看 WAV、FLAC、Ogg、MP4/M4A、AAC 和 MP3 的容器或编码头字段。
-- 支持显式参数读取原始 PCM，包括采样率、通道数、编码、字节序和起始偏移。
-- 支持把 WAV 文件按 PCM 方式一次性重新读取，适合检查 header 偏移或损坏文件。
-- 支持从 `wav.ark:offset` 打开 Kaldi wav ark 音频条目，不读取整份 ark 文件。
-- 支持对选区做时域和频域分析。
+- 每个通道都有静音和独奏按钮，播放时会混合成常见的双声道输出。
+- 可在顶部工具栏查看 WAV、FLAC、Ogg、MP4/M4A、AAC 和 MP3 的文件头信息。
+- 打开 PCM/RAW 文件时，可以手动填写采样率、通道数、编码、字节序和起始偏移。
+- WAV 文件也可以临时按 PCM 方式重新打开，方便检查 header 偏移或损坏文件。
+- 可以从 `wav.ark:offset` 打开 Kaldi wav ark 音频条目，不读取整份 ark 文件。
+- 可以对选中的音频片段做时域和频域分析。
 - 保存常用偏好，包括语谱图参数、播放增益、默认音轨视图和 PCM 默认参数。
 - 支持本地 VS Code 和 Remote SSH 工作区。
-
-## 功能演示
-
-### 多通道音轨与多视图
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.zh-CN.gif" alt="多通道音轨与多视图演示" width="920">
-</p>
-
-### 选区播放与分析
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.zh-CN.gif" alt="选区播放与分析演示" width="920">
-</p>
-
-### PCM / RAW 参数化读取
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/3.pcm_raw_parameterized_loading.zh-CN.gif" alt="PCM 和 RAW 参数化读取演示" width="920">
-</p>
-
-## 支持的文件
-
-AudioLens 对常见编码格式优先使用 Webview 的浏览器解码能力，同时通过扩展宿主读取 VS Code 工作区里的文件。
-
-| 类型 | 扩展名 | 说明 |
-| --- | --- | --- |
-| WAV | `.wav` | 支持多通道 WAV、按顺序查看 RIFF chunk、检查是否为标准 44 字节 PCM 头，也支持一次性按原始 PCM 重新读取。 |
-| Kaldi wav ark | 例如 `wav.ark:23252` 的 `.ark` 条目 | 使用 `AudioLens: Open Kaldi WAV Ark Entry` 命令，或直接打开 `.ark` 文件后输入 offset。AudioLens 会校验 offset 处必须是 `RIFF/WAVE`，并只读取对应 WAV entry。 |
-| 编码音频 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 优先使用 VS Code Webview 解码；可查看关键容器或帧头字段，如果 Webview 不支持且宿主机器可用 FFmpeg，则走 FFmpeg 兜底转码。 |
-| 原始 PCM | `.pcm`、`.raw` | 读取前需要用户显式填写 PCM 参数。 |
-
-## 多通道工作流
-
-多通道音频会按真实通道显示为多条音轨。每条音轨左侧是紧凑的控制区，右侧是主要观察区域。
-
-- `静音` 会让当前通道不参与播放。
-- `独奏` 会只播放当前通道，并让其他通道静音。
-- 视图选择器可以把单个通道切换为波形图、语谱图或多视图。
-- 点击某条音轨会把它设为选区分析的激活通道。
-
-所有通道使用统一的波形颜色，避免因为选中状态影响多通道对比。相邻音轨采用共享边框的紧凑布局，选中的音轨会保留圆角焦点框，方便定位。
-
-## PCM 工作流
-
-对于 `.pcm` 和 `.raw` 文件，AudioLens 会先要求填写 PCM 参数：
-
-- 采样率
-- 通道数
-- 编码，例如 Signed 16-bit PCM、Unsigned 8-bit PCM、32-bit float 或 64-bit float
-- 字节序；8-bit 编码会自动使用无字节序设置
-- 起始偏移字节数
-
-当前 PCM 参数可以保存为默认值，后续打开 PCM 文件时继续使用。AudioLens 不会从文件名或目录名推断 PCM 参数，因为原始 PCM 本身不包含可靠元数据。
-
-WAV 文件也可以从顶部菜单按 PCM 方式重新读取。这个操作只针对当前文件生效，适合检查原始 payload、非标准 header 或对偏移敏感的测试文件。
-
-## Kaldi WAV Ark 工作流
-
-从 Command Palette 运行 `AudioLens: Open Kaldi WAV Ark Entry`，输入 `wav.ark:offset` 位置即可打开。如果直接打开 `.ark` 文件，AudioLens 会先要求输入 offset。
-
-AudioLens 只支持 payload 以 WAV `RIFF/WAVE` 头开始的 ark 条目。它会根据 WAV 头长度读取被选中的 entry，不会扫描或加载整份 ark 文件。
-
-## 音频路径链接
-
-AudioLens 可以识别普通文本文件中的受支持音频路径，并直接用 AudioLens 编辑器打开。支持绝对路径，以及基于当前文本文件目录、workspace 目录和可选配置 base directory 解析的相对路径。
-
-可以从 Command Palette 运行 `AudioLens: Toggle Audio Path Links` 开启或关闭这个功能，也可以运行 `AudioLens: Configure Audio Path Links` 直接打开相关设置。默认开启。`audiolens.audioPathLinks.*` 设置项可控制扫描上限，默认最多扫描 150,000 行、生成 20,000 个链接，也可配置相对路径额外 base directory。
-
-Kaldi `*.ark:offset` 链接会刻意留给 Kaldi Reader 处理。
-
-## 文件头信息
-
-点击顶部工具栏的文件图标，可以在 VS Code 内直接查看结构化的文件头字段。AudioLens 会按文件中的出现顺序列出字段；chunk 类格式使用字节偏移，ADTS AAC、MPEG 音频帧这类紧凑头则显示 bit range。
-
-对于 WAV 文件，面板会标出它是否为标准 44 字节 PCM 头，或是否包含 `fmt` 扩展、`LIST` 元数据等额外 chunk。音频 payload 行只标识数据区域，不展开原始采样字节。
-
-## 选区分析
-
-在任意波形图或语谱图上拖拽即可创建时间选区。AudioLens 可以只播放选区，并针对激活通道计算分析指标。
-
-当前指标包括：
-
-- 起始时间、结束时间和选区时长
-- RMS 电平和峰值电平
-- 主频
-- 峰均比
-- 削波比例
-- 噪声底估计
-- 频谱质心
-- 过零率
-- 频段能量分布
-
-每个指标旁边都有 Tooltip，说明计算方式、用途和局限。
-
-## 语谱图控制
-
-AudioLens 提供适合语音和信号检查的语谱图参数：
-
-- 算法：Frequency、Reassignment、Pitch (EAC)
-- FFT 大小：`8` 到 `32768`
-- 窗函数：Rectangular、Bartlett、Hamming、Hann、Blackman、Blackman-Harris、Welch 和 Gaussian 变体
-- 零填充倍数：`1` 到 `128`
-- 频率刻度：Linear、Log、Mel、Bark、ERB
-- 配色：Rose、Classic、Grayscale、Inverse Grayscale
-- 可配置 dB 亮度范围和自动亮度
-
-耗时的语谱图分析运行在 Worker 边界之后，避免阻塞 Webview 主交互。
-
-## 快捷键
-
-| 操作 | 快捷键 |
-| --- | --- |
-| 播放或暂停 | `Space` |
-| 清除选区或播放游标 | `Esc` |
-| 重置时间缩放 | `Ctrl` / `Command` + `F` |
-| macOS 时间缩放 | `Command` + 鼠标滚轮 |
-| Windows/Linux 时间缩放 | `Ctrl` + 鼠标滚轮 |
-| 平移可见时间范围 | `Shift` + 鼠标滚轮 |
-| macOS 幅值缩放 | `Option` + 鼠标滚轮 |
-| Windows/Linux 幅值缩放 | `Alt` + 鼠标滚轮 |
-| 重置播放增益 | 双击增益滑块 |
-
-## 本地化
-
-AudioLens 默认跟随 VS Code 显示语言。也可以通过 `audiolens.language` 设置或 Command Palette 中的 `AudioLens: 切换语言` 手动切换 Webview 语言。
-
-支持语言：
-
-简体中文、繁体中文、英语、日语、韩语、法语、德语、俄语、西班牙语、意大利语、葡萄牙语、印尼语、挪威语、荷兰语、波兰语、土耳其语和越南语。
-
-新增界面文案会在对应语种未补齐前回退到英语。
-
-## Remote SSH
-
-AudioLens 是 workspace extension。在 Remote SSH 窗口中，扩展宿主运行在远端工作区，直接读取远端音频文件，并把数据传给本地 Webview 播放和可视化。
-
-如果需要保存当前远端音频，可以使用顶部工具栏的下载按钮。VS Code 的保存对话框可能会先显示远端位置；要保存到本机时，在对话框里切换到本地位置即可。
-
-## 隐私
-
-AudioLens 不会把音频上传到任何第三方服务。音频内容由 VS Code 扩展宿主读取，并在 VS Code Webview 和 Worker 运行时中完成分析。
 
 ## 安装
 
@@ -195,13 +53,153 @@ https://open-vsx.org/extension/simzhou/audiolens
 code --install-extension simzhou.audiolens
 ```
 
-## 从 VSIX 安装
-
-可以从 GitHub Releases 下载打包好的 VSIX，或安装本地打包版本：
+如果需要离线安装，可以从 GitHub Releases 下载 VSIX，或安装本地打包版本：
 
 ```bash
-code --install-extension dist/audiolens-1.3.1.vsix
+code --install-extension dist/audiolens-1.3.2.vsix
 ```
+
+## 功能演示
+
+### 多通道音轨与多视图
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.zh-CN.gif" alt="多通道音轨与多视图演示" width="920">
+</p>
+
+### 选区播放与分析
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.zh-CN.gif" alt="选区播放与分析演示" width="920">
+</p>
+
+### 打开 PCM / RAW 文件
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/3.pcm_raw_parameterized_loading.zh-CN.gif" alt="PCM 和 RAW 参数化读取演示" width="920">
+</p>
+
+## 支持的文件
+
+AudioLens 会优先使用 Webview 的浏览器解码能力处理常见音频格式，同时通过扩展宿主读取 VS Code 工作区里的文件。
+
+| 类型 | 扩展名 | 说明 |
+| --- | --- | --- |
+| WAV | `.wav` | 支持多通道 WAV、RIFF chunk 顺序查看、标准 44 字节 PCM 头检查，也支持临时按原始 PCM 重新读取。 |
+| Kaldi wav ark | 例如 `wav.ark:23252` 的 `.ark` 条目 | 使用 `AudioLens: Open Kaldi WAV Ark Entry` 命令，或直接打开 `.ark` 文件后输入 offset。AudioLens 会校验 offset 处是否为 `RIFF/WAVE`，并只读取对应的 WAV entry。 |
+| 编码音频 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 优先使用 VS Code Webview 解码；可查看关键容器或帧头字段。Webview 不支持且宿主机器可用 FFmpeg 时，会使用 FFmpeg 兜底转码。 |
+| 原始 PCM | `.pcm`、`.raw` | 读取前需要用户显式填写 PCM 参数。 |
+
+## 查看多通道音频
+
+多通道音频会按真实通道显示为多条音轨。每条音轨左侧是紧凑的控制区，右侧是主要观察区域。
+
+- `静音` 会让当前通道不参与播放。
+- `独奏` 会只播放当前通道，并让其他通道静音。
+- 视图选择器可以把单个通道切换为波形图、语谱图或多视图。
+- 点击某条音轨会把它设为选区分析的激活通道。
+
+所有通道使用统一的波形颜色，避免因为选中状态影响多通道对比。相邻音轨采用共享边框的紧凑布局，选中的音轨会保留圆角焦点框，方便定位。
+
+## 打开 PCM 文件
+
+对于 `.pcm` 和 `.raw` 文件，AudioLens 会先要求填写 PCM 参数：
+
+- 采样率
+- 通道数
+- 编码，例如 Signed 16-bit PCM、Unsigned 8-bit PCM、32-bit float 或 64-bit float
+- 字节序；8-bit 编码会自动使用无字节序设置
+- 起始偏移字节数
+
+当前 PCM 参数可以保存为默认值，后续打开 PCM 文件时继续使用。AudioLens 不会从文件名或目录名猜测 PCM 参数，因为原始 PCM 本身不包含可靠元数据。
+
+WAV 文件也可以从顶部菜单按 PCM 方式重新读取。这个操作只针对当前文件生效，适合检查原始音频数据、非标准 header 或对偏移敏感的测试文件。
+
+## 打开 Kaldi WAV Ark 文件
+
+从 Command Palette 运行 `AudioLens: Open Kaldi WAV Ark Entry`，输入 `wav.ark:offset` 位置即可打开。如果直接打开 `.ark` 文件，AudioLens 会先要求输入 offset。
+
+AudioLens 只支持音频内容以 WAV `RIFF/WAVE` 头开始的 ark 条目。它会根据 WAV 头长度读取被选中的 entry，不会扫描或加载整份 ark 文件。
+
+## 从任何文件中直接打开音频地址
+
+AudioLens 可以识别普通文本文件中的音频地址，并直接用 AudioLens 编辑器打开。将鼠标悬停在音频路径上后点击 **在 AudioLens 中打开**，或把光标放到路径上使用状态栏入口 / `AudioLens: 打开光标处音频路径`。它支持绝对路径，也支持基于当前文本文件目录、workspace 目录和可选 base directory 解析的相对路径。
+
+可以从 Command Palette 运行 `AudioLens: 开启/关闭“在 AudioLens 中打开”` 开启或关闭这个功能。该功能默认开启，不再为整份文档批量生成正文超链，因此大 JSON、日志和数据集文件也能保持流畅。
+
+Kaldi `*.ark:offset` 链接会刻意留给 Kaldi Reader 处理。
+
+## 查看文件头信息
+
+点击顶部工具栏的文件图标，可以在 VS Code 内直接查看结构化的文件头字段。AudioLens 会按文件中的出现顺序列出字段；chunk 类格式使用字节偏移，ADTS AAC、MPEG 音频帧这类紧凑头则显示 bit range。
+
+对于 WAV 文件，面板会标出它是否为标准 44 字节 PCM 头，或是否包含 `fmt` 扩展、`LIST` 元数据等额外 chunk。音频 payload 行只标识数据区域，不展开原始采样字节。
+
+## 分析选中的片段
+
+在任意波形图或语谱图上拖拽即可创建时间选区。AudioLens 可以只播放选区，并针对激活通道计算分析指标。
+
+当前指标包括：
+
+- 起始时间、结束时间和选区时长
+- RMS 电平和峰值电平
+- 主频
+- 峰均比
+- 削波比例
+- 噪声底估计
+- 频谱质心
+- 过零率
+- 频段能量分布
+
+每个指标旁边都有 Tooltip，说明计算方式、用途和局限。
+
+## 调整语谱图
+
+AudioLens 提供适合语音和信号检查的语谱图参数：
+
+- 算法：Frequency、Reassignment、Pitch (EAC)
+- FFT 大小：`8` 到 `32768`
+- 窗函数：Rectangular、Bartlett、Hamming、Hann、Blackman、Blackman-Harris、Welch 和 Gaussian 变体
+- 零填充倍数：`1` 到 `128`
+- 频率刻度：Linear、Log、Mel、Bark、ERB
+- 配色：Rose、Classic、Grayscale、Inverse Grayscale
+- 可配置 dB 亮度范围和自动亮度
+
+耗时的语谱图分析会放到 Worker 后台执行，避免阻塞 Webview 主交互。
+
+## 快捷键
+
+| 操作 | 快捷键 |
+| --- | --- |
+| 播放或暂停 | `Space` |
+| 清除选区或播放游标 | `Esc` |
+| 重置时间缩放 | `Ctrl` / `Command` + `F` |
+| macOS 时间缩放 | `Command` + 鼠标滚轮 |
+| Windows/Linux 时间缩放 | `Ctrl` + 鼠标滚轮 |
+| 平移可见时间范围 | `Shift` + 鼠标滚轮 |
+| macOS 幅值缩放 | `Option` + 鼠标滚轮 |
+| Windows/Linux 幅值缩放 | `Alt` + 鼠标滚轮 |
+| 重置播放增益 | 双击增益滑块 |
+
+## 界面语言
+
+AudioLens 默认跟随 VS Code 显示语言。也可以通过 `audiolens.language` 设置或 Command Palette 中的 `AudioLens: 切换语言` 手动切换 Webview 语言。
+
+支持语言：
+
+简体中文、繁体中文、英语、日语、韩语、法语、德语、俄语、西班牙语、意大利语、葡萄牙语、印尼语、挪威语、荷兰语、波兰语、土耳其语和越南语。
+
+新增界面文案会在对应语种未补齐前回退到英语。
+
+## 在 Remote SSH 中使用
+
+AudioLens 是 workspace extension。在 Remote SSH 窗口中，扩展宿主运行在远端工作区，直接读取远端音频文件，并把数据传给本地 Webview 播放和可视化。
+
+如果需要保存当前远端音频，可以使用顶部工具栏的下载按钮。VS Code 的保存对话框可能会先显示远端位置；要保存到本机时，在对话框里切换到本地位置即可。
+
+## 隐私
+
+AudioLens 不会把音频上传到任何第三方服务。音频内容由 VS Code 扩展宿主读取，并在 VS Code Webview 和 Worker 运行时中完成分析。
 
 ## 开发
 

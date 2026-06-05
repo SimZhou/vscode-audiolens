@@ -101,9 +101,9 @@ AudioLens が対応するのは、payload が WAV `RIFF/WAVE` ヘッダーから
 
 ## 音声パスリンク
 
-AudioLens は通常のテキストファイル内にある対応音声パスを検出し、AudioLens エディタで直接開けます。絶対パスに加えて、現在のテキストファイルのディレクトリ、workspace フォルダー、任意設定の base directory から相対パスを解決します。
+AudioLens は通常のテキストファイル内にある対応音声パスを検出し、AudioLens エディタで直接開けます。音声パスにホバーして **AudioLens で開く** をクリックするか、パス上にカーソルを置いてステータスバーの操作または `AudioLens: カーソル位置の音声パスを開く` を使います。絶対パスに加えて、現在のテキストファイルのディレクトリ、workspace フォルダー、任意設定の base directory から相対パスを解決します。
 
-Command Palette から `AudioLens: Toggle Audio Path Links` を実行すると、この機能をオン/オフできます。`AudioLens: Configure Audio Path Links` で関連設定を直接開けます。既定では有効です。`audiolens.audioPathLinks.*` 設定で、既定 150,000 行までのスキャン上限、20,000 リンク上限、相対パス用の追加 base directory を調整できます。
+Command Palette から `AudioLens: 「AudioLens で開く」をオン/オフ` を実行すると、この機能をオン/オフできます。既定では有効で、ドキュメント全体に inline link を生成しないため、大きな JSON、ログ、データセットでもエディタの応答性を保ちます。
 
 Kaldi の `*.ark:offset` リンクは意図的に Kaldi Reader に任せます。
 
@@ -200,7 +200,7 @@ code --install-extension simzhou.audiolens
 GitHub Releases から VSIX をダウンロードするか、ローカルで作成したパッケージをインストールできます:
 
 ```bash
-code --install-extension dist/audiolens-1.3.1.vsix
+code --install-extension dist/audiolens-1.3.2.vsix
 ```
 
 ## 開発

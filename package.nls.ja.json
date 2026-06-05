@@ -2,6 +2,6 @@
   "command.category": "AudioLens",
   "command.selectLanguage.title": "言語を切り替え",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark エントリを開く",
-  "command.toggleAudioPathLinks.title": "音声パスリンクを切り替え",
-  "command.configureAudioPathLinks.title": "音声パスリンクを設定"
+  "command.toggleAudioPathLinks.title": "「AudioLens で開く」をオン/オフ",
+  "command.openAudioPathAtCursor.title": "カーソル位置の音声パスを開く"
 }

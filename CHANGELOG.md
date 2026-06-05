@@ -1,11 +1,21 @@
 # Changelog
 
+## 1.3.2
+
+Audio path action performance update.
+
+- Replaced generated inline audio path document links with a lighter hover/status-bar action, avoiding large JSON, log, and dataset scans in the editor.
+- Kept `AudioLens: Toggle "Open in AudioLens"` so users can enable or disable text-file audio path actions.
+- Localized the hover action, status-bar action, warnings, and Command Palette titles across bundled languages.
+- Removed the separate audio path link configuration command because the lightweight action no longer needs scan-limit tuning.
+
 ## 1.3.1
 
 Audio path link performance update.
 
 - Cached generated audio path links per document version so links reappear immediately when returning to large wavlist files.
 - Replaced quadratic duplicate-range checks with set-based de-duplication for faster large-document scans.
+- Added a 10 MB default document-size cap for audio path link scanning, and reduced default scan/link caps to 10,000 lines and 1,000 links to avoid overloading large JSON, log, and dataset files.
 
 ## 1.3.0
 

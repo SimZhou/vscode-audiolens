@@ -2,6 +2,6 @@
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Bytt språk",
   "command.openKaldiWavArk.title": "Åpne Kaldi WAV Ark-oppføring",
-  "command.toggleAudioPathLinks.title": "Slå lydstilinker av/på",
-  "command.configureAudioPathLinks.title": "Konfigurer lydstilinker"
+  "command.toggleAudioPathLinks.title": "Slå «Åpne i AudioLens» av/på",
+  "command.openAudioPathAtCursor.title": "Åpne lydsti ved markør"
 }

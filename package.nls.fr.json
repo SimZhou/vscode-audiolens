@@ -2,6 +2,6 @@
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Changer de langue",
   "command.openKaldiWavArk.title": "Ouvrir une entrée Kaldi WAV Ark",
-  "command.toggleAudioPathLinks.title": "Activer/désactiver les liens de chemins audio",
-  "command.configureAudioPathLinks.title": "Configurer les liens de chemins audio"
+  "command.toggleAudioPathLinks.title": "Activer/désactiver « Ouvrir dans AudioLens »",
+  "command.openAudioPathAtCursor.title": "Ouvrir le chemin audio sous le curseur"
 }

@@ -2,6 +2,6 @@
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Chuyển ngôn ngữ",
   "command.openKaldiWavArk.title": "Mở mục Kaldi WAV Ark",
-  "command.toggleAudioPathLinks.title": "Bật/tắt liên kết đường dẫn âm thanh",
-  "command.configureAudioPathLinks.title": "Cấu hình liên kết đường dẫn âm thanh"
+  "command.toggleAudioPathLinks.title": "Bật/tắt \"Mở trong AudioLens\"",
+  "command.openAudioPathAtCursor.title": "Mở đường dẫn âm thanh tại con trỏ"
 }

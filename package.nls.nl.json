@@ -2,6 +2,6 @@
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Taal wisselen",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark-entry openen",
-  "command.toggleAudioPathLinks.title": "Audiopadlinks schakelen",
-  "command.configureAudioPathLinks.title": "Audiopadlinks configureren"
+  "command.toggleAudioPathLinks.title": "\"Openen in AudioLens\" in-/uitschakelen",
+  "command.openAudioPathAtCursor.title": "Audiopad bij cursor openen"
 }
