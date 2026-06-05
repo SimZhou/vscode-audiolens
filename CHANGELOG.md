@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1
+
+Audio path link performance update.
+
+- Cached generated audio path links per document version so links reappear immediately when returning to large wavlist files.
+- Replaced quadratic duplicate-range checks with set-based de-duplication for faster large-document scans.
+
 ## 1.3.0
 
 Text-link and PCM workflow update.

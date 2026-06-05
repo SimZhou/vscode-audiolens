@@ -17,19 +17,39 @@ const AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "opus", "m4a", "aac", "pc
 const EXT_PATTERN = AUDIO_EXTENSIONS.join("|");
 const QUOTED_AUDIO_PATH_RE = new RegExp(`(["'\`])([^"'\`\\r\\n]*?\\.(${EXT_PATTERN}))\\1`, "gi");
 const UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}])`, "gi");
+const AUDIO_PATH_HINT_RE = new RegExp(`\\.(${EXT_PATTERN})`, "i");
 const AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
 const TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
 const linkLimitNotifiedDocuments = new Set<string>();
+const documentLinkCache = new Map<string, CachedAudioPathLinks>();
+const audioPathLinkArgs = new Map<string, AudioPathLinkArgs>();
+const MAX_CACHED_DOCUMENTS = 20;
+let nextAudioPathLinkId = 1;
 
 interface AudioPathLinkArgs {
   text: string;
   documentUri: string;
 }
 
+interface CachedAudioPathLinks {
+  documentUri: string;
+  links: vscode.DocumentLink[];
+  linkIds: string[];
+}
+
 export function registerAudioPathLinks(): vscode.Disposable {
   return vscode.Disposable.from(
     vscode.languages.registerDocumentLinkProvider({ scheme: "file" }, new AudioPathDocumentLinkProvider()),
-    vscode.commands.registerCommand(OPEN_AUDIO_PATH_COMMAND, async (args?: AudioPathLinkArgs) => {
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      deleteDocumentLinkCache(document.uri);
+    }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("audiolens.audioPathLinks")) {
+        documentLinkCache.clear();
+        audioPathLinkArgs.clear();
+      }
+    }),
+    vscode.commands.registerCommand(OPEN_AUDIO_PATH_COMMAND, async (args?: AudioPathLinkArgs | string) => {
       await openAudioPathLink(args);
     }),
     vscode.commands.registerCommand(TOGGLE_AUDIO_PATH_LINKS_COMMAND, async () => {
@@ -48,7 +68,15 @@ class AudioPathDocumentLinkProvider implements vscode.DocumentLinkProvider {
       return [];
     }
 
+    const cacheKey = getDocumentLinkCacheKey(document, options);
+    const cached = documentLinkCache.get(cacheKey);
+    if (cached) {
+      return cached.links;
+    }
+
     const links: vscode.DocumentLink[] = [];
+    const linkIds: string[] = [];
+    const seenRanges = new Set<string>();
     const linesToScan = Math.min(document.lineCount, options.maxScanLines);
     for (let lineIndex = 0; lineIndex < linesToScan; lineIndex += 1) {
       if (token.isCancellationRequested) {
@@ -63,23 +91,24 @@ class AudioPathDocumentLinkProvider implements vscode.DocumentLinkProvider {
         continue;
       }
 
-      collectQuotedLinks(document, line, lineIndex, links, options.maxLinksPerDocument);
-      collectUnquotedLinks(document, line, lineIndex, links, options.maxLinksPerDocument);
+      collectQuotedLinks(document, line, lineIndex, links, linkIds, seenRanges, options.maxLinksPerDocument);
+      collectUnquotedLinks(document, line, lineIndex, links, linkIds, seenRanges, options.maxLinksPerDocument);
       if (links.length >= options.maxLinksPerDocument) {
         notifyLinkLimitReached(document, options.maxLinksPerDocument);
+        setDocumentLinkCache(cacheKey, document.uri, links, linkIds);
         return links;
       }
     }
     if (document.lineCount > options.maxScanLines) {
       notifyScanLineLimitReached(document, options.maxScanLines);
     }
+    setDocumentLinkCache(cacheKey, document.uri, links, linkIds);
     return links;
   }
 }
 
 function lineMayContainAudioPath(line: string): boolean {
-  const lower = line.toLowerCase();
-  return AUDIO_EXTENSIONS.some((extension) => lower.includes(`.${extension}`));
+  return AUDIO_PATH_HINT_RE.test(line);
 }
 
 function collectQuotedLinks(
@@ -87,6 +116,8 @@ function collectQuotedLinks(
   line: string,
   lineIndex: number,
   links: vscode.DocumentLink[],
+  linkIds: string[],
+  seenRanges: Set<string>,
   maxLinks: number
 ): void {
   QUOTED_AUDIO_PATH_RE.lastIndex = 0;
@@ -97,7 +128,7 @@ function collectQuotedLinks(
     }
 
     const start = (match.index ?? 0) + 1;
-    addAudioPathLink(document, lineIndex, start, text, links, maxLinks);
+    addAudioPathLink(document, lineIndex, start, text, links, linkIds, seenRanges, maxLinks);
   }
 }
 
@@ -106,6 +137,8 @@ function collectUnquotedLinks(
   line: string,
   lineIndex: number,
   links: vscode.DocumentLink[],
+  linkIds: string[],
+  seenRanges: Set<string>,
   maxLinks: number
 ): void {
   UNQUOTED_AUDIO_PATH_RE.lastIndex = 0;
@@ -115,7 +148,7 @@ function collectUnquotedLinks(
       continue;
     }
 
-    addAudioPathLink(document, lineIndex, match.index ?? 0, text, links, maxLinks);
+    addAudioPathLink(document, lineIndex, match.index ?? 0, text, links, linkIds, seenRanges, maxLinks);
   }
 }
 
@@ -136,42 +169,101 @@ function addAudioPathLink(
   startCharacter: number,
   text: string,
   links: vscode.DocumentLink[],
+  linkIds: string[],
+  seenRanges: Set<string>,
   maxLinks: number
 ): void {
+  if (links.length >= maxLinks) {
+    return;
+  }
   const range = new vscode.Range(
     lineIndex,
     startCharacter,
     lineIndex,
     startCharacter + text.length
   );
-  if (links.length >= maxLinks) {
+  const rangeKey = `${lineIndex}:${startCharacter}:${text.length}`;
+  if (seenRanges.has(rangeKey)) {
     return;
   }
-  if (links.some((link) => link.range.isEqual(range))) {
-    return;
-  }
+  seenRanges.add(rangeKey);
 
   const args: AudioPathLinkArgs = {
     text,
     documentUri: document.uri.toString()
   };
+  const linkId = String(nextAudioPathLinkId++);
+  audioPathLinkArgs.set(linkId, args);
   const target = vscode.Uri.parse(
-    `command:${OPEN_AUDIO_PATH_COMMAND}?${encodeURIComponent(JSON.stringify([args]))}`
+    `command:${OPEN_AUDIO_PATH_COMMAND}?${encodeURIComponent(JSON.stringify([linkId]))}`
   );
   const link = new vscode.DocumentLink(range, target);
   link.tooltip = "Open with AudioLens";
   links.push(link);
+  linkIds.push(linkId);
 }
 
-async function openAudioPathLink(args?: AudioPathLinkArgs): Promise<void> {
-  if (!args?.text || !args.documentUri) {
+function getDocumentLinkCacheKey(
+  document: vscode.TextDocument,
+  options: ReturnType<typeof getAudioPathLinkOptions>
+): string {
+  return [
+    document.uri.toString(),
+    document.version,
+    options.maxScanLines,
+    options.maxLineLength,
+    options.maxLinksPerDocument
+  ].join("|");
+}
+
+function setDocumentLinkCache(cacheKey: string, documentUri: vscode.Uri, links: vscode.DocumentLink[], linkIds: string[]): void {
+  if (documentLinkCache.has(cacheKey)) {
+    deleteDocumentLinkCacheEntry(cacheKey);
+  }
+  documentLinkCache.set(cacheKey, {
+    documentUri: documentUri.toString(),
+    links,
+    linkIds
+  });
+  while (documentLinkCache.size > MAX_CACHED_DOCUMENTS) {
+    const oldestKey = documentLinkCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    deleteDocumentLinkCacheEntry(oldestKey);
+  }
+}
+
+function deleteDocumentLinkCache(documentUri: vscode.Uri): void {
+  const uriText = documentUri.toString();
+  for (const [key, cached] of documentLinkCache) {
+    if (cached.documentUri === uriText) {
+      deleteDocumentLinkCacheEntry(key);
+    }
+  }
+}
+
+function deleteDocumentLinkCacheEntry(cacheKey: string): void {
+  const cached = documentLinkCache.get(cacheKey);
+  if (!cached) {
+    return;
+  }
+  for (const linkId of cached.linkIds) {
+    audioPathLinkArgs.delete(linkId);
+  }
+  documentLinkCache.delete(cacheKey);
+}
+
+async function openAudioPathLink(args?: AudioPathLinkArgs | string): Promise<void> {
+  const resolvedArgs = typeof args === "string" ? audioPathLinkArgs.get(args) : args;
+  if (!resolvedArgs?.text || !resolvedArgs.documentUri) {
     return;
   }
 
-  const sourceUri = vscode.Uri.parse(args.documentUri);
-  const resolved = await resolveAudioPath(args.text, sourceUri);
+  const sourceUri = vscode.Uri.parse(resolvedArgs.documentUri);
+  const resolved = await resolveAudioPath(resolvedArgs.text, sourceUri);
   if (!resolved) {
-    void vscode.window.showWarningMessage(`AudioLens cannot resolve audio path: ${args.text}`);
+    void vscode.window.showWarningMessage(`AudioLens cannot resolve audio path: ${resolvedArgs.text}`);
     return;
   }
 

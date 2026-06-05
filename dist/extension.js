@@ -840,12 +840,26 @@ var AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "opus", "m4a", "aac", "pcm"
 var EXT_PATTERN = AUDIO_EXTENSIONS.join("|");
 var QUOTED_AUDIO_PATH_RE = new RegExp(`(["'\`])([^"'\`\\r\\n]*?\\.(${EXT_PATTERN}))\\1`, "gi");
 var UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}])`, "gi");
+var AUDIO_PATH_HINT_RE = new RegExp(`\\.(${EXT_PATTERN})`, "i");
 var AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
 var TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
 var linkLimitNotifiedDocuments = /* @__PURE__ */ new Set();
+var documentLinkCache = /* @__PURE__ */ new Map();
+var audioPathLinkArgs = /* @__PURE__ */ new Map();
+var MAX_CACHED_DOCUMENTS = 20;
+var nextAudioPathLinkId = 1;
 function registerAudioPathLinks() {
   return vscode2.Disposable.from(
     vscode2.languages.registerDocumentLinkProvider({ scheme: "file" }, new AudioPathDocumentLinkProvider()),
+    vscode2.workspace.onDidCloseTextDocument((document) => {
+      deleteDocumentLinkCache(document.uri);
+    }),
+    vscode2.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("audiolens.audioPathLinks")) {
+        documentLinkCache.clear();
+        audioPathLinkArgs.clear();
+      }
+    }),
     vscode2.commands.registerCommand(OPEN_AUDIO_PATH_COMMAND, async (args) => {
       await openAudioPathLink(args);
     }),
@@ -863,7 +877,14 @@ var AudioPathDocumentLinkProvider = class {
     if (!options.enabled || document.uri.scheme !== "file") {
       return [];
     }
+    const cacheKey = getDocumentLinkCacheKey(document, options);
+    const cached = documentLinkCache.get(cacheKey);
+    if (cached) {
+      return cached.links;
+    }
     const links = [];
+    const linkIds = [];
+    const seenRanges = /* @__PURE__ */ new Set();
     const linesToScan = Math.min(document.lineCount, options.maxScanLines);
     for (let lineIndex = 0; lineIndex < linesToScan; lineIndex += 1) {
       if (token.isCancellationRequested) {
@@ -876,24 +897,25 @@ var AudioPathDocumentLinkProvider = class {
       if (!lineMayContainAudioPath(line)) {
         continue;
       }
-      collectQuotedLinks(document, line, lineIndex, links, options.maxLinksPerDocument);
-      collectUnquotedLinks(document, line, lineIndex, links, options.maxLinksPerDocument);
+      collectQuotedLinks(document, line, lineIndex, links, linkIds, seenRanges, options.maxLinksPerDocument);
+      collectUnquotedLinks(document, line, lineIndex, links, linkIds, seenRanges, options.maxLinksPerDocument);
       if (links.length >= options.maxLinksPerDocument) {
         notifyLinkLimitReached(document, options.maxLinksPerDocument);
+        setDocumentLinkCache(cacheKey, document.uri, links, linkIds);
         return links;
       }
     }
     if (document.lineCount > options.maxScanLines) {
       notifyScanLineLimitReached(document, options.maxScanLines);
     }
+    setDocumentLinkCache(cacheKey, document.uri, links, linkIds);
     return links;
   }
 };
 function lineMayContainAudioPath(line) {
-  const lower = line.toLowerCase();
-  return AUDIO_EXTENSIONS.some((extension) => lower.includes(`.${extension}`));
+  return AUDIO_PATH_HINT_RE.test(line);
 }
-function collectQuotedLinks(document, line, lineIndex, links, maxLinks) {
+function collectQuotedLinks(document, line, lineIndex, links, linkIds, seenRanges, maxLinks) {
   QUOTED_AUDIO_PATH_RE.lastIndex = 0;
   for (let match = QUOTED_AUDIO_PATH_RE.exec(line); match; match = QUOTED_AUDIO_PATH_RE.exec(line)) {
     const text = trimAudioPathCandidate(match[2]);
@@ -901,17 +923,17 @@ function collectQuotedLinks(document, line, lineIndex, links, maxLinks) {
       continue;
     }
     const start = (match.index ?? 0) + 1;
-    addAudioPathLink(document, lineIndex, start, text, links, maxLinks);
+    addAudioPathLink(document, lineIndex, start, text, links, linkIds, seenRanges, maxLinks);
   }
 }
-function collectUnquotedLinks(document, line, lineIndex, links, maxLinks) {
+function collectUnquotedLinks(document, line, lineIndex, links, linkIds, seenRanges, maxLinks) {
   UNQUOTED_AUDIO_PATH_RE.lastIndex = 0;
   for (let match = UNQUOTED_AUDIO_PATH_RE.exec(line); match; match = UNQUOTED_AUDIO_PATH_RE.exec(line)) {
     const text = trimAudioPathCandidate(match[1]);
     if (!shouldLinkAudioPath(text)) {
       continue;
     }
-    addAudioPathLink(document, lineIndex, match.index ?? 0, text, links, maxLinks);
+    addAudioPathLink(document, lineIndex, match.index ?? 0, text, links, linkIds, seenRanges, maxLinks);
   }
 }
 function trimAudioPathCandidate(value) {
@@ -923,38 +945,88 @@ function shouldLinkAudioPath(value) {
   }
   return AUDIO_EXTENSION_RE.test(value);
 }
-function addAudioPathLink(document, lineIndex, startCharacter, text, links, maxLinks) {
+function addAudioPathLink(document, lineIndex, startCharacter, text, links, linkIds, seenRanges, maxLinks) {
+  if (links.length >= maxLinks) {
+    return;
+  }
   const range = new vscode2.Range(
     lineIndex,
     startCharacter,
     lineIndex,
     startCharacter + text.length
   );
-  if (links.length >= maxLinks) {
+  const rangeKey = `${lineIndex}:${startCharacter}:${text.length}`;
+  if (seenRanges.has(rangeKey)) {
     return;
   }
-  if (links.some((link2) => link2.range.isEqual(range))) {
-    return;
-  }
+  seenRanges.add(rangeKey);
   const args = {
     text,
     documentUri: document.uri.toString()
   };
+  const linkId = String(nextAudioPathLinkId++);
+  audioPathLinkArgs.set(linkId, args);
   const target = vscode2.Uri.parse(
-    `command:${OPEN_AUDIO_PATH_COMMAND}?${encodeURIComponent(JSON.stringify([args]))}`
+    `command:${OPEN_AUDIO_PATH_COMMAND}?${encodeURIComponent(JSON.stringify([linkId]))}`
   );
   const link = new vscode2.DocumentLink(range, target);
   link.tooltip = "Open with AudioLens";
   links.push(link);
+  linkIds.push(linkId);
 }
-async function openAudioPathLink(args) {
-  if (!args?.text || !args.documentUri) {
+function getDocumentLinkCacheKey(document, options) {
+  return [
+    document.uri.toString(),
+    document.version,
+    options.maxScanLines,
+    options.maxLineLength,
+    options.maxLinksPerDocument
+  ].join("|");
+}
+function setDocumentLinkCache(cacheKey, documentUri, links, linkIds) {
+  if (documentLinkCache.has(cacheKey)) {
+    deleteDocumentLinkCacheEntry(cacheKey);
+  }
+  documentLinkCache.set(cacheKey, {
+    documentUri: documentUri.toString(),
+    links,
+    linkIds
+  });
+  while (documentLinkCache.size > MAX_CACHED_DOCUMENTS) {
+    const oldestKey = documentLinkCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    deleteDocumentLinkCacheEntry(oldestKey);
+  }
+}
+function deleteDocumentLinkCache(documentUri) {
+  const uriText = documentUri.toString();
+  for (const [key, cached] of documentLinkCache) {
+    if (cached.documentUri === uriText) {
+      deleteDocumentLinkCacheEntry(key);
+    }
+  }
+}
+function deleteDocumentLinkCacheEntry(cacheKey) {
+  const cached = documentLinkCache.get(cacheKey);
+  if (!cached) {
     return;
   }
-  const sourceUri = vscode2.Uri.parse(args.documentUri);
-  const resolved = await resolveAudioPath(args.text, sourceUri);
+  for (const linkId of cached.linkIds) {
+    audioPathLinkArgs.delete(linkId);
+  }
+  documentLinkCache.delete(cacheKey);
+}
+async function openAudioPathLink(args) {
+  const resolvedArgs = typeof args === "string" ? audioPathLinkArgs.get(args) : args;
+  if (!resolvedArgs?.text || !resolvedArgs.documentUri) {
+    return;
+  }
+  const sourceUri = vscode2.Uri.parse(resolvedArgs.documentUri);
+  const resolved = await resolveAudioPath(resolvedArgs.text, sourceUri);
   if (!resolved) {
-    void vscode2.window.showWarningMessage(`AudioLens cannot resolve audio path: ${args.text}`);
+    void vscode2.window.showWarningMessage(`AudioLens cannot resolve audio path: ${resolvedArgs.text}`);
     return;
   }
   await vscode2.commands.executeCommand("vscode.openWith", resolved, AUDIO_LENS_VIEW_TYPE);
