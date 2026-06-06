@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.3
+
+Marketplace discoverability update.
+
+- Refined the Marketplace description and keywords around speech datasets, audio annotation, raw PCM, Kaldi wav ark, and Remote SSH workflows.
+- Added Data Science and Machine Learning categories alongside Visualization.
+- Reworked the README opening section to emphasize practical AudioLens workflows for search and first-page discovery.
+
 ## 1.3.2
 
 Audio path action performance update.

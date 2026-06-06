@@ -1,8 +1,8 @@
 {
   "name": "audiolens",
   "displayName": "AudioLens — Audio inspection for VS Code",
-  "description": "Audio preview and viewer with waveform inspection and spectrogram analysis for VS Code.",
-  "version": "1.3.2",
+  "description": "Audio viewer for speech and ML workflows with waveforms, spectrograms, raw PCM, Kaldi wav ark, and Remote SSH support.",
+  "version": "1.3.3",
   "publisher": "simzhou",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "logo/icon.png",
@@ -27,7 +27,8 @@
   },
   "categories": [
     "Visualization",
-    "Other"
+    "Data Science",
+    "Machine Learning"
   ],
   "keywords": [
     "audio",
@@ -36,22 +37,30 @@
     "audio-analysis",
     "waveform",
     "waveform-viewer",
-    "spectrum",
     "spectrogram",
     "spectrogram-viewer",
     "speech",
-    "rms",
-    "dbfs",
-    "fft",
-    "stft",
-    "custom-editor",
+    "speech-recognition",
+    "speech-dataset",
+    "audio-dataset",
+    "audio-annotation",
+    "machine-learning",
+    "data-science",
+    "kaldi",
+    "wav-ark",
     "wav",
     "mp3",
     "flac",
     "ogg",
     "remote-ssh",
+    "remote-development",
     "pcm",
-    "raw-audio"
+    "raw-pcm",
+    "raw-audio",
+    "pcm-viewer",
+    "fft",
+    "stft",
+    "dbfs"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -270,7 +279,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.3.2.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.3.3.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

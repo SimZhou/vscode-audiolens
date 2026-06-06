@@ -8,13 +8,17 @@
   English | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.zh-CN.md">简体中文</a> | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.ja.md">日本語</a>
 </p>
 
-<p align="center"><em>"I am ashamed to say that I have done only a tiny bit of work."</em></p>
+AudioLens is an audio viewer and analysis extension for Visual Studio Code. It is built for speech datasets, audio annotation, machine learning, signal inspection, and data workflows where audio files should stay next to the code, labels, scripts, and test data that explain them.
 
----
+Open `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, raw `pcm` / `raw`, or Kaldi `wav.ark:offset` audio and AudioLens shows playback, multi-channel tracks, waveforms, spectrograms, selection playback, PCM settings, file header details, and practical analysis metrics inside a read-only VS Code editor. It works in local workspaces and Remote SSH windows.
 
-AudioLens is an audio viewer and analysis extension for Visual Studio Code. It is built for speech, audio, machine learning, and data annotation work where audio files should stay next to the code, labels, scripts, and test data that explain them.
+## Common Workflows
 
-Open an audio file and AudioLens shows playback, multi-channel tracks, waveforms, spectrograms, selection playback, PCM settings, and practical analysis metrics inside a read-only VS Code editor.
+- Inspect speech and audio datasets directly inside VS Code.
+- Review waveform and spectrogram details while editing labels, manifests, logs, and scripts.
+- Open audio paths from text files without switching tools.
+- Analyze selected regions for RMS, peak level, clipping, dominant frequency, spectral centroid, and other metrics.
+- Open raw PCM files and Kaldi wav ark entries without downloading or converting the whole dataset first.
 
 ## Preview
 
@@ -56,7 +60,7 @@ code --install-extension simzhou.audiolens
 For offline installation, download a packaged VSIX from GitHub Releases or install a local packaged build:
 
 ```bash
-code --install-extension dist/audiolens-1.3.2.vsix
+code --install-extension dist/audiolens-1.3.3.vsix
 ```
 
 ## Feature Demos
