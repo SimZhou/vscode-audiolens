@@ -49,6 +49,9 @@ interface AnalysisSettings {
   channel: number;
   minDb: number;
   maxDb: number;
+  spectrogramMinHz: number;
+  spectrogramMaxHz: number;
+  spectrogramMaxFollowsNyquist: boolean;
   autoBrightness: boolean;
   amplitudeZoom: number;
   timeZoom: number;
@@ -1381,6 +1384,9 @@ export class AudioLensApp {
     channel: 0,
     minDb: -96,
     maxDb: 0,
+    spectrogramMinHz: 0,
+    spectrogramMaxHz: 8000,
+    spectrogramMaxFollowsNyquist: true,
     autoBrightness: true,
     amplitudeZoom: 1,
     timeZoom: 1,
@@ -1768,6 +1774,9 @@ export class AudioLensApp {
     this.elements.wavPcmPanel.addEventListener("keydown", (event) => {
       this.handlePcmPanelEnter(event, () => this.applyWavPcmFormat());
     });
+    this.elements.selectionContextMenu.addEventListener("click", (event) => {
+      this.handleSelectionContextMenuClick(event);
+    });
     document.addEventListener("pointerdown", (event) => {
       this.closeFloatingMenusFromPointer(event);
     });
@@ -1830,6 +1839,20 @@ export class AudioLensApp {
       this.savePreferencesSoon();
       this.analyze();
     });
+    this.elements.spectrogramMaxFollowsNyquist.addEventListener("change", () => {
+      this.settings.spectrogramMaxFollowsNyquist = this.elements.spectrogramMaxFollowsNyquist.checked;
+      if (this.settings.spectrogramMaxFollowsNyquist) {
+        this.settings.spectrogramMaxHz = Math.round(this.nyquistFrequency());
+        this.elements.spectrogramMaxHz.value = String(this.settings.spectrogramMaxHz);
+      }
+      this.updateSpectrogramFrequencySettings({ syncDisplay: true });
+    });
+    this.elements.spectrogramMinHz.addEventListener("input", () => this.updateSpectrogramFrequencySettings({ source: "min" }));
+    this.elements.spectrogramMaxHz.addEventListener("input", () => this.updateSpectrogramFrequencySettings({ source: "max" }));
+    this.elements.spectrogramMinHz.addEventListener("blur", () => this.syncControls());
+    this.elements.spectrogramMaxHz.addEventListener("blur", () => this.syncControls());
+    this.elements.spectrogramMinHz.addEventListener("dblclick", () => this.resetSpectrogramFrequencyRange());
+    this.elements.spectrogramMaxHz.addEventListener("dblclick", () => this.resetSpectrogramFrequencyRange());
     this.elements.palette.addEventListener("change", () => {
       this.settings.palette = this.elements.palette.value as SpectrogramPalette;
       this.savePreferencesSoon();
@@ -2004,6 +2027,10 @@ export class AudioLensApp {
   }
 
   private handleEscape(): void {
+    if (!this.elements.selectionContextMenu.hidden) {
+      this.hideSelectionContextMenu();
+      return;
+    }
     if (!this.elements.settingsPanel.hidden) {
       this.elements.settingsPanel.hidden = true;
       this.elements.settingsToggle.focus();
@@ -2058,6 +2085,9 @@ export class AudioLensApp {
     }
     if (this.helpMenuElement().open && !this.elements.helpMenu.contains(target)) {
       this.helpMenuElement().open = false;
+    }
+    if (!this.elements.selectionContextMenu.hidden && !this.elements.selectionContextMenu.contains(target)) {
+      this.hideSelectionContextMenu();
     }
     if (
       !this.elements.headerInfoPanel.hidden &&
@@ -2313,6 +2343,42 @@ export class AudioLensApp {
     this.vscode.postMessage({ type: "downloadAudio" });
   }
 
+  private downloadSelectionAsWav(): void {
+    if (!this.audioBuffer || !this.selection) {
+      this.reportPlaybackError(this.messages.noSelectionToDownload);
+      return;
+    }
+
+    const startFrame = clamp(Math.floor(this.selection.start * this.audioBuffer.sampleRate), 0, this.audioBuffer.length);
+    const endFrame = clamp(Math.ceil(this.selection.end * this.audioBuffer.sampleRate), startFrame, this.audioBuffer.length);
+    if (endFrame <= startFrame) {
+      this.reportPlaybackError(this.messages.noSelectionToDownload);
+      return;
+    }
+
+    const fileName = this.selectionWavFileName(this.selection.start, this.selection.end);
+    const bytes = encodeWav(this.audioBuffer, startFrame, endFrame);
+    this.vscode.postMessage({
+      type: "downloadSelectionWav",
+      fileName,
+      bytesBase64: arrayBufferToBase64(bytes),
+      saveLabel: this.messages.downloadSelection,
+      title: this.messages.downloadSelectionWav
+    });
+  }
+
+  private selectionWavFileName(start: number, end: number): string {
+    const base = sanitizeFileNameBase(this.currentFileName || "audio");
+    return `${base}_selection_${formatSelectionTime(start)}s-${formatSelectionTime(end)}s.wav`;
+  }
+
+  private clearSelection(): void {
+    this.selection = undefined;
+    this.selectionPlaybackEnd = undefined;
+    this.updateSelectionAnalysis();
+    this.redrawVisuals();
+  }
+
   private syncControls(): void {
     this.elements.algorithm.value = this.settings.algorithm;
     this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
@@ -2324,6 +2390,10 @@ export class AudioLensApp {
     this.elements.amplitudeZoom.value = String(this.settings.amplitudeZoom);
     this.elements.minDb.value = String(this.settings.minDb);
     this.elements.maxDb.value = String(this.settings.maxDb);
+    const frequencyRange = this.spectrogramFrequencyRange();
+    this.elements.spectrogramMinHz.value = String(Math.round(frequencyRange.minHz));
+    this.elements.spectrogramMaxHz.value = String(Math.round(frequencyRange.maxHz));
+    this.elements.spectrogramMaxFollowsNyquist.checked = this.settings.spectrogramMaxFollowsNyquist;
     this.elements.autoBrightness.checked = this.settings.autoBrightness;
     this.elements.frequencyScale.value = this.settings.frequencyScale;
     this.elements.palette.value = this.settings.palette;
@@ -2359,6 +2429,39 @@ export class AudioLensApp {
     this.settings.maxDb = range.maxDb;
     this.settings.autoBrightness = false;
     this.elements.autoBrightness.checked = false;
+    this.updateSpectrogramFrequencySettings();
+  }
+
+  private updateSpectrogramFrequencySettings(options: { source?: "min" | "max"; syncDisplay?: boolean } = {}): void {
+    if (options.source === "max") {
+      this.settings.spectrogramMaxFollowsNyquist = false;
+      this.elements.spectrogramMaxFollowsNyquist.checked = false;
+    }
+    const nyquist = this.nyquistFrequency();
+    const minText = this.elements.spectrogramMinHz.value.trim();
+    const maxText = this.elements.spectrogramMaxHz.value.trim();
+    const minHzRaw = Number(minText);
+    const maxHzRaw = Number(maxText);
+    const previousRange = this.spectrogramFrequencyRange();
+    const minHz = minText !== "" && Number.isFinite(minHzRaw) ? minHzRaw : previousRange.minHz;
+    const maxHz = maxText !== "" && Number.isFinite(maxHzRaw) ? maxHzRaw : previousRange.maxHz;
+    const range = normalizeFrequencyRange(minHz, maxHz, this.settings.spectrogramMaxFollowsNyquist, nyquist);
+    this.settings.spectrogramMinHz = range.minHz;
+    this.settings.spectrogramMaxHz = range.storedMaxHz;
+    this.savePreferencesSoon();
+    if (options.syncDisplay) {
+      this.syncControls();
+    } else {
+      this.elements.spectrogramMaxFollowsNyquist.checked = this.settings.spectrogramMaxFollowsNyquist;
+    }
+    this.redrawVisuals();
+    this.analyze();
+  }
+
+  private resetSpectrogramFrequencyRange(): void {
+    this.settings.spectrogramMinHz = 0;
+    this.settings.spectrogramMaxHz = Math.round(this.nyquistFrequency());
+    this.settings.spectrogramMaxFollowsNyquist = true;
     this.savePreferencesSoon();
     this.syncControls();
     this.redrawVisuals();
@@ -2391,6 +2494,15 @@ export class AudioLensApp {
       const range = normalizeDbRange(preferences.minDb, preferences.maxDb);
       this.settings.minDb = range.minDb;
       this.settings.maxDb = range.maxDb;
+    }
+    if (preferences.spectrogramMaxFollowsNyquist !== undefined) {
+      this.settings.spectrogramMaxFollowsNyquist = preferences.spectrogramMaxFollowsNyquist;
+    }
+    if (preferences.spectrogramMinHz !== undefined) {
+      this.settings.spectrogramMinHz = preferences.spectrogramMinHz;
+    }
+    if (preferences.spectrogramMaxHz !== undefined) {
+      this.settings.spectrogramMaxHz = preferences.spectrogramMaxHz;
     }
     if (preferences.autoBrightness !== undefined) {
       this.settings.autoBrightness = preferences.autoBrightness;
@@ -2427,6 +2539,9 @@ export class AudioLensApp {
       palette: this.settings.palette,
       minDb: this.settings.minDb,
       maxDb: this.settings.maxDb,
+      spectrogramMinHz: this.settings.spectrogramMinHz,
+      spectrogramMaxHz: this.settings.spectrogramMaxHz,
+      spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
       autoBrightness: this.settings.autoBrightness,
       playbackGain: this.settings.playbackGain,
       waveformHeight: this.getPlotHeight(this.elements.waveformPane),
@@ -3247,6 +3362,7 @@ export class AudioLensApp {
     const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
     const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
     const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, outputBins, targetFrames);
+    const frequencyRange = this.spectrogramFrequencyRange();
     const cached = this.spectrogramCache.get(cacheKey);
     if (cached) {
       this.drawSpectrogramCanvas(view.spectrogram, cached);
@@ -3279,6 +3395,8 @@ export class AudioLensApp {
           hopSize,
           minDb: this.settings.minDb,
           maxDb: this.settings.maxDb,
+          minFrequencyHz: frequencyRange.minHz,
+          maxFrequencyHz: frequencyRange.maxHz,
           frequencyScale: this.settings.frequencyScale,
           palette: this.settings.palette
         }
@@ -3293,6 +3411,7 @@ export class AudioLensApp {
     const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
     const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));
     const { startSample, endSample } = this.visibleRange();
+    const frequencyRange = this.spectrogramFrequencyRange();
     return createAnalysisCacheKey({
       channel,
       startSample,
@@ -3305,6 +3424,8 @@ export class AudioLensApp {
       targetFrames: frames,
       minDb: this.settings.minDb,
       maxDb: this.settings.maxDb,
+      spectrogramMinHz: frequencyRange.minHz,
+      spectrogramMaxHz: frequencyRange.maxHz,
       frequencyScale: this.settings.frequencyScale,
       palette: this.settings.palette
     });
@@ -3515,9 +3636,61 @@ export class AudioLensApp {
   private bindFigureInteraction(canvas: HTMLCanvasElement): void {
     let startX = 0;
     let isDragging = false;
+    let activePointerId: number | undefined;
+    const cleanupDragListeners = () => {
+      window.removeEventListener("pointermove", handleDragMove);
+      window.removeEventListener("pointerup", finishDrag);
+      window.removeEventListener("pointercancel", cancelDrag);
+    };
+    const cancelDrag = () => {
+      if (!isDragging) {
+        return;
+      }
+      isDragging = false;
+      activePointerId = undefined;
+      cleanupDragListeners();
+      this.isDraggingSelection = false;
+      this.dragPlayheadTime = undefined;
+      this.hideSelectionBox();
+      this.redrawVisuals();
+    };
+    const handleDragMove = (event: PointerEvent) => {
+      if (!isDragging || event.pointerId !== activePointerId) {
+        return;
+      }
+      this.updateSelectionBox(canvas, startX, event.clientX);
+    };
+    const finishDrag = (event: PointerEvent) => {
+      if (!isDragging || event.pointerId !== activePointerId) {
+        return;
+      }
+      isDragging = false;
+      activePointerId = undefined;
+      cleanupDragListeners();
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+      this.isDraggingSelection = false;
+      this.hideSelectionBox();
+      if (Math.abs(startX - event.clientX) < MIN_DRAG_PIXELS) {
+        this.setPlayheadFromPointer(canvas, event.clientX);
+      } else {
+        this.setSelectionFromPointer(canvas, startX, event.clientX);
+      }
+      this.dragPlayheadTime = undefined;
+      this.drawTimeline();
+    };
 
     canvas.addEventListener("contextmenu", (event) => {
       event.preventDefault();
+      if (this.selection) {
+        if (this.isPointerInsideSelection(canvas, event.clientX)) {
+          this.showSelectionContextMenu(event.clientX, event.clientY);
+        } else {
+          this.clearSelection();
+        }
+        return;
+      }
       this.resetView();
     });
     canvas.addEventListener(
@@ -3531,43 +3704,20 @@ export class AudioLensApp {
       if (event.button !== 0) {
         return;
       }
+      cancelDrag();
       isDragging = true;
+      activePointerId = event.pointerId;
       this.isDraggingSelection = true;
       this.selectionPlaybackEnd = undefined;
       startX = event.clientX;
       this.setDragPlayheadFromPointer(canvas, startX);
       canvas.setPointerCapture(event.pointerId);
       this.updateSelectionBox(canvas, startX, event.clientX);
+      window.addEventListener("pointermove", handleDragMove);
+      window.addEventListener("pointerup", finishDrag);
+      window.addEventListener("pointercancel", cancelDrag);
     });
-    canvas.addEventListener("pointermove", (event) => {
-      if (!isDragging) {
-        return;
-      }
-      this.updateSelectionBox(canvas, startX, event.clientX);
-    });
-    canvas.addEventListener("pointerup", (event) => {
-      if (!isDragging) {
-        return;
-      }
-      isDragging = false;
-      canvas.releasePointerCapture(event.pointerId);
-      this.isDraggingSelection = false;
-      this.hideSelectionBox();
-      if (Math.abs(startX - event.clientX) < MIN_DRAG_PIXELS) {
-        this.setPlayheadFromPointer(canvas, event.clientX);
-      } else {
-        this.setSelectionFromPointer(canvas, startX, event.clientX);
-      }
-      this.dragPlayheadTime = undefined;
-      this.drawTimeline();
-    });
-    canvas.addEventListener("pointercancel", () => {
-      isDragging = false;
-      this.isDraggingSelection = false;
-      this.dragPlayheadTime = undefined;
-      this.hideSelectionBox();
-      this.redrawVisuals();
-    });
+    window.addEventListener("blur", cancelDrag);
   }
 
   private handleWheel(event: WheelEvent, canvas: HTMLCanvasElement): void {
@@ -3659,6 +3809,7 @@ export class AudioLensApp {
       return;
     }
     this.selection = selection;
+    this.hideSelectionContextMenu();
     this.playheadTime = selection.start;
     this.dragPlayheadTime = undefined;
     this.selectionPlaybackEnd = this.elements.audio.paused ? undefined : selection.end;
@@ -3666,6 +3817,49 @@ export class AudioLensApp {
     this.updateClock();
     this.updateSelectionAnalysis();
     this.redrawVisuals();
+  }
+
+  private showSelectionContextMenu(clientX: number, clientY: number): void {
+    const menu = this.elements.selectionContextMenu;
+    menu.hidden = false;
+    const rect = menu.getBoundingClientRect();
+    const margin = 8;
+    const left = clamp(clientX, margin, Math.max(margin, window.innerWidth - rect.width - margin));
+    const top = clamp(clientY, margin, Math.max(margin, window.innerHeight - rect.height - margin));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.querySelector<HTMLElement>("button")?.focus();
+  }
+
+  private isPointerInsideSelection(canvas: HTMLCanvasElement, clientX: number): boolean {
+    if (!this.selection || !this.audioBuffer) {
+      return false;
+    }
+    const time = clamp(this.timeFromCanvasX(canvas, clientX), 0, this.audioBuffer.duration);
+    return time >= this.selection.start && time <= this.selection.end;
+  }
+
+  private hideSelectionContextMenu(): void {
+    this.elements.selectionContextMenu.hidden = true;
+  }
+
+  private handleSelectionContextMenuClick(event: Event): void {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    const action = target.closest<HTMLButtonElement>("button[data-action]")?.dataset.action;
+    if (!action) {
+      return;
+    }
+    this.hideSelectionContextMenu();
+    if (action === "download-selection") {
+      this.downloadSelectionAsWav();
+      return;
+    }
+    if (action === "clear-selection") {
+      this.clearSelection();
+    }
   }
 
   private updateSelectionBox(canvas: HTMLCanvasElement, fromX: number, toX: number): void {
@@ -3871,6 +4065,19 @@ export class AudioLensApp {
     return this.sourceSampleRate ?? this.audioBuffer?.sampleRate ?? 1;
   }
 
+  private nyquistFrequency(): number {
+    return Math.max(1, this.analysisSampleRate() / 2);
+  }
+
+  private spectrogramFrequencyRange(): { minHz: number; maxHz: number; storedMaxHz: number } {
+    return normalizeFrequencyRange(
+      this.settings.spectrogramMinHz,
+      this.settings.spectrogramMaxHz,
+      this.settings.spectrogramMaxFollowsNyquist,
+      this.nyquistFrequency()
+    );
+  }
+
   private getPlotRect(canvas: HTMLCanvasElement): PlotRect {
     if (canvas.classList.contains("trackWaveform") || canvas.classList.contains("trackSpectrogram")) {
       const ratio = window.devicePixelRatio || 1;
@@ -3944,11 +4151,11 @@ export class AudioLensApp {
     context.strokeStyle = axisGridColor();
     context.font = axisFont();
     context.textAlign = "right";
-    const nyquist = this.analysisSampleRate() / 2;
+    const frequencyRange = this.spectrogramFrequencyRange();
     const ticks = 5;
     for (let index = 0; index <= ticks; index += 1) {
       const ratio = index / ticks;
-      const frequency = frequencyFromRatio(ratio, this.settings.frequencyScale, nyquist);
+      const frequency = frequencyFromRatio(ratio, this.settings.frequencyScale, frequencyRange.minHz, frequencyRange.maxHz);
       const y = rect.bottom - ratio * rect.height;
       context.beginPath();
       context.moveTo(rect.left, y);
@@ -4073,10 +4280,12 @@ async function decodeAudioDataWithTimeout(audioContext: AudioContext, bytes: Uin
   }
 }
 
-function encodeWav(audioBuffer: AudioBuffer): ArrayBuffer {
+function encodeWav(audioBuffer: AudioBuffer, startFrame = 0, endFrame = audioBuffer.length): ArrayBuffer {
   const channels = audioBuffer.numberOfChannels;
   const sampleRate = audioBuffer.sampleRate;
-  const frames = audioBuffer.length;
+  const start = clamp(Math.floor(startFrame), 0, audioBuffer.length);
+  const end = clamp(Math.ceil(endFrame), start, audioBuffer.length);
+  const frames = end - start;
   const bytesPerSample = 2;
   const blockAlign = channels * bytesPerSample;
   const dataSize = frames * blockAlign;
@@ -4099,8 +4308,9 @@ function encodeWav(audioBuffer: AudioBuffer): ArrayBuffer {
   const channelData = Array.from({ length: channels }, (_, channel) => audioBuffer.getChannelData(channel));
   let offset = 44;
   for (let frame = 0; frame < frames; frame += 1) {
+    const sourceFrame = start + frame;
     for (let channel = 0; channel < channels; channel += 1) {
-      const value = clamp(channelData[channel][frame] ?? 0, -1, 1);
+      const value = clamp(channelData[channel][sourceFrame] ?? 0, -1, 1);
       view.setInt16(offset, value < 0 ? value * 32768 : value * 32767, true);
       offset += bytesPerSample;
     }
@@ -4112,6 +4322,27 @@ function writeAscii(view: DataView, offset: number, value: string): void {
   for (let index = 0; index < value.length; index += 1) {
     view.setUint8(offset + index, value.charCodeAt(index));
   }
+}
+
+function sanitizeFileNameBase(fileName: string): string {
+  const withoutExtension = fileName.replace(/\.[^/.\\]+$/, "");
+  const sanitized = withoutExtension.replace(/[<>:"/\\|?*\x00-\x1f]+/g, "_").replace(/\s+/g, "_").replace(/^_+|_+$/g, "");
+  return sanitized || "audio";
+}
+
+function formatSelectionTime(time: number): string {
+  return Math.max(0, time).toFixed(3);
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    const chunk = bytes.subarray(offset, offset + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
 }
 
 function axisFont(): string {
@@ -4437,26 +4668,46 @@ function readUint32Le(bytes: Uint8Array, offset: number): number {
   ) >>> 0;
 }
 
-function frequencyFromRatio(ratio: number, scale: FrequencyScale, nyquist: number): number {
+function frequencyFromRatio(ratio: number, scale: FrequencyScale, minHz: number, maxHz: number): number {
   const r = clamp(ratio, 0, 1);
-  const top = Math.max(1, nyquist);
+  const bottom = Math.max(0, Math.min(minHz, maxHz - 1));
+  const top = Math.max(bottom + 1, maxHz);
   if (scale === "log") {
-    if (r <= 0) {
-      return 0;
+    if (top <= 20) {
+      return bottom + r * (top - bottom);
     }
     const low = 20;
-    return Math.min(top, low * Math.pow(top / low, r));
+    if (bottom <= 0 && r <= 0) {
+      return 0;
+    }
+    const minCoord = bottom <= 0 ? 0 : Math.log(Math.max(low, bottom) / low) / Math.log(top / low);
+    return Math.min(top, low * Math.pow(top / low, minCoord + r * (1 - minCoord)));
   }
   if (scale === "mel") {
-    return melToHz(r * hzToMel(top));
+    const minMel = hzToMel(bottom);
+    return melToHz(minMel + r * (hzToMel(top) - minMel));
   }
   if (scale === "bark") {
-    return barkToHz(r * hzToBark(top));
+    const minBark = hzToBark(bottom);
+    return barkToHz(minBark + r * (hzToBark(top) - minBark));
   }
   if (scale === "erb") {
-    return erbToHz(r * hzToErb(top));
+    const minErb = hzToErb(bottom);
+    return erbToHz(minErb + r * (hzToErb(top) - minErb));
   }
-  return r * top;
+  return bottom + r * (top - bottom);
+}
+
+function normalizeFrequencyRange(minHz: number, maxHz: number, followsNyquist: boolean, nyquist: number): { minHz: number; maxHz: number; storedMaxHz: number } {
+  const top = Math.max(1, Math.floor(nyquist));
+  const safeMin = clamp(Number.isFinite(minHz) ? Math.floor(minHz) : 0, 0, Math.max(0, top - 1));
+  const storedMaxHz = Math.max(1, Math.floor(Number.isFinite(maxHz) ? maxHz : top));
+  const effectiveMax = followsNyquist ? top : clamp(storedMaxHz, safeMin + 1, top);
+  return {
+    minHz: Math.min(safeMin, effectiveMax - 1),
+    maxHz: effectiveMax,
+    storedMaxHz
+  };
 }
 
 function hzToMel(hz: number): number {

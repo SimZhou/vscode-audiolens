@@ -5,16 +5,50 @@
 <h1 align="center">AudioLens</h1>
 
 <p align="center">
+  <strong>VS Code の中で、音声・ML・信号エンジニアリング向けに音声を確認・解析するためのツールです。</strong>
+</p>
+
+<p align="center">
+  <a href="#1-マルチチャンネルトラックと複合表示">波形</a> ·
+  <a href="#1-マルチチャンネルトラックと複合表示">スペクトログラム</a> ·
+  <a href="#1-マルチチャンネルトラックと複合表示">マルチチャンネル</a> ·
+  <a href="#2-選択範囲の再生と解析">選択範囲解析</a> ·
+  <a href="#3-pcm--raw-ファイルを開く">Raw PCM</a> ·
+  <a href="#6-kaldi-wav-ark-を直接開く">Kaldi WAV Ark</a> ·
+  <a href="#remote-ssh-で使う">Remote SSH</a>
+</p>
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://img.shields.io/badge/VS%20Marketplace-Install-007ACC?logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace からインストール"></a>
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/v/simzhou/audiolens?label=Open%20VSX" alt="Open VSX version"></a>
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/dt/simzhou/audiolens?label=Open%20VSX%20downloads" alt="Open VSX downloads"></a>
+  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><img src="https://img.shields.io/github/v/release/SimZhou/vscode-audiolens?label=release" alt="GitHub release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 License"></a>
+</p>
+
+<p align="center">
+  <a href="#1-マルチチャンネルトラックと複合表示"><img src="https://img.shields.io/badge/%E3%83%9E%E3%83%AB%E3%83%81%E3%83%81%E3%83%A3%E3%83%B3%E3%83%8D%E3%83%AB-%E9%9F%B3%E5%A3%B0%E3%83%88%E3%83%A9%E3%83%83%E3%82%AF-2ea44f" alt="マルチチャンネル音声トラック"></a>
+  <a href="#2-選択範囲の再生と解析"><img src="https://img.shields.io/badge/%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0-%E8%A7%A3%E6%9E%90-7c3aed" alt="スペクトログラム解析"></a>
+  <a href="#3-pcm--raw-ファイルを開く"><img src="https://img.shields.io/badge/Raw%20PCM-%E5%AF%BE%E5%BF%9C-f97316" alt="Raw PCM 対応"></a>
+  <a href="#6-kaldi-wav-ark-を直接開く"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-%E5%AF%BE%E5%BF%9C-0ea5e9" alt="Kaldi WAV Ark 対応"></a>
+  <a href="#remote-ssh-で使う"><img src="https://img.shields.io/badge/Remote%20SSH-%E5%AF%BE%E5%BF%9C-2563eb" alt="Remote SSH 対応"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.md">English</a> | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.zh-CN.md">简体中文</a> | 日本語
 </p>
 
-<p align="center"><em>"恥ずかしながら、ほんの小さな仕事をしただけです。"</em></p>
+AudioLens は VS Code を実用的な音声ビューアに変えます。音声エンジニア、スピーチエンジニア、ML 実務者が、manifest、書き起こし、ログ、スクリプト、モデル出力の横で、一般的な音声ファイル、Raw PCM ダンプ、Kaldi WAV Ark エントリを直接開けます。
 
----
+AudioLens は汎用プレイヤーでは足りない日常的なエンジニアリング作業に焦点を当てています。波形とスペクトログラムの確認、マルチチャンネル音声のレビュー、テキスト内の音声パスを開く操作、明示的なパラメータによる Raw PCM のデコード、ヘッダー確認、選択範囲の解析を、ワークスペースから離れずに行えます。
 
-AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張機能です。音声、スピーチ、機械学習、データアノテーションの作業で、音声ファイルをコード、ラベル、スクリプト、テストデータと同じワークスペース内で確認できるようにします。
-
-音声ファイルを開くと、AudioLens は読み取り専用エディタの中で再生、マルチチャンネルトラック、波形、スペクトログラム、選択範囲再生、PCM 設定、実用的な解析指標を表示します。
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><strong>VS Code Marketplace からインストール</strong></a>
+  ·
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><strong>Open VSX からインストール</strong></a>
+  ·
+  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><strong>VSIX をダウンロード</strong></a>
+</p>
 
 ## プレビュー
 
@@ -22,20 +56,49 @@ AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張�
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/Main-Screen-multichannel.ja-JP.png" alt="AudioLens マルチチャンネルメイン画面" width="920">
 </p>
 
-## 主な機能
+## AudioLens を選ぶ理由
 
-- `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` ファイル、および Kaldi wav ark エントリを開けます。
-- テキストファイル内の対応音声パスをリンク化し、AudioLens で開けます。
-- モノラルとマルチチャンネル音声を、Audacity 風の独立したトラックとして表示します。
-- 各チャンネルごとに波形、スペクトログラム、波形 + スペクトログラムの複合表示を選べます。
-- チャンネルごとのミュートとソロに対応し、再生時は通常のステレオ出力へダウンミックスします。
-- 上部バーから WAV、FLAC、Ogg、MP4/M4A、AAC、MP3 のコンテナまたはコーデックヘッダーを確認できます。
-- サンプルレート、チャンネル数、エンコード、バイト順、開始オフセットを指定して raw PCM を読み込めます。
-- WAV ファイルを raw PCM として一時的に読み直せるため、ヘッダーオフセットや破損ファイルの確認に使えます。
-- `wav.ark:offset` から Kaldi wav ark 音声エントリを開け、ark ファイル全体は読み込みません。
-- 選択範囲に対して時間領域と周波数領域の解析指標を計算します。
-- スペクトログラム設定、再生ゲイン、デフォルトのトラック表示、PCM 既定値などを保存します。
-- ローカル VS Code と Remote SSH ワークスペースの両方で動作します。
+| ワークフロー | AudioLens が提供するもの |
+| --- | --- |
+| 音声・ML データセット | manifest、書き起こし、ログ、学習スクリプト、モデル出力の横で音声を確認できます。 |
+| マルチチャンネル音声 | Audacity 風のチャンネルトラック、チャンネルごとの波形/スペクトログラム、ミュート、ソロ、ステレオ downmix 再生。 |
+| 音声解析 | 範囲をドラッグし、その選択範囲だけを再生し、RMS、ピーク、クリッピング、支配周波数、スペクトル重心、ゼロ交差率、帯域別エネルギーを確認できます。 |
+| Raw データの調査 | サンプルレート、チャンネル数、エンコード、バイト順、バイトオフセットを明示して `.pcm` / `.raw` を開けます。破損または非標準の WAV payload を PCM として読み直すこともできます。 |
+| Kaldi ワークフロー | `wav.ark:offset` エントリを開くか、Ark ファイルを開いて offset を手動入力できます。archive 全体を読み込む必要はありません。 |
+| リモート開発 | workspace extension として動作するため、Remote SSH ワークスペース上の音声を先にコピーせずにプレビュー・解析できます。 |
+
+## コア機能
+
+| 領域 | 機能 |
+| --- | --- |
+| 再生 | 音声を開いた直後から `Space` で再生/一時停止、seek、選択範囲再生、再生ゲイン、チャンネルごとのミュートとソロ。 |
+| 可視化 | 波形、スペクトログラム、複合表示、共有タイムライン、設定可能なトラック高さ、ズーム、パン、リセット。 |
+| スペクトログラム解析 | Frequency、Reassignment、Pitch (EAC) アルゴリズム、最大 `32768` の FFT、多様な窓関数、周波数スケール、パレット、自動輝度。 |
+| ファイル確認 | WAV/RIFF、FLAC、Ogg、MP4/M4A、AAC/ADTS、MP3/MPEG フレームの構造化ヘッダー表示。 |
+| データセット移動 | 通常のテキストファイル内の音声パスを hover、ステータスバー、コマンドから開けます。大量の inline link は生成しません。 |
+| 設定保存 | デフォルトのトラック表示、スペクトログラム設定、再生ゲイン、PCM 既定値、表示言語を保存します。 |
+
+## インストール
+
+**推奨: Visual Studio Marketplace からインストール**
+
+https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
+
+**代替: Open VSX からインストール**
+
+https://open-vsx.org/extension/simzhou/audiolens
+
+**コマンドライン**
+
+```bash
+code --install-extension simzhou.audiolens
+```
+
+**オフライン VSIX**
+
+```bash
+code --install-extension dist/audiolens-1.4.0.vsix
+```
 
 ## デモ
 
@@ -51,7 +114,7 @@ AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張�
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.ja-JP.gif" alt="選択範囲の再生と解析のデモ" width="920">
 </p>
 
-### 3. PCM / RAW のパラメータ指定読み込み
+### 3. PCM / RAW ファイルを開く
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/3.pcm_raw_parameterized_loading.ja-JP.gif" alt="PCM と RAW のパラメータ指定読み込みデモ" width="920">
@@ -72,7 +135,7 @@ AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張�
 ### 6. Kaldi WAV Ark を直接開く
 
 - 方法 1: `wav.ark:offset` を Ctrl + クリック。Kaldi Reader と併用します: [GitHub](https://github.com/SimZhou/vscode-kaldi-reader)、[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=simzhou.kaldi-reader)、[Open VSX](https://open-vsx.org/extension/simzhou/kaldi-reader)。
-- 方法 2: `.ark` ファイルを開いてオフセットを手動入力。他の拡張機能は不要です。
+- 方法 2: `.ark` ファイルを開いて offset を手動入力。他の拡張機能は不要です。
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/6.open_kaldi_wav_ark_directly.ja-JP.gif" alt="Kaldi WAV Ark を直接開くデモ" width="920">
@@ -89,7 +152,7 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 | エンコード音声 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | まず VS Code Webview のデコーダを使います。主要なコンテナまたはフレームヘッダーを確認でき、必要に応じて拡張ホスト側の FFmpeg によるフォールバック変換を使います。 |
 | Raw PCM | `.pcm`、`.raw` | 読み込み前に PCM パラメータを明示的に指定する必要があります。 |
 
-## マルチチャンネルワークフロー
+## マルチチャンネル音声を見る
 
 マルチチャンネル音声は、実際の各チャンネルを個別のトラックとして表示します。各トラックには左側の小さな操作エリアと、右側の広い解析エリアがあります。
 
@@ -100,7 +163,7 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 
 波形色はチャンネル間で統一されているため、選択状態によって比較しにくくなることはありません。隣接トラックは境界線を共有したコンパクトな表示になり、選択中のトラックには丸みのあるフォーカス枠が表示されます。
 
-## PCM ワークフロー
+## PCM ファイルを開く
 
 `.pcm` と `.raw` ファイルでは、読み込み前に PCM パラメータを指定します。
 
@@ -114,13 +177,13 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 
 WAV ファイルも上部バーから PCM として読み直せます。この操作は現在のファイルに対する一時的な処理で、raw payload、非標準ヘッダー、オフセットに敏感なテストファイルの確認に役立ちます。
 
-## Kaldi WAV Ark ワークフロー
+## Kaldi WAV Ark ファイルを開く
 
 Command Palette から `AudioLens: Open Kaldi WAV Ark Entry` を実行し、`wav.ark:offset` の場所を入力します。`.ark` ファイルを直接開いた場合は、AudioLens が読み込む offset を求めます。
 
 AudioLens が対応するのは、payload が WAV `RIFF/WAVE` ヘッダーから始まる ark エントリだけです。WAV ヘッダーのサイズを使って選択された entry だけを読み込み、ark ファイル全体をスキャンしたり読み込んだりしません。
 
-## 音声パスリンク
+## 任意のファイルから音声パスを開く
 
 AudioLens は通常のテキストファイル内にある対応音声パスを検出し、AudioLens エディタで直接開けます。音声パスにホバーして **AudioLens で開く** をクリックするか、パス上にカーソルを置いてステータスバーの操作または `AudioLens: カーソル位置の音声パスを開く` を使います。絶対パスに加えて、現在のテキストファイルのディレクトリ、workspace フォルダー、任意設定の base directory から相対パスを解決します。
 
@@ -161,6 +224,7 @@ AudioLens は音声や信号確認に使いやすいスペクトログラム設�
 - 窓関数: Rectangular、Bartlett、Hamming、Hann、Blackman、Blackman-Harris、Welch、Gaussian 系
 - ゼロパディング倍率: `1` から `128`
 - 周波数スケール: Linear、Log、Mel、Bark、ERB
+- 表示のみに影響する周波数範囲を設定でき、最大値を Nyquist に追従させることもできます
 - パレット: Rose、Classic、Grayscale、Inverse Grayscale
 - dB 輝度範囲と自動輝度
 
@@ -182,7 +246,7 @@ AudioLens は音声や信号確認に使いやすいスペクトログラム設�
 | Windows/Linux の振幅ズーム | `Alt` + マウスホイール |
 | 再生ゲインをリセット | ゲインスライダーをダブルクリック |
 
-## ローカライズ
+## インターフェース言語
 
 AudioLens は既定で VS Code の表示言語に従います。`audiolens.language` 設定、または Command Palette の `AudioLens: Switch Language` から Webview の言語を上書きできます。
 
@@ -192,7 +256,7 @@ AudioLens は既定で VS Code の表示言語に従います。`audiolens.langu
 
 新しい UI 文字列は、各ロケールの翻訳がそろうまで英語へフォールバックします。
 
-## Remote SSH
+## Remote SSH で使う
 
 AudioLens は workspace extension として動作します。Remote SSH ウィンドウでは、拡張ホストがリモートワークスペース側で動き、リモートの音声ファイルを読み取ってローカルの Webview に渡します。
 
@@ -201,30 +265,6 @@ AudioLens は workspace extension として動作します。Remote SSH ウィ�
 ## プライバシー
 
 AudioLens は音声ファイルを第三者サービスへアップロードしません。音声データは VS Code 拡張ホストで読み取られ、VS Code Webview と Worker ランタイム内で解析されます。
-
-## インストール
-
-Visual Studio Marketplace からインストール:
-
-https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
-
-Open VSX からもインストールできます:
-
-https://open-vsx.org/extension/simzhou/audiolens
-
-またはコマンドラインからインストール:
-
-```bash
-code --install-extension simzhou.audiolens
-```
-
-## VSIX からインストール
-
-GitHub Releases から VSIX をダウンロードするか、ローカルで作成したパッケージをインストールできます:
-
-```bash
-code --install-extension dist/audiolens-1.3.6.vsix
-```
 
 ## 開発
 
@@ -244,7 +284,7 @@ SimZhou: https://simzhou.com/ja/about/
 
 ## AudioLens を支援する
 
-AudioLens が音声、スピーチ、データアノテーションの作業に役立つ場合は、継続的な開発を支援していただけます。
+AudioLens が音声、スピーチ、信号エンジニアリングの作業に役立つ場合は、継続的な開発を支援していただけます。
 
 ### Ko-fi
 
@@ -256,6 +296,8 @@ Ko-fi で AudioLens を支援する: https://ko-fi.com/simzhou
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/wechat_support.jpeg" alt="WeChat appreciation code" width="240">
 </p>
 
-## Copyright
+## ライセンス
 
-Copyright (c) 2026 SimZhou. All rights reserved.
+Copyright (c) 2026 SimZhou.
+
+Licensed under the Apache License, Version 2.0.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+Selection download and adjustable spectrogram frequency range.
+
+- Added selection download: right-click inside an active selection and export that segment as a 16-bit PCM WAV file.
+- Added an adjustable spectrogram display frequency range, with persistent min/max frequency settings and an optional Nyquist-following max-frequency mode.
+- Kept a clear-selection action in the right-click menu so the previous right-click clearing workflow remains available.
+- Refreshed the README layout, badges, feature demos, and multilingual Marketplace-facing documentation.
+- Updated the bundled README and package metadata for Apache License 2.0.
+
 ## 1.3.6
 
 Documentation sync.

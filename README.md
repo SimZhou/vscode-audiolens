@@ -5,20 +5,50 @@
 <h1 align="center">AudioLens</h1>
 
 <p align="center">
+  <strong>Audio inspection for speech, ML, and signal engineering workflows inside VS Code.</strong>
+</p>
+
+<p align="center">
+  <a href="#1-multi-channel-tracks-and-multi-view">Waveform</a> ·
+  <a href="#1-multi-channel-tracks-and-multi-view">Spectrogram</a> ·
+  <a href="#1-multi-channel-tracks-and-multi-view">Multi-channel tracks</a> ·
+  <a href="#2-selection-playback-and-analysis">Selection analysis</a> ·
+  <a href="#3-open-pcm--raw-files">Raw PCM</a> ·
+  <a href="#6-open-kaldi-wav-ark-directly">Kaldi WAV Ark</a> ·
+  <a href="#use-with-remote-ssh">Remote SSH</a>
+</p>
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://img.shields.io/badge/VS%20Marketplace-Install-007ACC?logo=visualstudiocode&logoColor=white" alt="Install from VS Code Marketplace"></a>
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/v/simzhou/audiolens?label=Open%20VSX" alt="Open VSX version"></a>
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/dt/simzhou/audiolens?label=Open%20VSX%20downloads" alt="Open VSX downloads"></a>
+  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><img src="https://img.shields.io/github/v/release/SimZhou/vscode-audiolens?label=release" alt="GitHub release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 License"></a>
+</p>
+
+<p align="center">
+  <a href="#1-multi-channel-tracks-and-multi-view"><img src="https://img.shields.io/badge/Multi--channel-tracks-2ea44f" alt="Multi-channel tracks"></a>
+  <a href="#2-selection-playback-and-analysis"><img src="https://img.shields.io/badge/Spectrogram-analysis-7c3aed" alt="Spectrogram analysis"></a>
+  <a href="#3-open-pcm--raw-files"><img src="https://img.shields.io/badge/Raw%20PCM-supported-f97316" alt="Raw PCM supported"></a>
+  <a href="#6-open-kaldi-wav-ark-directly"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-supported-0ea5e9" alt="Kaldi WAV Ark supported"></a>
+  <a href="#use-with-remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-ready-2563eb" alt="Remote SSH ready"></a>
+</p>
+
+<p align="center">
   English | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.zh-CN.md">简体中文</a> | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.ja.md">日本語</a>
 </p>
 
-AudioLens is an audio viewer and analysis extension for Visual Studio Code. It is built for speech datasets, audio annotation, machine learning, signal inspection, and data workflows where audio files should stay next to the code, labels, scripts, and test data that explain them.
+AudioLens turns VS Code into a practical audio viewer for audio engineers, speech engineers, and ML practitioners. Open common audio files, raw PCM dumps, or Kaldi WAV Ark entries directly beside manifests, transcripts, logs, scripts, and model outputs.
 
-Open `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, raw `pcm` / `raw`, or Kaldi `wav.ark:offset` audio and AudioLens shows playback, multi-channel tracks, waveforms, spectrograms, selection playback, PCM settings, file header details, and practical analysis metrics inside a read-only VS Code editor. It works in local workspaces and Remote SSH windows.
+It focuses on the daily workflow that generic audio players miss: inspect waveforms and spectrograms, review multi-channel files, open audio paths from text, decode raw PCM with explicit parameters, inspect headers, and analyze selected regions without leaving the workspace.
 
-## Common Workflows
-
-- Inspect speech and audio datasets directly inside VS Code.
-- Review waveform and spectrogram details while editing labels, manifests, logs, and scripts.
-- Open audio paths from text files without switching tools.
-- Analyze selected regions for RMS, peak level, clipping, dominant frequency, spectral centroid, and other metrics.
-- Open raw PCM files and Kaldi wav ark entries without downloading or converting the whole dataset first.
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><strong>Install from VS Code Marketplace</strong></a>
+  ·
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><strong>Install from Open VSX</strong></a>
+  ·
+  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><strong>Download VSIX</strong></a>
+</p>
 
 ## Preview
 
@@ -26,41 +56,48 @@ Open `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, raw `pcm` / `raw`, or Ka
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/Main-Screen-multichannel.en-US.png" alt="AudioLens multi-channel main screen" width="920">
 </p>
 
-## Highlights
+## Why AudioLens
 
-- Opens `wav`, `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, `pcm`, `raw`, and Kaldi wav ark entries.
-- Opens audio paths directly from code, label files, logs, and other plain text files.
-- Displays mono and multi-channel files as separate Audacity-style tracks.
-- Supports waveform, spectrogram, and combined waveform + spectrogram views per channel.
-- Provides per-channel mute and solo controls, with playback mixed down to regular stereo output.
-- Shows file header details for WAV, FLAC, Ogg, MP4/M4A, AAC, and MP3 in a top-bar inspector.
-- Opens PCM/RAW files after you enter sample rate, channel count, encoding, byte order, and start offset.
-- Lets WAV files be reopened as PCM for header-offset or damaged-file inspection.
-- Opens Kaldi wav ark entries from `wav.ark:offset` without loading the whole ark file.
-- Analyzes selected regions with time-domain and frequency-domain metrics.
-- Keeps preferences such as spectrogram settings, playback gain, default track view, and PCM defaults.
-- Works in local VS Code windows and Remote SSH workspaces.
+| Workflow | What AudioLens gives you |
+| --- | --- |
+| Speech and ML datasets | Inspect audio next to manifests, transcripts, logs, training scripts, and model outputs. |
+| Multi-channel audio | Audacity-style channel tracks, per-channel waveform/spectrogram views, mute, solo, and stereo downmix playback. |
+| Audio analysis | Drag a region, play only that selection, and read RMS, peak, clipping, dominant frequency, spectral centroid, ZCR, and frequency-band metrics. |
+| Raw data debugging | Open `.pcm` / `.raw` with explicit sample rate, channel count, encoding, byte order, and byte offset. Reopen WAV payloads as PCM for damaged or non-standard files. |
+| Kaldi workflows | Open `wav.ark:offset` entries or manually enter an Ark offset without loading the full archive. |
+| Remote development | Runs as a workspace extension, so Remote SSH workspaces can preview and analyze remote audio without copying the dataset first. |
+
+## Core Features
+
+| Area | Features |
+| --- | --- |
+| Playback | Keyboard-ready `Space` play/pause, seek, selection playback, playback gain, per-channel mute and solo. |
+| Visualization | Waveform, spectrogram, combined view, shared timeline, configurable track heights, zoom, pan, and reset. |
+| Spectrogram analysis | Frequency, reassignment, and pitch (EAC) algorithms; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, and auto brightness. |
+| File inspection | Structured header inspector for WAV/RIFF, FLAC, Ogg, MP4/M4A, AAC/ADTS, and MP3/MPEG frames. |
+| Dataset navigation | Hover/status-bar/command entry points for audio paths in ordinary text files without generating thousands of inline links. |
+| Persistence | Saves default track view, spectrogram settings, playback gain, PCM defaults, and language preference. |
 
 ## Install
 
-Install from the Visual Studio Marketplace:
+**Recommended: install from the Visual Studio Marketplace**
 
 https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
 
-Or from Open VSX:
+**Alternative: install from Open VSX**
 
 https://open-vsx.org/extension/simzhou/audiolens
 
-Or install from the command line:
+**Command line**
 
 ```bash
 code --install-extension simzhou.audiolens
 ```
 
-For offline installation, download a packaged VSIX from GitHub Releases or install a local packaged build:
+**Offline VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.3.6.vsix
+code --install-extension dist/audiolens-1.4.0.vsix
 ```
 
 ## Feature Demos
@@ -187,6 +224,7 @@ AudioLens includes practical spectrogram controls for speech and signal inspecti
 - window functions: Rectangular, Bartlett, Hamming, Hann, Blackman, Blackman-Harris, Welch, and Gaussian variants
 - zero padding factors from `1` to `128`
 - frequency scales: Linear, Log, Mel, Bark, ERB
+- configurable display-only frequency range, with an optional Nyquist-following maximum
 - palettes: Rose, Classic, Grayscale, Inverse Grayscale
 - configurable dB brightness range and auto brightness
 
@@ -246,7 +284,7 @@ SimZhou: https://simzhou.com/en/about/
 
 ## Support AudioLens
 
-If AudioLens helps with your speech, audio, or data annotation workflow, you are welcome to support its ongoing development.
+If AudioLens helps with your speech, audio, or signal engineering workflow, you are welcome to support its ongoing development.
 
 ### Ko-fi
 

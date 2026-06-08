@@ -41,6 +41,8 @@
       parts.targetFrames ?? 0,
       parts.minDb,
       parts.maxDb,
+      parts.spectrogramMinHz ?? 0,
+      parts.spectrogramMaxHz ?? 0,
       parts.frequencyScale ?? "linear",
       parts.palette ?? "classic"
     ].join(":");
@@ -95,6 +97,8 @@
       const re = new Float32Array(fftSize);
       const im = new Float32Array(fftSize);
       const nyquist = sampleRate / 2;
+      const minFrequencyHz = Math.max(0, Math.min(Number(settings.minFrequencyHz) || 0, Math.max(0, nyquist - 1)));
+      const maxFrequencyHz = Math.max(minFrequencyHz + 1, Math.min(Number(settings.maxFrequencyHz) || nyquist, nyquist));
 
       for (let frame = 0; frame < frames; frame += 1) {
         const offset = frame * hopSize;
@@ -106,7 +110,7 @@
         fft(re, im);
         for (let y = 0; y < bins; y += 1) {
           const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
-          const freq = frequencyFromRatio(ratio, settings.frequencyScale, nyquist);
+          const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
           const bin = Math.max(0, Math.min((fftSize / 2) - 1, Math.round((freq / sampleRate) * fftSize)));
           const mag = Math.sqrt(re[bin] * re[bin] + im[bin] * im[bin]) / windowSize;
           const db = adjustDbForAlgorithm(20 * Math.log10(Math.max(mag, 1e-12)), settings.algorithm);
@@ -189,18 +193,30 @@
       }
     }
 
-    function frequencyFromRatio(ratio, scale, nyquist) {
+    function frequencyFromRatio(ratio, scale, minHz, maxHz) {
       const r = Math.max(0, Math.min(1, ratio));
-      const top = Math.max(1, nyquist);
+      const bottom = Math.max(0, Math.min(minHz, maxHz - 1));
+      const top = Math.max(bottom + 1, maxHz);
       if (scale === "log") {
-        if (r <= 0) return 0;
+        if (top <= 20) return bottom + r * (top - bottom);
         const low = 20;
-        return Math.min(top, low * Math.pow(top / low, r));
+        if (bottom <= 0 && r <= 0) return 0;
+        const minCoord = bottom <= 0 ? 0 : Math.log(Math.max(low, bottom) / low) / Math.log(top / low);
+        return Math.min(top, low * Math.pow(top / low, minCoord + r * (1 - minCoord)));
       }
-      if (scale === "mel") return melToHz(r * hzToMel(top));
-      if (scale === "bark") return barkToHz(r * hzToBark(top));
-      if (scale === "erb") return erbToHz(r * hzToErb(top));
-      return r * top;
+      if (scale === "mel") {
+        const minMel = hzToMel(bottom);
+        return melToHz(minMel + r * (hzToMel(top) - minMel));
+      }
+      if (scale === "bark") {
+        const minBark = hzToBark(bottom);
+        return barkToHz(minBark + r * (hzToBark(top) - minBark));
+      }
+      if (scale === "erb") {
+        const minErb = hzToErb(bottom);
+        return erbToHz(minErb + r * (hzToErb(top) - minErb));
+      }
+      return bottom + r * (top - bottom);
     }
 
     function hzToMel(hz) { return 2595 * Math.log10(1 + hz / 700); }
@@ -867,6 +883,11 @@
     windowGaussian45: "Gauss (\u03B1=4.5)",
     zeroPaddingFactor: "Null-Padding-Faktor",
     frequencyScale: "Frequenzskala",
+    frequencyRange: "Frequenzbereich (nur Anzeige)",
+    minFrequencyHz: "Min. Frequenz (Hz)",
+    maxFrequencyHz: "Max. Frequenz (Hz)",
+    maxFrequencyNyquist: "Max folgt Nyquist",
+    spectrogramAppearance: "Spectrogram-Darstellung",
     palette: "Palette",
     paletteRose: "Rose",
     paletteClassic: "Klassisch",
@@ -882,6 +903,10 @@
     mouseWheel: "Mausrad",
     help: "Hilfe",
     downloadAudio: "Audio herunterladen",
+    downloadSelection: "Auswahl herunterladen",
+    downloadSelectionWav: "Auswahl als WAV herunterladen",
+    clearSelection: "Auswahl loeschen",
+    noSelectionToDownload: "Keine Audioauswahl zum Herunterladen",
     headerInfo: "Header-Info",
     headerInfoTitle: "Header-Info",
     headerInfoAudioUnread: "Audiodaten wurden noch nicht gelesen.",
@@ -1013,6 +1038,10 @@
     spectrogramSettings: "Spectrogram settings",
     help: "Help",
     downloadAudio: "Download audio",
+    downloadSelection: "Download Selection",
+    downloadSelectionWav: "Download selection as WAV",
+    clearSelection: "Clear selection",
+    noSelectionToDownload: "No audio selection to download",
     headerInfo: "Header info",
     headerInfoTitle: "Header info",
     headerInfoAudioUnread: "Audio data has not been read.",
@@ -1058,6 +1087,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "Zero padding factor",
     frequencyScale: "Frequency scale",
+    frequencyRange: "Frequency range (display only)",
+    minFrequencyHz: "Min frequency (Hz)",
+    maxFrequencyHz: "Max frequency (Hz)",
+    maxFrequencyNyquist: "Max follows Nyquist",
+    spectrogramAppearance: "Spectrogram appearance",
     palette: "Palette",
     paletteRose: "Rose",
     paletteClassic: "Classic",
@@ -1199,6 +1233,11 @@
     windowGaussian45: "Gaussiana (\u03B1=4.5)",
     zeroPaddingFactor: "Factor de relleno cero",
     frequencyScale: "Escala de frecuencia",
+    frequencyRange: "Rango de frecuencia (solo visual)",
+    minFrequencyHz: "Frecuencia m\xEDn. (Hz)",
+    maxFrequencyHz: "Frecuencia m\xE1x. (Hz)",
+    maxFrequencyNyquist: "M\xE1x. sigue Nyquist",
+    spectrogramAppearance: "Apariencia del espectrograma",
     palette: "Paleta",
     paletteRose: "Rosa",
     paletteClassic: "Cl\xE1sica",
@@ -1214,6 +1253,10 @@
     mouseWheel: "Rueda del rat\xF3n",
     help: "Ayuda",
     downloadAudio: "Descargar audio",
+    downloadSelection: "Descargar selecci\xF3n",
+    downloadSelectionWav: "Descargar selecci\xF3n como WAV",
+    clearSelection: "Borrar selecci\xF3n",
+    noSelectionToDownload: "No hay selecci\xF3n de audio para descargar",
     headerInfo: "Informaci\xF3n de cabecera",
     headerInfoTitle: "Informaci\xF3n de cabecera",
     headerInfoAudioUnread: "Los datos de audio a\xFAn no se han le\xEDdo.",
@@ -1365,6 +1408,11 @@
     windowGaussian45: "Gaussienne (\u03B1=4.5)",
     zeroPaddingFactor: "Facteur de z\xE9ro-padding",
     frequencyScale: "\xC9chelle de fr\xE9quence",
+    frequencyRange: "Plage de fr\xE9quences (affichage seul)",
+    minFrequencyHz: "Fr\xE9quence min (Hz)",
+    maxFrequencyHz: "Fr\xE9quence max (Hz)",
+    maxFrequencyNyquist: "Max suit Nyquist",
+    spectrogramAppearance: "Apparence du spectrogramme",
     palette: "Palette",
     paletteRose: "Couleur (rose)",
     paletteClassic: "Couleur (classique)",
@@ -1380,6 +1428,10 @@
     mouseWheel: "molette",
     help: "Aide",
     downloadAudio: "T\xE9l\xE9charger l'audio",
+    downloadSelection: "T\xE9l\xE9charger la s\xE9lection",
+    downloadSelectionWav: "T\xE9l\xE9charger la s\xE9lection en WAV",
+    clearSelection: "Effacer la s\xE9lection",
+    noSelectionToDownload: "Aucune s\xE9lection audio \xE0 t\xE9l\xE9charger",
     headerInfo: "Infos d'en-t\xEAte",
     headerInfoTitle: "Infos d'en-t\xEAte",
     headerInfoAudioUnread: "Les donn\xE9es audio n'ont pas encore \xE9t\xE9 lues.",
@@ -1531,6 +1583,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "Faktor zero padding",
     frequencyScale: "Skala frekuensi",
+    frequencyRange: "Rentang frekuensi (tampilan saja)",
+    minFrequencyHz: "Frekuensi min (Hz)",
+    maxFrequencyHz: "Frekuensi maks (Hz)",
+    maxFrequencyNyquist: "Maks mengikuti Nyquist",
+    spectrogramAppearance: "Tampilan spectrogram",
     palette: "Palet",
     paletteRose: "Rose",
     paletteClassic: "Klasik",
@@ -1546,6 +1603,10 @@
     mouseWheel: "Roda mouse",
     help: "Bantuan",
     downloadAudio: "Unduh audio",
+    downloadSelection: "Unduh seleksi",
+    downloadSelectionWav: "Unduh seleksi sebagai WAV",
+    clearSelection: "Hapus seleksi",
+    noSelectionToDownload: "Tidak ada seleksi audio untuk diunduh",
     headerInfo: "Info header",
     headerInfoTitle: "Info header",
     headerInfoAudioUnread: "Data audio belum dibaca.",
@@ -1697,6 +1758,11 @@
     windowGaussian45: "Gaussiana (\u03B1=4.5)",
     zeroPaddingFactor: "Fattore zero padding",
     frequencyScale: "Scala frequenza",
+    frequencyRange: "Intervallo frequenze (solo vista)",
+    minFrequencyHz: "Frequenza min (Hz)",
+    maxFrequencyHz: "Frequenza max (Hz)",
+    maxFrequencyNyquist: "Max segue Nyquist",
+    spectrogramAppearance: "Aspetto dello spettrogramma",
     palette: "Palette",
     paletteRose: "Rosa",
     paletteClassic: "Classica",
@@ -1712,6 +1778,10 @@
     mouseWheel: "Rotella mouse",
     help: "Aiuto",
     downloadAudio: "Scarica audio",
+    downloadSelection: "Scarica selezione",
+    downloadSelectionWav: "Scarica selezione come WAV",
+    clearSelection: "Cancella selezione",
+    noSelectionToDownload: "Nessuna selezione audio da scaricare",
     headerInfo: "Info intestazione",
     headerInfoTitle: "Info intestazione",
     headerInfoAudioUnread: "I dati audio non sono ancora stati letti.",
@@ -1843,6 +1913,10 @@
     spectrogramSettings: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u8A2D\u5B9A",
     help: "\u30D8\u30EB\u30D7",
     downloadAudio: "\u97F3\u58F0\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    downloadSelection: "\u9078\u629E\u7BC4\u56F2\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    downloadSelectionWav: "\u9078\u629E\u7BC4\u56F2\u3092 WAV \u3068\u3057\u3066\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    clearSelection: "\u9078\u629E\u7BC4\u56F2\u3092\u30AF\u30EA\u30A2",
+    noSelectionToDownload: "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3067\u304D\u308B\u9078\u629E\u7BC4\u56F2\u304C\u3042\u308A\u307E\u305B\u3093",
     headerInfo: "\u30D8\u30C3\u30C0\u30FC\u60C5\u5831",
     headerInfoTitle: "\u30D8\u30C3\u30C0\u30FC\u60C5\u5831",
     headerInfoAudioUnread: "\u97F3\u58F0\u30C7\u30FC\u30BF\u306F\u307E\u3060\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
@@ -1888,6 +1962,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "\u30BC\u30ED\u57CB\u3081\u4FC2\u6570",
     frequencyScale: "\u5468\u6CE2\u6570\u30B9\u30B1\u30FC\u30EB",
+    frequencyRange: "\u5468\u6CE2\u6570\u7BC4\u56F2\uFF08\u8868\u793A\u306E\u307F\uFF09",
+    minFrequencyHz: "\u6700\u5C0F\u5468\u6CE2\u6570 (Hz)",
+    maxFrequencyHz: "\u6700\u5927\u5468\u6CE2\u6570 (Hz)",
+    maxFrequencyNyquist: "\u6700\u5927\u5024\u3092 Nyquist \u306B\u5408\u308F\u305B\u308B",
+    spectrogramAppearance: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u306E\u8868\u793A",
     palette: "\u30D1\u30EC\u30C3\u30C8",
     paletteRose: "\u30AB\u30E9\u30FC (\u30ED\u30FC\u30BA)",
     paletteClassic: "\u30AB\u30E9\u30FC (\u30AF\u30E9\u30B7\u30C3\u30AF)",
@@ -2029,6 +2108,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "\uC81C\uB85C \uD328\uB529 \uACC4\uC218",
     frequencyScale: "\uC8FC\uD30C\uC218 \uC2A4\uCF00\uC77C",
+    frequencyRange: "\uC8FC\uD30C\uC218 \uBC94\uC704 (\uD45C\uC2DC \uC804\uC6A9)",
+    minFrequencyHz: "\uCD5C\uC18C \uC8FC\uD30C\uC218 (Hz)",
+    maxFrequencyHz: "\uCD5C\uB300 \uC8FC\uD30C\uC218 (Hz)",
+    maxFrequencyNyquist: "\uCD5C\uB300\uAC12\uC744 Nyquist\uC5D0 \uB9DE\uCDA4",
+    spectrogramAppearance: "\uC2A4\uD399\uD2B8\uB85C\uADF8\uB7A8 \uD45C\uC2DC",
     palette: "\uD314\uB808\uD2B8",
     paletteRose: "\uC0C9\uC0C1 (rose)",
     paletteClassic: "\uC0C9\uC0C1 (classic)",
@@ -2044,6 +2128,10 @@
     mouseWheel: "\uB9C8\uC6B0\uC2A4 \uD720",
     help: "\uB3C4\uC6C0\uB9D0",
     downloadAudio: "\uC624\uB514\uC624 \uB2E4\uC6B4\uB85C\uB4DC",
+    downloadSelection: "\uC120\uD0DD \uC601\uC5ED \uB2E4\uC6B4\uB85C\uB4DC",
+    downloadSelectionWav: "\uC120\uD0DD \uC601\uC5ED\uC744 WAV\uB85C \uB2E4\uC6B4\uB85C\uB4DC",
+    clearSelection: "\uC120\uD0DD \uC601\uC5ED \uC9C0\uC6B0\uAE30",
+    noSelectionToDownload: "\uB2E4\uC6B4\uB85C\uB4DC\uD560 \uC624\uB514\uC624 \uC120\uD0DD \uC601\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
     headerInfo: "\uD5E4\uB354 \uC815\uBCF4",
     headerInfoTitle: "\uD5E4\uB354 \uC815\uBCF4",
     headerInfoAudioUnread: "\uC624\uB514\uC624 \uB370\uC774\uD130\uB97C \uC544\uC9C1 \uC77D\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
@@ -2195,6 +2283,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "Zero-paddingfactor",
     frequencyScale: "Frequentieschaal",
+    frequencyRange: "Frequentiebereik (alleen weergave)",
+    minFrequencyHz: "Min. frequentie (Hz)",
+    maxFrequencyHz: "Max. frequentie (Hz)",
+    maxFrequencyNyquist: "Max volgt Nyquist",
+    spectrogramAppearance: "Spectrogramweergave",
     palette: "Palet",
     paletteRose: "Roos",
     paletteClassic: "Klassiek",
@@ -2210,6 +2303,10 @@
     mouseWheel: "Muiswiel",
     help: "Help",
     downloadAudio: "Audio downloaden",
+    downloadSelection: "Selectie downloaden",
+    downloadSelectionWav: "Selectie als WAV downloaden",
+    clearSelection: "Selectie wissen",
+    noSelectionToDownload: "Geen audioselectie om te downloaden",
     headerInfo: "Headerinformatie",
     headerInfoTitle: "Headerinformatie",
     headerInfoAudioUnread: "Audiogegevens zijn nog niet gelezen.",
@@ -2361,6 +2458,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "Nullutfyllingsfaktor",
     frequencyScale: "Frekvensskala",
+    frequencyRange: "Frekvensomr\xE5de (kun visning)",
+    minFrequencyHz: "Min. frekvens (Hz)",
+    maxFrequencyHz: "Maks. frekvens (Hz)",
+    maxFrequencyNyquist: "Maks f\xF8lger Nyquist",
+    spectrogramAppearance: "Spectrogram-utseende",
     palette: "Palett",
     paletteRose: "Rose",
     paletteClassic: "Klassisk",
@@ -2376,6 +2478,10 @@
     mouseWheel: "Musehjul",
     help: "Hjelp",
     downloadAudio: "Last ned lyd",
+    downloadSelection: "Last ned utvalg",
+    downloadSelectionWav: "Last ned utvalg som WAV",
+    clearSelection: "Fjern utvalg",
+    noSelectionToDownload: "Ingen lydutvalg \xE5 laste ned",
     headerInfo: "Headerinfo",
     headerInfoTitle: "Headerinfo",
     headerInfoAudioUnread: "Lyddata er ikke lest enn\xE5.",
@@ -2527,6 +2633,11 @@
     windowGaussian45: "Gaussowskie (\u03B1=4.5)",
     zeroPaddingFactor: "Wsp\xF3\u0142czynnik zero padding",
     frequencyScale: "Skala cz\u0119stotliwo\u015Bci",
+    frequencyRange: "Zakres cz\u0119stotliwo\u015Bci (tylko widok)",
+    minFrequencyHz: "Min. cz\u0119stotliwo\u015B\u0107 (Hz)",
+    maxFrequencyHz: "Maks. cz\u0119stotliwo\u015B\u0107 (Hz)",
+    maxFrequencyNyquist: "Maks. wg Nyquista",
+    spectrogramAppearance: "Wygl\u0105d spektrogramu",
     palette: "Paleta",
     paletteRose: "R\xF3\u017C",
     paletteClassic: "Klasyczna",
@@ -2542,6 +2653,10 @@
     mouseWheel: "K\xF3\u0142ko myszy",
     help: "Pomoc",
     downloadAudio: "Pobierz audio",
+    downloadSelection: "Pobierz zaznaczenie",
+    downloadSelectionWav: "Pobierz zaznaczenie jako WAV",
+    clearSelection: "Wyczy\u015B\u0107 zaznaczenie",
+    noSelectionToDownload: "Brak zaznaczenia audio do pobrania",
     headerInfo: "Informacje nag\u0142\xF3wka",
     headerInfoTitle: "Informacje nag\u0142\xF3wka",
     headerInfoAudioUnread: "Dane audio nie zosta\u0142y jeszcze odczytane.",
@@ -2693,6 +2808,11 @@
     windowGaussian45: "Gaussiana (\u03B1=4.5)",
     zeroPaddingFactor: "Fator de zero padding",
     frequencyScale: "Escala de frequ\xEAncia",
+    frequencyRange: "Faixa de frequ\xEAncia (s\xF3 visual)",
+    minFrequencyHz: "Frequ\xEAncia m\xEDn. (Hz)",
+    maxFrequencyHz: "Frequ\xEAncia m\xE1x. (Hz)",
+    maxFrequencyNyquist: "M\xE1x. segue Nyquist",
+    spectrogramAppearance: "Apar\xEAncia do espectrograma",
     palette: "Paleta",
     paletteRose: "Rosa",
     paletteClassic: "Cl\xE1ssica",
@@ -2708,6 +2828,10 @@
     mouseWheel: "Roda do mouse",
     help: "Ajuda",
     downloadAudio: "Baixar \xE1udio",
+    downloadSelection: "Baixar sele\xE7\xE3o",
+    downloadSelectionWav: "Baixar sele\xE7\xE3o como WAV",
+    clearSelection: "Limpar sele\xE7\xE3o",
+    noSelectionToDownload: "Nenhuma sele\xE7\xE3o de \xE1udio para baixar",
     headerInfo: "Informa\xE7\xF5es do cabe\xE7alho",
     headerInfoTitle: "Informa\xE7\xF5es do cabe\xE7alho",
     headerInfoAudioUnread: "Os dados de \xE1udio ainda n\xE3o foram lidos.",
@@ -2859,6 +2983,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "\u041A\u043E\u044D\u0444. zero padding",
     frequencyScale: "\u0428\u043A\u0430\u043B\u0430 \u0447\u0430\u0441\u0442\u043E\u0442",
+    frequencyRange: "\u0414\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0447\u0430\u0441\u0442\u043E\u0442 (\u0442\u043E\u043B\u044C\u043A\u043E \u0432\u0438\u0434)",
+    minFrequencyHz: "\u041C\u0438\u043D. \u0447\u0430\u0441\u0442\u043E\u0442\u0430 (Hz)",
+    maxFrequencyHz: "\u041C\u0430\u043A\u0441. \u0447\u0430\u0441\u0442\u043E\u0442\u0430 (Hz)",
+    maxFrequencyNyquist: "\u041C\u0430\u043A\u0441. \u043F\u043E \u041D\u0430\u0439\u043A\u0432\u0438\u0441\u0442\u0443",
+    spectrogramAppearance: "\u0412\u043D\u0435\u0448\u043D\u0438\u0439 \u0432\u0438\u0434 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B",
     palette: "\u041F\u0430\u043B\u0438\u0442\u0440\u0430",
     paletteRose: "\u0420\u043E\u0437\u0430",
     paletteClassic: "\u041A\u043B\u0430\u0441\u0441\u0438\u0447\u0435\u0441\u043A\u0430\u044F",
@@ -2874,6 +3003,10 @@
     mouseWheel: "\u041A\u043E\u043B\u0435\u0441\u043E \u043C\u044B\u0448\u0438",
     help: "\u0421\u043F\u0440\u0430\u0432\u043A\u0430",
     downloadAudio: "\u0421\u043A\u0430\u0447\u0430\u0442\u044C \u0430\u0443\u0434\u0438\u043E",
+    downloadSelection: "\u0421\u043A\u0430\u0447\u0430\u0442\u044C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435",
+    downloadSelectionWav: "\u0421\u043A\u0430\u0447\u0430\u0442\u044C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u043A\u0430\u043A WAV",
+    clearSelection: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435",
+    noSelectionToDownload: "\u041D\u0435\u0442 \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u043D\u043E\u0433\u043E \u0430\u0443\u0434\u0438\u043E \u0434\u043B\u044F \u0441\u043A\u0430\u0447\u0438\u0432\u0430\u043D\u0438\u044F",
     headerInfo: "\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430",
     headerInfoTitle: "\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430",
     headerInfoAudioUnread: "\u0410\u0443\u0434\u0438\u043E\u0434\u0430\u043D\u043D\u044B\u0435 \u0435\u0449\u0435 \u043D\u0435 \u043F\u0440\u043E\u0447\u0438\u0442\u0430\u043D\u044B.",
@@ -3025,6 +3158,11 @@
     windowGaussian45: "Gauss (\u03B1=4.5)",
     zeroPaddingFactor: "Zero padding katsayisi",
     frequencyScale: "Frekans olcegi",
+    frequencyRange: "Frekans araligi (yalnizca gorunum)",
+    minFrequencyHz: "Min frekans (Hz)",
+    maxFrequencyHz: "Maks frekans (Hz)",
+    maxFrequencyNyquist: "Maks Nyquist'i izler",
+    spectrogramAppearance: "Spektrogram gorunumu",
     palette: "Palet",
     paletteRose: "Gul",
     paletteClassic: "Klasik",
@@ -3040,6 +3178,10 @@
     mouseWheel: "Fare tekeri",
     help: "Yard\u0131m",
     downloadAudio: "Sesi indir",
+    downloadSelection: "Secimi indir",
+    downloadSelectionWav: "Secimi WAV olarak indir",
+    clearSelection: "Secimi temizle",
+    noSelectionToDownload: "Indirilecek ses secimi yok",
     headerInfo: "Ba\u015Fl\u0131k bilgisi",
     headerInfoTitle: "Ba\u015Fl\u0131k bilgisi",
     headerInfoAudioUnread: "Ses verisi hen\xFCz okunmad\u0131.",
@@ -3191,6 +3333,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "H\u1EC7 s\u1ED1 zero padding",
     frequencyScale: "Thang t\u1EA7n s\u1ED1",
+    frequencyRange: "D\u1EA3i t\u1EA7n s\u1ED1 (ch\u1EC9 hi\u1EC3n th\u1ECB)",
+    minFrequencyHz: "T\u1EA7n s\u1ED1 t\u1ED1i thi\u1EC3u (Hz)",
+    maxFrequencyHz: "T\u1EA7n s\u1ED1 t\u1ED1i \u0111a (Hz)",
+    maxFrequencyNyquist: "T\u1ED1i \u0111a theo Nyquist",
+    spectrogramAppearance: "Giao di\u1EC7n spectrogram",
     palette: "B\u1EA3ng m\xE0u",
     paletteRose: "Rose",
     paletteClassic: "C\u1ED5 \u0111i\u1EC3n",
@@ -3206,6 +3353,10 @@
     mouseWheel: "Con l\u0103n chu\u1ED9t",
     help: "Tr\u1EE3 gi\xFAp",
     downloadAudio: "T\u1EA3i \xE2m thanh",
+    downloadSelection: "T\u1EA3i v\xF9ng ch\u1ECDn",
+    downloadSelectionWav: "T\u1EA3i v\xF9ng ch\u1ECDn d\u01B0\u1EDBi d\u1EA1ng WAV",
+    clearSelection: "X\xF3a v\xF9ng ch\u1ECDn",
+    noSelectionToDownload: "Kh\xF4ng c\xF3 v\xF9ng ch\u1ECDn \xE2m thanh \u0111\u1EC3 t\u1EA3i",
     headerInfo: "Th\xF4ng tin header",
     headerInfoTitle: "Th\xF4ng tin header",
     headerInfoAudioUnread: "D\u1EEF li\u1EC7u \xE2m thanh ch\u01B0a \u0111\u01B0\u1EE3c \u0111\u1ECDc.",
@@ -3337,6 +3488,10 @@
     spectrogramSettings: "\u9891\u8C31\u56FE\u8BBE\u7F6E",
     help: "\u5E2E\u52A9",
     downloadAudio: "\u4E0B\u8F7D\u97F3\u9891",
+    downloadSelection: "\u4E0B\u8F7D\u9009\u533A",
+    downloadSelectionWav: "\u4E0B\u8F7D\u9009\u533A\u4E3A WAV",
+    clearSelection: "\u6E05\u9664\u9009\u533A",
+    noSelectionToDownload: "\u6CA1\u6709\u53EF\u4E0B\u8F7D\u7684\u97F3\u9891\u9009\u533A",
     headerInfo: "\u6587\u4EF6\u5934\u4FE1\u606F",
     headerInfoTitle: "\u6587\u4EF6\u5934\u4FE1\u606F",
     headerInfoAudioUnread: "\u97F3\u9891\u6570\u636E\u5C1A\u672A\u8BFB\u53D6\u3002",
@@ -3382,6 +3537,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "\u96F6\u586B\u5145\u56E0\u5B50",
     frequencyScale: "\u9891\u7387\u523B\u5EA6",
+    frequencyRange: "\u9891\u7387\u8303\u56F4\uFF08\u4EC5\u663E\u793A\uFF09",
+    minFrequencyHz: "\u6700\u5C0F\u9891\u7387 (Hz)",
+    maxFrequencyHz: "\u6700\u5927\u9891\u7387 (Hz)",
+    maxFrequencyNyquist: "\u6700\u5927\u503C\u8DDF\u968F Nyquist",
+    spectrogramAppearance: "\u9891\u8C31\u56FE\u5916\u89C2",
     palette: "\u8C03\u8272\u677F",
     paletteRose: "\u989C\u8272 (\u73AB\u7470)",
     paletteClassic: "\u989C\u8272 (\u7ECF\u5178)",
@@ -3523,6 +3683,11 @@
     windowGaussian45: "Gaussian (\u03B1=4.5)",
     zeroPaddingFactor: "\u96F6\u586B\u5145\u56E0\u5B50",
     frequencyScale: "\u983B\u7387\u523B\u5EA6",
+    frequencyRange: "\u983B\u7387\u7BC4\u570D\uFF08\u50C5\u986F\u793A\uFF09",
+    minFrequencyHz: "\u6700\u5C0F\u983B\u7387 (Hz)",
+    maxFrequencyHz: "\u6700\u5927\u983B\u7387 (Hz)",
+    maxFrequencyNyquist: "\u6700\u5927\u503C\u8DDF\u96A8 Nyquist",
+    spectrogramAppearance: "\u983B\u8B5C\u5716\u5916\u89C0",
     palette: "\u8272\u76E4",
     paletteRose: "\u8272\u5F69 (\u73AB\u7470)",
     paletteClassic: "\u8272\u5F69 (\u7D93\u5178)",
@@ -3538,6 +3703,10 @@
     mouseWheel: "\u6ED1\u9F20\u6EFE\u8F2A",
     help: "\u8AAA\u660E",
     downloadAudio: "\u4E0B\u8F09\u97F3\u8A0A",
+    downloadSelection: "\u4E0B\u8F09\u9078\u5340",
+    downloadSelectionWav: "\u4E0B\u8F09\u9078\u5340\u70BA WAV",
+    clearSelection: "\u6E05\u9664\u9078\u5340",
+    noSelectionToDownload: "\u6C92\u6709\u53EF\u4E0B\u8F09\u7684\u97F3\u8A0A\u9078\u5340",
     headerInfo: "\u6A94\u6848\u982D\u8CC7\u8A0A",
     headerInfoTitle: "\u6A94\u6848\u982D\u8CC7\u8A0A",
     headerInfoAudioUnread: "\u5C1A\u672A\u8B80\u53D6\u97F3\u8A0A\u8CC7\u6599\u3002",
@@ -4117,27 +4286,45 @@
             <option value="erb">ERB</option>
           </select>
         </label>
-        <label>
-          <span data-i18n="palette">Palette</span>
-          <select id="palette">
-            <option value="rose" data-i18n="paletteRose">Color (rose)</option>
-            <option value="classic" data-i18n="paletteClassic">Color (classic)</option>
-            <option value="grayscale" data-i18n="paletteGrayscale">Grayscale</option>
-            <option value="inverseGrayscale" data-i18n="paletteInverseGrayscale">Inverse grayscale</option>
-          </select>
-        </label>
-        <label class="checkboxLabel">
-          <input id="autoBrightness" type="checkbox" checked />
-          <span data-i18n="autoBrightness">Auto brightness</span>
-        </label>
-        <label>
-          <span data-i18n="minDb">Min dB (brightness)</span>
-          <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
-        </label>
-        <label>
-          <span data-i18n="maxDb">Max dB (brightness)</span>
-          <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
-        </label>
+        <div class="settingsSubsection">
+          <strong data-i18n="frequencyRange">Frequency range</strong>
+          <label>
+            <span data-i18n="minFrequencyHz">Min frequency (Hz)</span>
+            <input id="spectrogramMinHz" type="number" min="0" step="1" value="0" />
+          </label>
+          <label>
+            <span data-i18n="maxFrequencyHz">Max frequency (Hz)</span>
+            <input id="spectrogramMaxHz" type="number" min="1" step="1" value="8000" />
+          </label>
+          <label class="checkboxLabel">
+            <input id="spectrogramMaxFollowsNyquist" type="checkbox" checked />
+            <span data-i18n="maxFrequencyNyquist">Max follows Nyquist</span>
+          </label>
+        </div>
+        <div class="settingsSubsection">
+          <strong data-i18n="spectrogramAppearance">Spectrogram appearance</strong>
+          <label>
+            <span data-i18n="palette">Palette</span>
+            <select id="palette">
+              <option value="rose" data-i18n="paletteRose">Color (rose)</option>
+              <option value="classic" data-i18n="paletteClassic">Color (classic)</option>
+              <option value="grayscale" data-i18n="paletteGrayscale">Grayscale</option>
+              <option value="inverseGrayscale" data-i18n="paletteInverseGrayscale">Inverse grayscale</option>
+            </select>
+          </label>
+          <label class="checkboxLabel">
+            <input id="autoBrightness" type="checkbox" checked />
+            <span data-i18n="autoBrightness">Auto brightness</span>
+          </label>
+          <label>
+            <span data-i18n="minDb">Min dB (brightness)</span>
+            <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
+          </label>
+          <label>
+            <span data-i18n="maxDb">Max dB (brightness)</span>
+            <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
+          </label>
+        </div>
         </section>
       </aside>
 
@@ -4338,6 +4525,10 @@
           </div>
           <div id="spectrogramResize" class="plotResize legacyPlot" role="separator" aria-orientation="horizontal" data-i18n-title="adjustSpectrogramHeight" title="Adjust spectrogram height" hidden></div>
           <div id="selectionBox" class="selectionBox" hidden></div>
+          <div id="selectionContextMenu" class="contextMenu" role="menu" hidden>
+            <button type="button" role="menuitem" data-action="download-selection" data-i18n="downloadSelectionWav">Download selection as WAV</button>
+            <button type="button" role="menuitem" data-action="clear-selection" data-i18n="clearSelection">Clear selection</button>
+          </div>
           <div id="floatingTooltip" class="floatingTooltip" hidden></div>
         </section>
       </section>
@@ -4393,6 +4584,9 @@
       amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
       minDb: query("#minDb", HTMLInputElement),
       maxDb: query("#maxDb", HTMLInputElement),
+      spectrogramMinHz: query("#spectrogramMinHz", HTMLInputElement),
+      spectrogramMaxHz: query("#spectrogramMaxHz", HTMLInputElement),
+      spectrogramMaxFollowsNyquist: query("#spectrogramMaxFollowsNyquist", HTMLInputElement),
       autoBrightness: query("#autoBrightness", HTMLInputElement),
       frequencyScale: query("#frequencyScale", HTMLSelectElement),
       palette: query("#palette", HTMLSelectElement),
@@ -4422,6 +4616,7 @@
       waveform: query("#waveform", HTMLCanvasElement),
       spectrogram: query("#spectrogram", HTMLCanvasElement),
       selectionBox: query("#selectionBox", HTMLDivElement),
+      selectionContextMenu: query("#selectionContextMenu", HTMLDivElement),
       floatingTooltip: query("#floatingTooltip", HTMLDivElement)
     };
   }
@@ -5710,6 +5905,9 @@
       channel: 0,
       minDb: -96,
       maxDb: 0,
+      spectrogramMinHz: 0,
+      spectrogramMaxHz: 8e3,
+      spectrogramMaxFollowsNyquist: true,
       autoBrightness: true,
       amplitudeZoom: 1,
       timeZoom: 1,
@@ -6066,6 +6264,9 @@
       this.elements.wavPcmPanel.addEventListener("keydown", (event) => {
         this.handlePcmPanelEnter(event, () => this.applyWavPcmFormat());
       });
+      this.elements.selectionContextMenu.addEventListener("click", (event) => {
+        this.handleSelectionContextMenuClick(event);
+      });
       document.addEventListener("pointerdown", (event) => {
         this.closeFloatingMenusFromPointer(event);
       });
@@ -6128,6 +6329,20 @@
         this.savePreferencesSoon();
         this.analyze();
       });
+      this.elements.spectrogramMaxFollowsNyquist.addEventListener("change", () => {
+        this.settings.spectrogramMaxFollowsNyquist = this.elements.spectrogramMaxFollowsNyquist.checked;
+        if (this.settings.spectrogramMaxFollowsNyquist) {
+          this.settings.spectrogramMaxHz = Math.round(this.nyquistFrequency());
+          this.elements.spectrogramMaxHz.value = String(this.settings.spectrogramMaxHz);
+        }
+        this.updateSpectrogramFrequencySettings({ syncDisplay: true });
+      });
+      this.elements.spectrogramMinHz.addEventListener("input", () => this.updateSpectrogramFrequencySettings({ source: "min" }));
+      this.elements.spectrogramMaxHz.addEventListener("input", () => this.updateSpectrogramFrequencySettings({ source: "max" }));
+      this.elements.spectrogramMinHz.addEventListener("blur", () => this.syncControls());
+      this.elements.spectrogramMaxHz.addEventListener("blur", () => this.syncControls());
+      this.elements.spectrogramMinHz.addEventListener("dblclick", () => this.resetSpectrogramFrequencyRange());
+      this.elements.spectrogramMaxHz.addEventListener("dblclick", () => this.resetSpectrogramFrequencyRange());
       this.elements.palette.addEventListener("change", () => {
         this.settings.palette = this.elements.palette.value;
         this.savePreferencesSoon();
@@ -6291,6 +6506,10 @@
       }
     }
     handleEscape() {
+      if (!this.elements.selectionContextMenu.hidden) {
+        this.hideSelectionContextMenu();
+        return;
+      }
       if (!this.elements.settingsPanel.hidden) {
         this.elements.settingsPanel.hidden = true;
         this.elements.settingsToggle.focus();
@@ -6343,6 +6562,9 @@
       }
       if (this.helpMenuElement().open && !this.elements.helpMenu.contains(target)) {
         this.helpMenuElement().open = false;
+      }
+      if (!this.elements.selectionContextMenu.hidden && !this.elements.selectionContextMenu.contains(target)) {
+        this.hideSelectionContextMenu();
       }
       if (!this.elements.headerInfoPanel.hidden && !this.elements.headerInfoPanel.contains(target) && !this.elements.headerInfo.contains(target)) {
         this.hideHeaderInfoPanel();
@@ -6569,6 +6791,37 @@
       }
       this.vscode.postMessage({ type: "downloadAudio" });
     }
+    downloadSelectionAsWav() {
+      if (!this.audioBuffer || !this.selection) {
+        this.reportPlaybackError(this.messages.noSelectionToDownload);
+        return;
+      }
+      const startFrame = clamp2(Math.floor(this.selection.start * this.audioBuffer.sampleRate), 0, this.audioBuffer.length);
+      const endFrame = clamp2(Math.ceil(this.selection.end * this.audioBuffer.sampleRate), startFrame, this.audioBuffer.length);
+      if (endFrame <= startFrame) {
+        this.reportPlaybackError(this.messages.noSelectionToDownload);
+        return;
+      }
+      const fileName = this.selectionWavFileName(this.selection.start, this.selection.end);
+      const bytes = encodeWav(this.audioBuffer, startFrame, endFrame);
+      this.vscode.postMessage({
+        type: "downloadSelectionWav",
+        fileName,
+        bytesBase64: arrayBufferToBase64(bytes),
+        saveLabel: this.messages.downloadSelection,
+        title: this.messages.downloadSelectionWav
+      });
+    }
+    selectionWavFileName(start, end) {
+      const base = sanitizeFileNameBase(this.currentFileName || "audio");
+      return `${base}_selection_${formatSelectionTime(start)}s-${formatSelectionTime(end)}s.wav`;
+    }
+    clearSelection() {
+      this.selection = void 0;
+      this.selectionPlaybackEnd = void 0;
+      this.updateSelectionAnalysis();
+      this.redrawVisuals();
+    }
     syncControls() {
       this.elements.algorithm.value = this.settings.algorithm;
       this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
@@ -6580,6 +6833,10 @@
       this.elements.amplitudeZoom.value = String(this.settings.amplitudeZoom);
       this.elements.minDb.value = String(this.settings.minDb);
       this.elements.maxDb.value = String(this.settings.maxDb);
+      const frequencyRange = this.spectrogramFrequencyRange();
+      this.elements.spectrogramMinHz.value = String(Math.round(frequencyRange.minHz));
+      this.elements.spectrogramMaxHz.value = String(Math.round(frequencyRange.maxHz));
+      this.elements.spectrogramMaxFollowsNyquist.checked = this.settings.spectrogramMaxFollowsNyquist;
       this.elements.autoBrightness.checked = this.settings.autoBrightness;
       this.elements.frequencyScale.value = this.settings.frequencyScale;
       this.elements.palette.value = this.settings.palette;
@@ -6613,6 +6870,37 @@
       this.settings.maxDb = range.maxDb;
       this.settings.autoBrightness = false;
       this.elements.autoBrightness.checked = false;
+      this.updateSpectrogramFrequencySettings();
+    }
+    updateSpectrogramFrequencySettings(options = {}) {
+      if (options.source === "max") {
+        this.settings.spectrogramMaxFollowsNyquist = false;
+        this.elements.spectrogramMaxFollowsNyquist.checked = false;
+      }
+      const nyquist = this.nyquistFrequency();
+      const minText = this.elements.spectrogramMinHz.value.trim();
+      const maxText = this.elements.spectrogramMaxHz.value.trim();
+      const minHzRaw = Number(minText);
+      const maxHzRaw = Number(maxText);
+      const previousRange = this.spectrogramFrequencyRange();
+      const minHz = minText !== "" && Number.isFinite(minHzRaw) ? minHzRaw : previousRange.minHz;
+      const maxHz = maxText !== "" && Number.isFinite(maxHzRaw) ? maxHzRaw : previousRange.maxHz;
+      const range = normalizeFrequencyRange(minHz, maxHz, this.settings.spectrogramMaxFollowsNyquist, nyquist);
+      this.settings.spectrogramMinHz = range.minHz;
+      this.settings.spectrogramMaxHz = range.storedMaxHz;
+      this.savePreferencesSoon();
+      if (options.syncDisplay) {
+        this.syncControls();
+      } else {
+        this.elements.spectrogramMaxFollowsNyquist.checked = this.settings.spectrogramMaxFollowsNyquist;
+      }
+      this.redrawVisuals();
+      this.analyze();
+    }
+    resetSpectrogramFrequencyRange() {
+      this.settings.spectrogramMinHz = 0;
+      this.settings.spectrogramMaxHz = Math.round(this.nyquistFrequency());
+      this.settings.spectrogramMaxFollowsNyquist = true;
       this.savePreferencesSoon();
       this.syncControls();
       this.redrawVisuals();
@@ -6644,6 +6932,15 @@
         const range = normalizeDbRange(preferences.minDb, preferences.maxDb);
         this.settings.minDb = range.minDb;
         this.settings.maxDb = range.maxDb;
+      }
+      if (preferences.spectrogramMaxFollowsNyquist !== void 0) {
+        this.settings.spectrogramMaxFollowsNyquist = preferences.spectrogramMaxFollowsNyquist;
+      }
+      if (preferences.spectrogramMinHz !== void 0) {
+        this.settings.spectrogramMinHz = preferences.spectrogramMinHz;
+      }
+      if (preferences.spectrogramMaxHz !== void 0) {
+        this.settings.spectrogramMaxHz = preferences.spectrogramMaxHz;
       }
       if (preferences.autoBrightness !== void 0) {
         this.settings.autoBrightness = preferences.autoBrightness;
@@ -6678,6 +6975,9 @@
         palette: this.settings.palette,
         minDb: this.settings.minDb,
         maxDb: this.settings.maxDb,
+        spectrogramMinHz: this.settings.spectrogramMinHz,
+        spectrogramMaxHz: this.settings.spectrogramMaxHz,
+        spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
         autoBrightness: this.settings.autoBrightness,
         playbackGain: this.settings.playbackGain,
         waveformHeight: this.getPlotHeight(this.elements.waveformPane),
@@ -7429,6 +7729,7 @@
       const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
       const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
       const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, outputBins, targetFrames);
+      const frequencyRange = this.spectrogramFrequencyRange();
       const cached = this.spectrogramCache.get(cacheKey);
       if (cached) {
         this.drawSpectrogramCanvas(view.spectrogram, cached);
@@ -7460,6 +7761,8 @@
             hopSize,
             minDb: this.settings.minDb,
             maxDb: this.settings.maxDb,
+            minFrequencyHz: frequencyRange.minHz,
+            maxFrequencyHz: frequencyRange.maxHz,
             frequencyScale: this.settings.frequencyScale,
             palette: this.settings.palette
           }
@@ -7473,6 +7776,7 @@
       const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
       const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));
       const { startSample, endSample } = this.visibleRange();
+      const frequencyRange = this.spectrogramFrequencyRange();
       return createAnalysisCacheKey({
         channel,
         startSample,
@@ -7485,6 +7789,8 @@
         targetFrames: frames,
         minDb: this.settings.minDb,
         maxDb: this.settings.maxDb,
+        spectrogramMinHz: frequencyRange.minHz,
+        spectrogramMaxHz: frequencyRange.maxHz,
         frequencyScale: this.settings.frequencyScale,
         palette: this.settings.palette
       });
@@ -7667,8 +7973,60 @@
     bindFigureInteraction(canvas) {
       let startX = 0;
       let isDragging = false;
+      let activePointerId;
+      const cleanupDragListeners = () => {
+        window.removeEventListener("pointermove", handleDragMove);
+        window.removeEventListener("pointerup", finishDrag);
+        window.removeEventListener("pointercancel", cancelDrag);
+      };
+      const cancelDrag = () => {
+        if (!isDragging) {
+          return;
+        }
+        isDragging = false;
+        activePointerId = void 0;
+        cleanupDragListeners();
+        this.isDraggingSelection = false;
+        this.dragPlayheadTime = void 0;
+        this.hideSelectionBox();
+        this.redrawVisuals();
+      };
+      const handleDragMove = (event) => {
+        if (!isDragging || event.pointerId !== activePointerId) {
+          return;
+        }
+        this.updateSelectionBox(canvas, startX, event.clientX);
+      };
+      const finishDrag = (event) => {
+        if (!isDragging || event.pointerId !== activePointerId) {
+          return;
+        }
+        isDragging = false;
+        activePointerId = void 0;
+        cleanupDragListeners();
+        if (canvas.hasPointerCapture(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+        this.isDraggingSelection = false;
+        this.hideSelectionBox();
+        if (Math.abs(startX - event.clientX) < MIN_DRAG_PIXELS) {
+          this.setPlayheadFromPointer(canvas, event.clientX);
+        } else {
+          this.setSelectionFromPointer(canvas, startX, event.clientX);
+        }
+        this.dragPlayheadTime = void 0;
+        this.drawTimeline();
+      };
       canvas.addEventListener("contextmenu", (event) => {
         event.preventDefault();
+        if (this.selection) {
+          if (this.isPointerInsideSelection(canvas, event.clientX)) {
+            this.showSelectionContextMenu(event.clientX, event.clientY);
+          } else {
+            this.clearSelection();
+          }
+          return;
+        }
         this.resetView();
       });
       canvas.addEventListener(
@@ -7682,43 +8040,20 @@
         if (event.button !== 0) {
           return;
         }
+        cancelDrag();
         isDragging = true;
+        activePointerId = event.pointerId;
         this.isDraggingSelection = true;
         this.selectionPlaybackEnd = void 0;
         startX = event.clientX;
         this.setDragPlayheadFromPointer(canvas, startX);
         canvas.setPointerCapture(event.pointerId);
         this.updateSelectionBox(canvas, startX, event.clientX);
+        window.addEventListener("pointermove", handleDragMove);
+        window.addEventListener("pointerup", finishDrag);
+        window.addEventListener("pointercancel", cancelDrag);
       });
-      canvas.addEventListener("pointermove", (event) => {
-        if (!isDragging) {
-          return;
-        }
-        this.updateSelectionBox(canvas, startX, event.clientX);
-      });
-      canvas.addEventListener("pointerup", (event) => {
-        if (!isDragging) {
-          return;
-        }
-        isDragging = false;
-        canvas.releasePointerCapture(event.pointerId);
-        this.isDraggingSelection = false;
-        this.hideSelectionBox();
-        if (Math.abs(startX - event.clientX) < MIN_DRAG_PIXELS) {
-          this.setPlayheadFromPointer(canvas, event.clientX);
-        } else {
-          this.setSelectionFromPointer(canvas, startX, event.clientX);
-        }
-        this.dragPlayheadTime = void 0;
-        this.drawTimeline();
-      });
-      canvas.addEventListener("pointercancel", () => {
-        isDragging = false;
-        this.isDraggingSelection = false;
-        this.dragPlayheadTime = void 0;
-        this.hideSelectionBox();
-        this.redrawVisuals();
-      });
+      window.addEventListener("blur", cancelDrag);
     }
     handleWheel(event, canvas) {
       const timeZoomModifier = isTimeZoomModifier(event);
@@ -7802,6 +8137,7 @@
         return;
       }
       this.selection = selection;
+      this.hideSelectionContextMenu();
       this.playheadTime = selection.start;
       this.dragPlayheadTime = void 0;
       this.selectionPlaybackEnd = this.elements.audio.paused ? void 0 : selection.end;
@@ -7809,6 +8145,45 @@
       this.updateClock();
       this.updateSelectionAnalysis();
       this.redrawVisuals();
+    }
+    showSelectionContextMenu(clientX, clientY) {
+      const menu = this.elements.selectionContextMenu;
+      menu.hidden = false;
+      const rect = menu.getBoundingClientRect();
+      const margin = 8;
+      const left = clamp2(clientX, margin, Math.max(margin, window.innerWidth - rect.width - margin));
+      const top = clamp2(clientY, margin, Math.max(margin, window.innerHeight - rect.height - margin));
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+      menu.querySelector("button")?.focus();
+    }
+    isPointerInsideSelection(canvas, clientX) {
+      if (!this.selection || !this.audioBuffer) {
+        return false;
+      }
+      const time = clamp2(this.timeFromCanvasX(canvas, clientX), 0, this.audioBuffer.duration);
+      return time >= this.selection.start && time <= this.selection.end;
+    }
+    hideSelectionContextMenu() {
+      this.elements.selectionContextMenu.hidden = true;
+    }
+    handleSelectionContextMenuClick(event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const action = target.closest("button[data-action]")?.dataset.action;
+      if (!action) {
+        return;
+      }
+      this.hideSelectionContextMenu();
+      if (action === "download-selection") {
+        this.downloadSelectionAsWav();
+        return;
+      }
+      if (action === "clear-selection") {
+        this.clearSelection();
+      }
     }
     updateSelectionBox(canvas, fromX, toX) {
       const canvasRect = canvas.getBoundingClientRect();
@@ -7999,6 +8374,17 @@
     analysisSampleRate() {
       return this.sourceSampleRate ?? this.audioBuffer?.sampleRate ?? 1;
     }
+    nyquistFrequency() {
+      return Math.max(1, this.analysisSampleRate() / 2);
+    }
+    spectrogramFrequencyRange() {
+      return normalizeFrequencyRange(
+        this.settings.spectrogramMinHz,
+        this.settings.spectrogramMaxHz,
+        this.settings.spectrogramMaxFollowsNyquist,
+        this.nyquistFrequency()
+      );
+    }
     getPlotRect(canvas) {
       if (canvas.classList.contains("trackWaveform") || canvas.classList.contains("trackSpectrogram")) {
         const ratio2 = window.devicePixelRatio || 1;
@@ -8068,11 +8454,11 @@
       context.strokeStyle = axisGridColor();
       context.font = axisFont();
       context.textAlign = "right";
-      const nyquist = this.analysisSampleRate() / 2;
+      const frequencyRange = this.spectrogramFrequencyRange();
       const ticks = 5;
       for (let index = 0; index <= ticks; index += 1) {
         const ratio = index / ticks;
-        const frequency = frequencyFromRatio(ratio, this.settings.frequencyScale, nyquist);
+        const frequency = frequencyFromRatio(ratio, this.settings.frequencyScale, frequencyRange.minHz, frequencyRange.maxHz);
         const y = rect.bottom - ratio * rect.height;
         context.beginPath();
         context.moveTo(rect.left, y);
@@ -8186,10 +8572,12 @@
       }
     }
   }
-  function encodeWav(audioBuffer) {
+  function encodeWav(audioBuffer, startFrame = 0, endFrame = audioBuffer.length) {
     const channels = audioBuffer.numberOfChannels;
     const sampleRate = audioBuffer.sampleRate;
-    const frames = audioBuffer.length;
+    const start = clamp2(Math.floor(startFrame), 0, audioBuffer.length);
+    const end = clamp2(Math.ceil(endFrame), start, audioBuffer.length);
+    const frames = end - start;
     const bytesPerSample = 2;
     const blockAlign = channels * bytesPerSample;
     const dataSize = frames * blockAlign;
@@ -8211,8 +8599,9 @@
     const channelData = Array.from({ length: channels }, (_, channel) => audioBuffer.getChannelData(channel));
     let offset = 44;
     for (let frame = 0; frame < frames; frame += 1) {
+      const sourceFrame = start + frame;
       for (let channel = 0; channel < channels; channel += 1) {
-        const value = clamp2(channelData[channel][frame] ?? 0, -1, 1);
+        const value = clamp2(channelData[channel][sourceFrame] ?? 0, -1, 1);
         view.setInt16(offset, value < 0 ? value * 32768 : value * 32767, true);
         offset += bytesPerSample;
       }
@@ -8223,6 +8612,24 @@
     for (let index = 0; index < value.length; index += 1) {
       view.setUint8(offset + index, value.charCodeAt(index));
     }
+  }
+  function sanitizeFileNameBase(fileName) {
+    const withoutExtension = fileName.replace(/\.[^/.\\]+$/, "");
+    const sanitized = withoutExtension.replace(/[<>:"/\\|?*\x00-\x1f]+/g, "_").replace(/\s+/g, "_").replace(/^_+|_+$/g, "");
+    return sanitized || "audio";
+  }
+  function formatSelectionTime(time) {
+    return Math.max(0, time).toFixed(3);
+  }
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 32768;
+    let binary = "";
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      const chunk = bytes.subarray(offset, offset + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    return btoa(binary);
   }
   function axisFont() {
     return `${Math.round(AXIS_FONT_SIZE * (window.devicePixelRatio || 1))}px system-ui, sans-serif`;
@@ -8487,26 +8894,45 @@
   function readUint32Le(bytes, offset) {
     return ((bytes[offset] ?? 0) | (bytes[offset + 1] ?? 0) << 8 | (bytes[offset + 2] ?? 0) << 16 | (bytes[offset + 3] ?? 0) << 24) >>> 0;
   }
-  function frequencyFromRatio(ratio, scale, nyquist) {
+  function frequencyFromRatio(ratio, scale, minHz, maxHz) {
     const r = clamp2(ratio, 0, 1);
-    const top = Math.max(1, nyquist);
+    const bottom = Math.max(0, Math.min(minHz, maxHz - 1));
+    const top = Math.max(bottom + 1, maxHz);
     if (scale === "log") {
-      if (r <= 0) {
-        return 0;
+      if (top <= 20) {
+        return bottom + r * (top - bottom);
       }
       const low = 20;
-      return Math.min(top, low * Math.pow(top / low, r));
+      if (bottom <= 0 && r <= 0) {
+        return 0;
+      }
+      const minCoord = bottom <= 0 ? 0 : Math.log(Math.max(low, bottom) / low) / Math.log(top / low);
+      return Math.min(top, low * Math.pow(top / low, minCoord + r * (1 - minCoord)));
     }
     if (scale === "mel") {
-      return melToHz(r * hzToMel(top));
+      const minMel = hzToMel(bottom);
+      return melToHz(minMel + r * (hzToMel(top) - minMel));
     }
     if (scale === "bark") {
-      return barkToHz(r * hzToBark(top));
+      const minBark = hzToBark(bottom);
+      return barkToHz(minBark + r * (hzToBark(top) - minBark));
     }
     if (scale === "erb") {
-      return erbToHz(r * hzToErb(top));
+      const minErb = hzToErb(bottom);
+      return erbToHz(minErb + r * (hzToErb(top) - minErb));
     }
-    return r * top;
+    return bottom + r * (top - bottom);
+  }
+  function normalizeFrequencyRange(minHz, maxHz, followsNyquist, nyquist) {
+    const top = Math.max(1, Math.floor(nyquist));
+    const safeMin = clamp2(Number.isFinite(minHz) ? Math.floor(minHz) : 0, 0, Math.max(0, top - 1));
+    const storedMaxHz = Math.max(1, Math.floor(Number.isFinite(maxHz) ? maxHz : top));
+    const effectiveMax = followsNyquist ? top : clamp2(storedMaxHz, safeMin + 1, top);
+    return {
+      minHz: Math.min(safeMin, effectiveMax - 1),
+      maxHz: effectiveMax,
+      storedMaxHz
+    };
   }
   function hzToMel(hz) {
     return 2595 * Math.log10(1 + hz / 700);
@@ -9047,6 +9473,16 @@
     .settingsSection + .settingsSection {
       padding-top: 12px;
       border-top: 1px solid var(--vscode-panel-border);
+    }
+    .settingsSubsection {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 4px;
+    }
+    .settingsSubsection > strong {
+      color: var(--vscode-foreground);
+      font-size: 0.95em;
     }
     .primary, .secondary {
       min-height: 32px;
@@ -9757,6 +10193,37 @@
       transform: translateX(-1px);
       background: #ffcc66;
       display: none;
+    }
+    .contextMenu {
+      position: fixed;
+      z-index: 50;
+      min-width: 190px;
+      padding: 4px;
+      border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+      border-radius: 5px;
+      color: var(--vscode-menu-foreground, var(--vscode-foreground));
+      background: var(--vscode-menu-background, var(--vscode-editorWidget-background, var(--vscode-editor-background)));
+      box-shadow: 0 12px 28px rgb(0 0 0 / 32%);
+    }
+    .contextMenu[hidden] {
+      display: none;
+    }
+    .contextMenu button {
+      width: 100%;
+      display: block;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 3px;
+      color: inherit;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .contextMenu button:hover,
+    .contextMenu button:focus-visible {
+      color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+      background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+      outline: none;
     }
     .selectionAnalysisPane {
       position: fixed;

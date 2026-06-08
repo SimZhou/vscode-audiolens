@@ -305,6 +305,16 @@ export function injectStyles(): void {
       padding-top: 12px;
       border-top: 1px solid var(--vscode-panel-border);
     }
+    .settingsSubsection {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 4px;
+    }
+    .settingsSubsection > strong {
+      color: var(--vscode-foreground);
+      font-size: 0.95em;
+    }
     .primary, .secondary {
       min-height: 32px;
       border: 1px solid var(--vscode-button-border, transparent);
@@ -1014,6 +1024,37 @@ export function injectStyles(): void {
       transform: translateX(-1px);
       background: #ffcc66;
       display: none;
+    }
+    .contextMenu {
+      position: fixed;
+      z-index: 50;
+      min-width: 190px;
+      padding: 4px;
+      border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+      border-radius: 5px;
+      color: var(--vscode-menu-foreground, var(--vscode-foreground));
+      background: var(--vscode-menu-background, var(--vscode-editorWidget-background, var(--vscode-editor-background)));
+      box-shadow: 0 12px 28px rgb(0 0 0 / 32%);
+    }
+    .contextMenu[hidden] {
+      display: none;
+    }
+    .contextMenu button {
+      width: 100%;
+      display: block;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 3px;
+      color: inherit;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .contextMenu button:hover,
+    .contextMenu button:focus-visible {
+      color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+      background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+      outline: none;
     }
     .selectionAnalysisPane {
       position: fixed;

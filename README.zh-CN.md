@@ -5,16 +5,50 @@
 <h1 align="center">AudioLens</h1>
 
 <p align="center">
+  <strong>在 VS Code 中面向语音、机器学习和信号工程工作流的音频查看与分析工具。</strong>
+</p>
+
+<p align="center">
+  <a href="#1-多通道音轨与多视图">波形图</a> ·
+  <a href="#1-多通道音轨与多视图">语谱图</a> ·
+  <a href="#1-多通道音轨与多视图">多通道音轨</a> ·
+  <a href="#2-选区播放与分析">选区分析</a> ·
+  <a href="#3-打开-pcm--raw-文件">Raw PCM</a> ·
+  <a href="#6-直接打开-kaldi-wav-ark">Kaldi WAV Ark</a> ·
+  <a href="#在-remote-ssh-中使用">Remote SSH</a>
+</p>
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://img.shields.io/badge/VS%20Marketplace-Install-007ACC?logo=visualstudiocode&logoColor=white" alt="从 VS Code Marketplace 安装"></a>
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/v/simzhou/audiolens?label=Open%20VSX" alt="Open VSX 版本"></a>
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/dt/simzhou/audiolens?label=Open%20VSX%20downloads" alt="Open VSX 下载量"></a>
+  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><img src="https://img.shields.io/github/v/release/SimZhou/vscode-audiolens?label=release" alt="GitHub Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 License"></a>
+</p>
+
+<p align="center">
+  <a href="#1-多通道音轨与多视图"><img src="https://img.shields.io/badge/多通道-音轨-2ea44f" alt="多通道音轨"></a>
+  <a href="#2-选区播放与分析"><img src="https://img.shields.io/badge/语谱图-分析-7c3aed" alt="语谱图分析"></a>
+  <a href="#3-打开-pcm--raw-文件"><img src="https://img.shields.io/badge/Raw%20PCM-支持-f97316" alt="支持 Raw PCM"></a>
+  <a href="#6-直接打开-kaldi-wav-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-支持-0ea5e9" alt="支持 Kaldi WAV Ark"></a>
+  <a href="#在-remote-ssh-中使用"><img src="https://img.shields.io/badge/Remote%20SSH-支持-2563eb" alt="支持 Remote SSH"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.md">English</a> | 简体中文 | <a href="https://github.com/SimZhou/vscode-audiolens/blob/main/README.ja.md">日本語</a>
 </p>
 
-<p align="center"><em>"很惭愧，做了一点微小的工作。"</em></p>
+AudioLens 可以把 VS Code 变成实用的音频查看器，适合音频工程师、语音算法工程师和机器学习从业者使用。你可以在 manifest、转写文本、日志、脚本和模型输出旁边，直接打开常见音频文件、Raw PCM 数据或 Kaldi WAV Ark 条目。
 
----
+它关注通用音频播放器容易缺失的日常工程工作流：查看波形图和语谱图、检查多通道音频、从文本中打开音频路径、用明确参数解码 Raw PCM、查看文件头信息，以及在不离开工作区的情况下分析选中的音频片段。
 
-AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩展。它适合语音、音频算法、机器学习和数据标注场景，让音频文件可以和代码、标签、脚本、测试数据放在同一个工作区里查看。
-
-打开音频后，AudioLens 会在只读编辑器里显示播放控制、多通道音轨、波形图、语谱图、选区播放、PCM 参数和常用分析指标。
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><strong>从 VS Code Marketplace 安装</strong></a>
+  ·
+  <a href="https://open-vsx.org/extension/simzhou/audiolens"><strong>从 Open VSX 安装</strong></a>
+  ·
+  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><strong>下载 VSIX</strong></a>
+</p>
 
 ## 预览
 
@@ -22,41 +56,48 @@ AudioLens 是一个运行在 Visual Studio Code 里的音频查看与分析扩�
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/Main-Screen-multichannel.zh-CN.png" alt="AudioLens 多通道主界面" width="920">
 </p>
 
-## 主要能力
+## 为什么选择 AudioLens
 
-- 可以打开 `wav`、`mp3`、`flac`、`ogg`、`opus`、`m4a`、`aac`、`pcm`、`raw` 文件，也可以打开 Kaldi wav ark 音频条目。
-- 可以从代码、标注文件、日志等普通文本里直接打开音频地址。
-- 单通道和多通道音频都按真实通道逐条显示，交互方式接近 Audacity。
-- 每个通道可独立选择波形图、语谱图或波形 + 语谱图的多视图。
-- 每个通道都有静音和独奏按钮，播放时会混合成常见的双声道输出。
-- 可在顶部工具栏查看 WAV、FLAC、Ogg、MP4/M4A、AAC 和 MP3 的文件头信息。
-- 打开 PCM/RAW 文件时，可以手动填写采样率、通道数、编码、字节序和起始偏移。
-- WAV 文件也可以临时按 PCM 方式重新打开，方便检查 header 偏移或损坏文件。
-- 可以从 `wav.ark:offset` 打开 Kaldi wav ark 音频条目，不读取整份 ark 文件。
-- 可以对选中的音频片段做时域和频域分析。
-- 保存常用偏好，包括语谱图参数、播放增益、默认音轨视图和 PCM 默认参数。
-- 支持本地 VS Code 和 Remote SSH 工作区。
+| 工作流 | AudioLens 能提供什么 |
+| --- | --- |
+| 语音和机器学习数据集 | 在 manifest、转写文本、日志、训练脚本和模型输出旁边直接查看音频。 |
+| 多通道音频 | Audacity 风格的多通道音轨、每通道波形图/语谱图视图、静音、独奏和立体声 downmix 播放。 |
+| 音频分析 | 拖拽选区后只播放选中片段，并查看 RMS、峰值、削波、主频、频谱质心、过零率和频段能量等指标。 |
+| Raw 数据调试 | 用明确的采样率、通道数、编码、字节序和字节偏移打开 `.pcm` / `.raw`。也可以把 WAV payload 按 PCM 重新读取，用于检查损坏或非标准文件。 |
+| Kaldi 工作流 | 打开 `wav.ark:offset` 条目，或打开 Ark 文件后手动输入偏移量，不需要加载整份 archive。 |
+| 远程开发 | 作为 workspace extension 运行，因此 Remote SSH 工作区可以直接预览和分析远端音频，不必先复制数据集。 |
+
+## 核心功能
+
+| 方向 | 功能 |
+| --- | --- |
+| 播放 | 打开后即可用 `Space` 播放/暂停，支持 seek、选区播放、播放增益、每通道静音和独奏。 |
+| 可视化 | 波形图、语谱图、组合视图、共享时间轴、可配置音轨高度、缩放、平移和重置。 |
+| 语谱图分析 | Frequency、Reassignment、Pitch (EAC) 算法；FFT 最大 `32768`；多种窗函数、频率刻度、配色和自动亮度。 |
+| 文件检查 | 结构化查看 WAV/RIFF、FLAC、Ogg、MP4/M4A、AAC/ADTS 和 MP3/MPEG 帧头信息。 |
+| 数据集导航 | 在普通文本文件里通过 hover、状态栏和命令打开音频路径，不为大文件生成成千上万个正文链接。 |
+| 偏好保存 | 保存默认音轨视图、语谱图设置、播放增益、PCM 默认参数和界面语言。 |
 
 ## 安装
 
-从 Visual Studio Marketplace 安装：
+**推荐：从 Visual Studio Marketplace 安装**
 
 https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens
 
-也可以从 Open VSX 安装：
+**备选：从 Open VSX 安装**
 
 https://open-vsx.org/extension/simzhou/audiolens
 
-或使用命令行安装：
+**命令行**
 
 ```bash
 code --install-extension simzhou.audiolens
 ```
 
-如果需要离线安装，可以从 GitHub Releases 下载 VSIX，或安装本地打包版本：
+**离线 VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.3.6.vsix
+code --install-extension dist/audiolens-1.4.0.vsix
 ```
 
 ## 功能演示
@@ -183,6 +224,7 @@ AudioLens 提供适合语音和信号检查的语谱图参数：
 - 窗函数：Rectangular、Bartlett、Hamming、Hann、Blackman、Blackman-Harris、Welch 和 Gaussian 变体
 - 零填充倍数：`1` 到 `128`
 - 频率刻度：Linear、Log、Mel、Bark、ERB
+- 可配置仅影响显示的频率范围，也可以让最大值跟随 Nyquist
 - 配色：Rose、Classic、Grayscale、Inverse Grayscale
 - 可配置 dB 亮度范围和自动亮度
 
@@ -242,7 +284,7 @@ SimZhou: https://simzhou.com/about/
 
 ## 支持 AudioLens
 
-如果 AudioLens 对你的语音、音频或数据标注工作有帮助，欢迎支持这个项目的持续维护。
+如果 AudioLens 对你的语音、音频或信号工程工作有帮助，欢迎支持这个项目的持续维护。
 
 ### Ko-fi
 
@@ -254,6 +296,8 @@ SimZhou: https://simzhou.com/about/
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/wechat_support.jpeg" alt="微信赞赏码" width="240">
 </p>
 
-## 版权
+## 许可证
 
-Copyright (c) 2026 SimZhou. All rights reserved.
+Copyright (c) 2026 SimZhou.
+
+Licensed under the Apache License, Version 2.0.

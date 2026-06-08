@@ -25,6 +25,10 @@ export interface LocaleMessages {
   spectrogramSettings: string;
   help: string;
   downloadAudio: string;
+  downloadSelection: string;
+  downloadSelectionWav: string;
+  clearSelection: string;
+  noSelectionToDownload: string;
   headerInfo: string;
   headerInfoTitle: string;
   headerInfoAudioUnread: string;
@@ -70,6 +74,11 @@ export interface LocaleMessages {
   windowGaussian45: string;
   zeroPaddingFactor: string;
   frequencyScale: string;
+  frequencyRange: string;
+  minFrequencyHz: string;
+  maxFrequencyHz: string;
+  maxFrequencyNyquist: string;
+  spectrogramAppearance: string;
   palette: string;
   paletteRose: string;
   paletteClassic: string;

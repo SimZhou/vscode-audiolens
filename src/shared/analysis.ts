@@ -91,6 +91,8 @@ export function createAnalysisCacheKey(parts: {
   targetFrames?: number;
   minDb: number;
   maxDb: number;
+  spectrogramMinHz?: number;
+  spectrogramMaxHz?: number;
   frequencyScale?: FrequencyScale;
   palette?: SpectrogramPalette;
 }): string {
@@ -106,6 +108,8 @@ export function createAnalysisCacheKey(parts: {
     parts.targetFrames ?? 0,
     parts.minDb,
     parts.maxDb,
+    parts.spectrogramMinHz ?? 0,
+    parts.spectrogramMaxHz ?? 0,
     parts.frequencyScale ?? "linear",
     parts.palette ?? "classic"
   ].join(":");

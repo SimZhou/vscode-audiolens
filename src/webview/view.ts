@@ -50,6 +50,9 @@ export interface ViewElements {
   amplitudeZoom: HTMLInputElement;
   minDb: HTMLInputElement;
   maxDb: HTMLInputElement;
+  spectrogramMinHz: HTMLInputElement;
+  spectrogramMaxHz: HTMLInputElement;
+  spectrogramMaxFollowsNyquist: HTMLInputElement;
   autoBrightness: HTMLInputElement;
   frequencyScale: HTMLSelectElement;
   palette: HTMLSelectElement;
@@ -79,6 +82,7 @@ export interface ViewElements {
   waveform: HTMLCanvasElement;
   spectrogram: HTMLCanvasElement;
   selectionBox: HTMLDivElement;
+  selectionContextMenu: HTMLDivElement;
   floatingTooltip: HTMLDivElement;
 }
 
@@ -336,27 +340,45 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <option value="erb">ERB</option>
           </select>
         </label>
-        <label>
-          <span data-i18n="palette">Palette</span>
-          <select id="palette">
-            <option value="rose" data-i18n="paletteRose">Color (rose)</option>
-            <option value="classic" data-i18n="paletteClassic">Color (classic)</option>
-            <option value="grayscale" data-i18n="paletteGrayscale">Grayscale</option>
-            <option value="inverseGrayscale" data-i18n="paletteInverseGrayscale">Inverse grayscale</option>
-          </select>
-        </label>
-        <label class="checkboxLabel">
-          <input id="autoBrightness" type="checkbox" checked />
-          <span data-i18n="autoBrightness">Auto brightness</span>
-        </label>
-        <label>
-          <span data-i18n="minDb">Min dB (brightness)</span>
-          <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
-        </label>
-        <label>
-          <span data-i18n="maxDb">Max dB (brightness)</span>
-          <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
-        </label>
+        <div class="settingsSubsection">
+          <strong data-i18n="frequencyRange">Frequency range</strong>
+          <label>
+            <span data-i18n="minFrequencyHz">Min frequency (Hz)</span>
+            <input id="spectrogramMinHz" type="number" min="0" step="1" value="0" />
+          </label>
+          <label>
+            <span data-i18n="maxFrequencyHz">Max frequency (Hz)</span>
+            <input id="spectrogramMaxHz" type="number" min="1" step="1" value="8000" />
+          </label>
+          <label class="checkboxLabel">
+            <input id="spectrogramMaxFollowsNyquist" type="checkbox" checked />
+            <span data-i18n="maxFrequencyNyquist">Max follows Nyquist</span>
+          </label>
+        </div>
+        <div class="settingsSubsection">
+          <strong data-i18n="spectrogramAppearance">Spectrogram appearance</strong>
+          <label>
+            <span data-i18n="palette">Palette</span>
+            <select id="palette">
+              <option value="rose" data-i18n="paletteRose">Color (rose)</option>
+              <option value="classic" data-i18n="paletteClassic">Color (classic)</option>
+              <option value="grayscale" data-i18n="paletteGrayscale">Grayscale</option>
+              <option value="inverseGrayscale" data-i18n="paletteInverseGrayscale">Inverse grayscale</option>
+            </select>
+          </label>
+          <label class="checkboxLabel">
+            <input id="autoBrightness" type="checkbox" checked />
+            <span data-i18n="autoBrightness">Auto brightness</span>
+          </label>
+          <label>
+            <span data-i18n="minDb">Min dB (brightness)</span>
+            <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
+          </label>
+          <label>
+            <span data-i18n="maxDb">Max dB (brightness)</span>
+            <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
+          </label>
+        </div>
         </section>
       </aside>
 
@@ -557,6 +579,10 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           </div>
           <div id="spectrogramResize" class="plotResize legacyPlot" role="separator" aria-orientation="horizontal" data-i18n-title="adjustSpectrogramHeight" title="Adjust spectrogram height" hidden></div>
           <div id="selectionBox" class="selectionBox" hidden></div>
+          <div id="selectionContextMenu" class="contextMenu" role="menu" hidden>
+            <button type="button" role="menuitem" data-action="download-selection" data-i18n="downloadSelectionWav">Download selection as WAV</button>
+            <button type="button" role="menuitem" data-action="clear-selection" data-i18n="clearSelection">Clear selection</button>
+          </div>
           <div id="floatingTooltip" class="floatingTooltip" hidden></div>
         </section>
       </section>
@@ -613,6 +639,9 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
     minDb: query("#minDb", HTMLInputElement),
     maxDb: query("#maxDb", HTMLInputElement),
+    spectrogramMinHz: query("#spectrogramMinHz", HTMLInputElement),
+    spectrogramMaxHz: query("#spectrogramMaxHz", HTMLInputElement),
+    spectrogramMaxFollowsNyquist: query("#spectrogramMaxFollowsNyquist", HTMLInputElement),
     autoBrightness: query("#autoBrightness", HTMLInputElement),
     frequencyScale: query("#frequencyScale", HTMLSelectElement),
     palette: query("#palette", HTMLSelectElement),
@@ -642,6 +671,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     waveform: query("#waveform", HTMLCanvasElement),
     spectrogram: query("#spectrogram", HTMLCanvasElement),
     selectionBox: query("#selectionBox", HTMLDivElement),
+    selectionContextMenu: query("#selectionContextMenu", HTMLDivElement),
     floatingTooltip: query("#floatingTooltip", HTMLDivElement)
   };
 }

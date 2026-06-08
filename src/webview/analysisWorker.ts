@@ -25,6 +25,8 @@ export function createAnalysisWorker(): Worker {
       const re = new Float32Array(fftSize);
       const im = new Float32Array(fftSize);
       const nyquist = sampleRate / 2;
+      const minFrequencyHz = Math.max(0, Math.min(Number(settings.minFrequencyHz) || 0, Math.max(0, nyquist - 1)));
+      const maxFrequencyHz = Math.max(minFrequencyHz + 1, Math.min(Number(settings.maxFrequencyHz) || nyquist, nyquist));
 
       for (let frame = 0; frame < frames; frame += 1) {
         const offset = frame * hopSize;
@@ -36,7 +38,7 @@ export function createAnalysisWorker(): Worker {
         fft(re, im);
         for (let y = 0; y < bins; y += 1) {
           const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
-          const freq = frequencyFromRatio(ratio, settings.frequencyScale, nyquist);
+          const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
           const bin = Math.max(0, Math.min((fftSize / 2) - 1, Math.round((freq / sampleRate) * fftSize)));
           const mag = Math.sqrt(re[bin] * re[bin] + im[bin] * im[bin]) / windowSize;
           const db = adjustDbForAlgorithm(20 * Math.log10(Math.max(mag, 1e-12)), settings.algorithm);
@@ -119,18 +121,30 @@ export function createAnalysisWorker(): Worker {
       }
     }
 
-    function frequencyFromRatio(ratio, scale, nyquist) {
+    function frequencyFromRatio(ratio, scale, minHz, maxHz) {
       const r = Math.max(0, Math.min(1, ratio));
-      const top = Math.max(1, nyquist);
+      const bottom = Math.max(0, Math.min(minHz, maxHz - 1));
+      const top = Math.max(bottom + 1, maxHz);
       if (scale === "log") {
-        if (r <= 0) return 0;
+        if (top <= 20) return bottom + r * (top - bottom);
         const low = 20;
-        return Math.min(top, low * Math.pow(top / low, r));
+        if (bottom <= 0 && r <= 0) return 0;
+        const minCoord = bottom <= 0 ? 0 : Math.log(Math.max(low, bottom) / low) / Math.log(top / low);
+        return Math.min(top, low * Math.pow(top / low, minCoord + r * (1 - minCoord)));
       }
-      if (scale === "mel") return melToHz(r * hzToMel(top));
-      if (scale === "bark") return barkToHz(r * hzToBark(top));
-      if (scale === "erb") return erbToHz(r * hzToErb(top));
-      return r * top;
+      if (scale === "mel") {
+        const minMel = hzToMel(bottom);
+        return melToHz(minMel + r * (hzToMel(top) - minMel));
+      }
+      if (scale === "bark") {
+        const minBark = hzToBark(bottom);
+        return barkToHz(minBark + r * (hzToBark(top) - minBark));
+      }
+      if (scale === "erb") {
+        const minErb = hzToErb(bottom);
+        return erbToHz(minErb + r * (hzToErb(top) - minErb));
+      }
+      return bottom + r * (top - bottom);
     }
 
     function hzToMel(hz) { return 2595 * Math.log10(1 + hz / 700); }

@@ -287,6 +287,9 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
         case "downloadAudio":
           await this.downloadAudio(document);
           break;
+        case "downloadSelectionWav":
+          await this.downloadSelectionWav(message.fileName, message.bytesBase64, message.saveLabel, message.title);
+          break;
         case "transcodeAudio":
           await this.transcodeAudio(message.requestId, document, webview);
           break;
@@ -330,6 +333,23 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     await vscode.workspace.fs.writeFile(destination, bytes);
     vscode.window.showInformationMessage(`AudioLens saved ${fileName}.`);
   }
+  async downloadSelectionWav(fileName, bytesBase64, saveLabel, title) {
+    if (!vscode.workspace.isTrusted) {
+      throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+    }
+    const safeFileName = sanitizeSuggestedFileName(fileName) || "audiolens_selection.wav";
+    const destination = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(safeFileName),
+      filters: { "WAV audio": ["wav"] },
+      saveLabel: saveLabel || "Download Selection",
+      title: title || "Download Selection as WAV"
+    });
+    if (!destination) {
+      return;
+    }
+    await vscode.workspace.fs.writeFile(destination, new Uint8Array(Buffer.from(bytesBase64, "base64")));
+    vscode.window.showInformationMessage(`AudioLens saved ${path.basename(destination.fsPath || safeFileName)}.`);
+  }
   async transcodeAudio(requestId, document, webview) {
     try {
       if (!vscode.workspace.isTrusted) {
@@ -370,6 +390,9 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
       palette: value.palette,
       minDb: value.minDb,
       maxDb: value.maxDb,
+      spectrogramMinHz: value.spectrogramMinHz,
+      spectrogramMaxHz: value.spectrogramMaxHz,
+      spectrogramMaxFollowsNyquist: value.spectrogramMaxFollowsNyquist,
       autoBrightness: value.autoBrightness,
       amplitudeZoom: value.amplitudeZoom,
       waveformHeight: value.waveformHeight,
@@ -819,6 +842,13 @@ async function runFfmpegToWav(inputPath) {
       reject(new Error(detail || `FFmpeg exited with code ${code ?? "unknown"}.`));
     });
   });
+}
+function sanitizeSuggestedFileName(fileName) {
+  const normalized = path.basename(fileName || "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").trim();
+  if (!normalized) {
+    return "";
+  }
+  return normalized.toLowerCase().endsWith(".wav") ? normalized : `${normalized}.wav`;
 }
 
 // src/audioPathLinks.ts

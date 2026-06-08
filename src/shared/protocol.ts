@@ -35,6 +35,9 @@ export interface AudioLensPreferences {
   palette?: string;
   minDb?: number;
   maxDb?: number;
+  spectrogramMinHz?: number;
+  spectrogramMaxHz?: number;
+  spectrogramMaxFollowsNyquist?: boolean;
   autoBrightness?: boolean;
   amplitudeZoom?: number;
   defaultTrackMode?: "both" | "waveform" | "spectrogram";
@@ -76,6 +79,7 @@ export type WebviewMessage =
   | { type: "readChunk"; requestId: number; offset: number; length: number }
   | { type: "transcodeAudio"; requestId: number }
   | { type: "downloadAudio" }
+  | { type: "downloadSelectionWav"; fileName: string; bytesBase64: string; saveLabel?: string; title?: string }
   | { type: "updatePreferences"; preferences: AudioLensPreferences }
   | { type: "showError"; message: string };
 
