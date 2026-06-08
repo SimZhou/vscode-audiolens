@@ -1,5 +1,28 @@
 # 更新日志
 
+## 1.3.5
+
+README 演示更新。
+
+- 为 README 增加音频头信息查看、音频路径打开和直接打开 Kaldi WAV Ark 的演示 GIF。
+- 为内置 README 的功能演示标题补充序号。
+- 保持 README 大图和 GIF 不进入 VSIX 发布包。
+
+## 1.3.4
+
+播放焦点更新。
+
+- 打开音频后自动聚焦当前激活通道的语谱图，因此可以直接按 `Space` 播放或暂停。
+- 只显示波形图时自动聚焦当前波形图，同时隐藏画布焦点描边，保持原有视觉效果。
+
+## 1.3.3
+
+商店可发现性更新。
+
+- 围绕语音数据集、音频标注、原始 PCM、Kaldi wav ark 和 Remote SSH 工作流优化 Marketplace 描述和关键词。
+- 在 Visualization 之外新增 Data Science 和 Machine Learning 分类。
+- 重写 README 开头部分，更直接说明 AudioLens 的实际使用场景，提升搜索和首屏展示效果。
+
 ## 1.3.2
 
 音频路径入口性能更新。

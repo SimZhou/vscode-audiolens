@@ -56,27 +56,48 @@ code --install-extension simzhou.audiolens
 如果需要离线安装，可以从 GitHub Releases 下载 VSIX，或安装本地打包版本：
 
 ```bash
-code --install-extension dist/audiolens-1.3.2.vsix
+code --install-extension dist/audiolens-1.3.4.vsix
 ```
 
 ## 功能演示
 
-### 多通道音轨与多视图
+### 1. 多通道音轨与多视图
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.zh-CN.gif" alt="多通道音轨与多视图演示" width="920">
 </p>
 
-### 选区播放与分析
+### 2. 选区播放与分析
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.zh-CN.gif" alt="选区播放与分析演示" width="920">
 </p>
 
-### 打开 PCM / RAW 文件
+### 3. 打开 PCM / RAW 文件
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/3.pcm_raw_parameterized_loading.zh-CN.gif" alt="PCM 和 RAW 参数化读取演示" width="920">
+</p>
+
+### 4. 一键查看音频头信息
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/4.Inspect_Audio_Headers_in_One_Click.zh-CN.gif" alt="音频头信息查看演示" width="920">
+</p>
+
+### 5. 从任意文件中打开音频路径
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.zh-CN.gif" alt="从任意文件中打开音频路径演示" width="920">
+</p>
+
+### 6. 直接打开 Kaldi WAV Ark
+
+- 方法 1：Ctrl + 单击 `wav.ark:offset` 路径。需要配合 Kaldi Reader 使用：[GitHub](https://github.com/SimZhou/vscode-kaldi-reader)、[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=simzhou.kaldi-reader)、[Open VSX](https://open-vsx.org/extension/simzhou/kaldi-reader)。
+- 方法 2：打开 `.ark` 文件后手动输入偏移量。无需安装其他插件。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/6.open_kaldi_wav_ark_directly.zh-CN.gif" alt="直接打开 Kaldi WAV Ark 演示" width="920">
 </p>
 
 ## 支持的文件
@@ -168,6 +189,8 @@ AudioLens 提供适合语音和信号检查的语谱图参数：
 耗时的语谱图分析会放到 Worker 后台执行，避免阻塞 Webview 主交互。
 
 ## 快捷键
+
+打开音频后，当前激活的语谱图或波形图会直接进入键盘可用状态，因此按 `Space` 可以立即播放或暂停。
 
 | 操作 | 快捷键 |
 | --- | --- |

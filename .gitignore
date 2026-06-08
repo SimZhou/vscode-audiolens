@@ -33,6 +33,7 @@ docs/*
 !docs/assets/
 !docs/assets/readme/
 !docs/assets/readme/*
+docs/assets/readme/.DS_Store
 docs/roadmap.md
 
 # Local audio fixtures

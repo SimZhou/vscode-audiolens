@@ -60,27 +60,48 @@ code --install-extension simzhou.audiolens
 For offline installation, download a packaged VSIX from GitHub Releases or install a local packaged build:
 
 ```bash
-code --install-extension dist/audiolens-1.3.3.vsix
+code --install-extension dist/audiolens-1.3.4.vsix
 ```
 
 ## Feature Demos
 
-### Multi-Channel Tracks and Multi-View
+### 1. Multi-Channel Tracks and Multi-View
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.en-US.gif" alt="Multi-channel tracks and multi-view demo" width="920">
 </p>
 
-### Selection Playback and Analysis
+### 2. Selection Playback and Analysis
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.en-US.gif" alt="Selection playback and analysis demo" width="920">
 </p>
 
-### Open PCM / RAW Files
+### 3. Open PCM / RAW Files
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/3.pcm_raw_parameterized_loading.en-US.gif" alt="PCM and RAW parameterized loading demo" width="920">
+</p>
+
+### 4. Inspect Audio Headers in One Click
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/4.Inspect_Audio_Headers_in_One_Click.en-US.gif" alt="Audio header inspection demo" width="920">
+</p>
+
+### 5. Open Audio Paths From Any File
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.en-US.gif" alt="Open audio paths from any file demo" width="920">
+</p>
+
+### 6. Open Kaldi WAV Ark Directly
+
+- Method 1: Ctrl-click a `wav.ark:offset` path. Requires Kaldi Reader: [GitHub](https://github.com/SimZhou/vscode-kaldi-reader), [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=simzhou.kaldi-reader), or [Open VSX](https://open-vsx.org/extension/simzhou/kaldi-reader).
+- Method 2: Open an `.ark` file and enter the offset manually. No additional extension is required.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/6.open_kaldi_wav_ark_directly.en-US.gif" alt="Open Kaldi WAV Ark directly demo" width="920">
 </p>
 
 ## Supported Files
@@ -172,6 +193,8 @@ AudioLens includes practical spectrogram controls for speech and signal inspecti
 Spectrogram work runs in a worker so expensive analysis does not block Webview interactions.
 
 ## Controls
+
+After opening audio, the active spectrogram or waveform is keyboard-ready, so `Space` can play or pause immediately.
 
 | Action | Shortcut |
 | --- | --- |

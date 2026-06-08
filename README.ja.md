@@ -39,22 +39,43 @@ AudioLens は Visual Studio Code 上で動く音声確認・解析用の拡張�
 
 ## デモ
 
-### マルチチャンネルトラックと複合表示
+### 1. マルチチャンネルトラックと複合表示
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.ja-JP.gif" alt="マルチチャンネルトラックと複合表示のデモ" width="920">
 </p>
 
-### 選択範囲の再生と解析
+### 2. 選択範囲の再生と解析
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.ja-JP.gif" alt="選択範囲の再生と解析のデモ" width="920">
 </p>
 
-### PCM / RAW のパラメータ指定読み込み
+### 3. PCM / RAW のパラメータ指定読み込み
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/3.pcm_raw_parameterized_loading.ja-JP.gif" alt="PCM と RAW のパラメータ指定読み込みデモ" width="920">
+</p>
+
+### 4. 音声ヘッダーをワンクリックで確認
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/4.Inspect_Audio_Headers_in_One_Click.ja-JP.gif" alt="音声ヘッダー確認のデモ" width="920">
+</p>
+
+### 5. 任意のファイルから音声パスを開く
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.ja-JP.gif" alt="任意のファイルから音声パスを開くデモ" width="920">
+</p>
+
+### 6. Kaldi WAV Ark を直接開く
+
+- 方法 1: `wav.ark:offset` を Ctrl + クリック。Kaldi Reader と併用します: [GitHub](https://github.com/SimZhou/vscode-kaldi-reader)、[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=simzhou.kaldi-reader)、[Open VSX](https://open-vsx.org/extension/simzhou/kaldi-reader)。
+- 方法 2: `.ark` ファイルを開いてオフセットを手動入力。他の拡張機能は不要です。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/6.open_kaldi_wav_ark_directly.ja-JP.gif" alt="Kaldi WAV Ark を直接開くデモ" width="920">
 </p>
 
 ## 対応ファイル
@@ -147,6 +168,8 @@ AudioLens は音声や信号確認に使いやすいスペクトログラム設�
 
 ## ショートカット
 
+音声を開くと、アクティブなスペクトログラムまたは波形がすぐにキーボード操作可能になるため、`Space` で直ちに再生または一時停止できます。
+
 | 操作 | ショートカット |
 | --- | --- |
 | 再生 / 一時停止 | `Space` |
@@ -200,7 +223,7 @@ code --install-extension simzhou.audiolens
 GitHub Releases から VSIX をダウンロードするか、ローカルで作成したパッケージをインストールできます:
 
 ```bash
-code --install-extension dist/audiolens-1.3.2.vsix
+code --install-extension dist/audiolens-1.3.4.vsix
 ```
 
 ## 開発

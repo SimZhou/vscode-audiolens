@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.5
+
+README demo update.
+
+- Added README demo GIFs for audio header inspection, audio path opening, and direct Kaldi WAV Ark opening.
+- Numbered the feature demo sections across the bundled README variants.
+- Kept large README media excluded from the VSIX package.
+
 ## 1.3.4
 
 Playback focus update.
