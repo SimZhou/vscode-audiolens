@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.4
+
+Playback focus update.
+
+- Focus the active spectrogram after opening audio so Space can play or pause immediately.
+- Keep waveform-only views keyboard-ready by focusing the active waveform instead.
+
 ## 1.3.3
 
 Marketplace discoverability update.

@@ -1570,6 +1570,7 @@ export class AudioLensApp {
     this.renderTrackList();
     this.applyAutoBrightness();
     this.redrawVisuals();
+    this.focusDefaultPlot();
     if (this.config.autoAnalyze) {
       this.scheduleAnalyze(0);
     }
@@ -2892,12 +2893,14 @@ export class AudioLensApp {
     const waveform = document.createElement("canvas");
     waveform.className = "trackWaveform";
     waveform.dataset.channel = String(channel);
+    waveform.tabIndex = 0;
     waveformWrap.append(waveform);
     const spectrogramWrap = document.createElement("div");
     spectrogramWrap.className = "trackCanvasWrap trackSpectrogramWrap";
     const spectrogram = document.createElement("canvas");
     spectrogram.className = "trackSpectrogram";
     spectrogram.dataset.channel = String(channel);
+    spectrogram.tabIndex = 0;
     spectrogramWrap.append(spectrogram);
     body.append(waveformWrap, spectrogramWrap);
     row.append(sidebar, body);
@@ -3028,6 +3031,17 @@ export class AudioLensApp {
     }
     this.redrawVisuals();
     this.analyze();
+  }
+
+  private focusDefaultPlot(): void {
+    const view = this.trackViews.find((item) => item.channel === this.settings.channel) ?? this.trackViews[0];
+    if (!view) {
+      return;
+    }
+    const canvas = view.mode === "waveform" ? view.waveform : view.spectrogram;
+    requestAnimationFrame(() => {
+      canvas.focus({ preventScroll: true });
+    });
   }
 
   private samplesForActiveTrack(): Float32Array | undefined {

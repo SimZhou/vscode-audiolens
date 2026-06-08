@@ -5876,6 +5876,7 @@
       this.renderTrackList();
       this.applyAutoBrightness();
       this.redrawVisuals();
+      this.focusDefaultPlot();
       if (this.config.autoAnalyze) {
         this.scheduleAnalyze(0);
       }
@@ -7105,12 +7106,14 @@
       const waveform = document.createElement("canvas");
       waveform.className = "trackWaveform";
       waveform.dataset.channel = String(channel);
+      waveform.tabIndex = 0;
       waveformWrap.append(waveform);
       const spectrogramWrap = document.createElement("div");
       spectrogramWrap.className = "trackCanvasWrap trackSpectrogramWrap";
       const spectrogram = document.createElement("canvas");
       spectrogram.className = "trackSpectrogram";
       spectrogram.dataset.channel = String(channel);
+      spectrogram.tabIndex = 0;
       spectrogramWrap.append(spectrogram);
       body.append(waveformWrap, spectrogramWrap);
       row.append(sidebar, body);
@@ -7229,6 +7232,16 @@
       }
       this.redrawVisuals();
       this.analyze();
+    }
+    focusDefaultPlot() {
+      const view = this.trackViews.find((item) => item.channel === this.settings.channel) ?? this.trackViews[0];
+      if (!view) {
+        return;
+      }
+      const canvas = view.mode === "waveform" ? view.waveform : view.spectrogram;
+      requestAnimationFrame(() => {
+        canvas.focus({ preventScroll: true });
+      });
     }
     samplesForActiveTrack() {
       return this.samplesForChannel(this.settings.channel);
@@ -9277,6 +9290,10 @@
     }
     .trackCanvasWrap:last-child {
       border-bottom: 0;
+    }
+    .trackWaveform:focus,
+    .trackSpectrogram:focus {
+      outline: none;
     }
     .pcmPanel {
       display: flex;

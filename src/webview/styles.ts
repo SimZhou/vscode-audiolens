@@ -548,6 +548,10 @@ export function injectStyles(): void {
     .trackCanvasWrap:last-child {
       border-bottom: 0;
     }
+    .trackWaveform:focus,
+    .trackSpectrogram:focus {
+      outline: none;
+    }
     .pcmPanel {
       display: flex;
       flex-wrap: wrap;
