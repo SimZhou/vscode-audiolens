@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.6
+
+Documentation sync.
+
+- Updated offline VSIX install examples to the current package version.
+- Clarified the published VSIX contents in the project development notes.
+
 ## 1.3.5
 
 README demo update.

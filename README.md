@@ -60,7 +60,7 @@ code --install-extension simzhou.audiolens
 For offline installation, download a packaged VSIX from GitHub Releases or install a local packaged build:
 
 ```bash
-code --install-extension dist/audiolens-1.3.4.vsix
+code --install-extension dist/audiolens-1.3.6.vsix
 ```
 
 ## Feature Demos

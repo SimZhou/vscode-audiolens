@@ -56,7 +56,7 @@ code --install-extension simzhou.audiolens
 如果需要离线安装，可以从 GitHub Releases 下载 VSIX，或安装本地打包版本：
 
 ```bash
-code --install-extension dist/audiolens-1.3.4.vsix
+code --install-extension dist/audiolens-1.3.6.vsix
 ```
 
 ## 功能演示
