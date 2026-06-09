@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero crossing rate:\nЧастота смены знака сигнала. Полезно для ВЧ-шума, глухой речи и фрикативов.",
   frequencyAnalysis: "Анализ частот",
   frequencyAnalysisHelp: "Смысл:\nЛинейный процент энергии по частотным полосам. Это не RMS и не dB.\n\nРасчет:\nВыделение делится на фреймы с 50% overlap. Мощность FFT-bin суммируется и распределяется по полосам.",
+  selectionAnalysisCalculating: "Вычисление...",
   bands: "Полосы",
   waveform: "Волна",
   spectrogram: "Спектрограмма",

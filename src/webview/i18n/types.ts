@@ -155,6 +155,7 @@ export interface LocaleMessages {
   zeroCrossingRateHelp: string;
   frequencyAnalysis: string;
   frequencyAnalysisHelp: string;
+  selectionAnalysisCalculating?: string;
   bands: string;
   waveform: string;
   spectrogram: string;

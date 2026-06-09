@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "영교차율:\n신호 부호가 바뀌는 비율입니다. 고주파 노이즈, 무성음, 마찰음 확인에 유용한 시간 영역 특징입니다.",
   frequencyAnalysis: "주파수 분석",
   frequencyAnalysisHelp: "의미:\n주파수 대역별 선형 에너지 비율입니다. RMS 레벨이나 dB가 아닙니다.\n\n계산:\n선택 구간 전체를 50% overlap frame으로 나누고, 각 FFT bin의 power를 누적한 뒤 대역별 비율을 표시합니다.",
+  selectionAnalysisCalculating: "계산 중...",
   bands: "대역",
   waveform: "파형",
   spectrogram: "Spectrogram",

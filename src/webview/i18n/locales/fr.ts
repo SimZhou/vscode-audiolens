@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Taux de passage par zéro:\nNombre de changements de signe par seconde. Indice temporel utile pour le bruit haute fréquence, les sons non voisés et les fricatives.",
   frequencyAnalysis: "Analyse fréquentielle",
   frequencyAnalysisHelp: "Signification:\nPourcentage d'énergie linéaire par bande de fréquences. Ce n'est ni un niveau RMS ni un dB.\n\nCalcul:\nLa sélection est découpée en trames avec 50% de recouvrement. La puissance des bins FFT est cumulée puis répartie dans les bandes.",
+  selectionAnalysisCalculating: "Calcul en cours...",
   bands: "Bandes",
   waveform: "Forme d'onde",
   spectrogram: "Spectrogramme",

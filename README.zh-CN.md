@@ -97,7 +97,7 @@ code --install-extension simzhou.audiolens
 **离线 VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.4.0.vsix
+code --install-extension dist/audiolens-1.4.1.vsix
 ```
 
 ## 功能演示

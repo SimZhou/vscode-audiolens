@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens — Audio inspection for VS Code",
   "description": "Audio viewer for speech and ML workflows with waveforms, spectrograms, raw PCM, Kaldi wav ark, and Remote SSH support.",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "publisher": "simzhou",
   "license": "Apache-2.0",
   "icon": "logo/icon.png",
@@ -63,7 +63,7 @@
     "dbfs"
   ],
   "activationEvents": [
-    "onStartupFinished",
+    "onLanguage",
     "onCustomEditor:audiolens.audioPreview",
     "onCommand:audiolens.selectLanguage",
     "onCommand:audiolens.openKaldiWavArk",
@@ -245,6 +245,11 @@
           "minimum": 16,
           "description": "Webview 解码前允许加载的最大音频文件大小。"
         },
+        "audiolens.profileSpectrogram": {
+          "type": "boolean",
+          "default": false,
+          "description": "在 Webview 开发者工具中输出频谱图分析和绘制耗时。用于本地性能诊断，普通使用建议保持关闭。"
+        },
         "audiolens.audioPathLinks.enabled": {
           "type": "boolean",
           "default": true,
@@ -279,7 +284,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.4.0.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.4.1.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

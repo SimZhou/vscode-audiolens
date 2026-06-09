@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Tasso di attraversamenti dello zero:\nFrequenza con cui il segnale cambia segno. Utile per rumore ad alta frequenza, parlato non sonoro e fricative.",
   frequencyAnalysis: "Analisi frequenze",
   frequencyAnalysisHelp: "Significato:\nPercentuale di energia lineare per banda di frequenza. Non è livello RMS né dB.\n\nCalcolo:\nLa selezione viene divisa in frame con 50% di overlap; la potenza dei bin FFT viene accumulata e assegnata alle bande.",
+  selectionAnalysisCalculating: "Calcolo...",
   bands: "Bande",
   waveform: "Forma d'onda",
   spectrogram: "Spettrogramma",

@@ -23,6 +23,7 @@ export interface AudioLensConfig {
   maxFileSizeMB: number;
   language: string;
   vscodeLanguage: string;
+  profileSpectrogram: boolean;
   analysis: AnalysisDefaults;
 }
 
@@ -72,6 +73,8 @@ export type ExtensionMessage =
   | { type: "chunk"; requestId: number; offset: number; total: number; bytes: ArrayBuffer }
   | { type: "transcodedAudio"; requestId: number; bytes: ArrayBuffer }
   | { type: "transcodeError"; requestId: number; message: string }
+  | { type: "selectionWavSaveReady"; requestId: number }
+  | { type: "selectionWavSaveCanceled"; requestId: number }
   | { type: "error"; message: string };
 
 export type WebviewMessage =
@@ -79,7 +82,8 @@ export type WebviewMessage =
   | { type: "readChunk"; requestId: number; offset: number; length: number }
   | { type: "transcodeAudio"; requestId: number }
   | { type: "downloadAudio" }
-  | { type: "downloadSelectionWav"; fileName: string; bytesBase64: string; saveLabel?: string; title?: string }
+  | { type: "requestSelectionWavSave"; requestId: number; fileName: string; saveLabel?: string; title?: string }
+  | { type: "writeSelectionWav"; requestId: number; fileName: string; bytesBase64: string }
   | { type: "updatePreferences"; preferences: AudioLensPreferences }
   | { type: "showError"; message: string };
 

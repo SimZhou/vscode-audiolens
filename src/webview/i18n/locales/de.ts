@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero-Crossing-Rate:\nRate der Vorzeichenwechsel. Eine einfache Zeitbereichsgröße für hochfrequentes Rauschen, unvoiced speech und Frikative.",
   frequencyAnalysis: "Frequenzanalyse",
   frequencyAnalysisHelp: "Bedeutung:\nLinearer Energieanteil pro Frequenzband. Es ist kein RMS-Pegel und kein dB-Wert.\n\nBerechnung:\nDer ausgewählte Bereich wird in Frames mit 50% Überlappung geteilt. FFT-Bin-Leistung wird aufsummiert und auf Frequenzbänder verteilt.",
+  selectionAnalysisCalculating: "Wird berechnet...",
   bands: "Baender",
   waveform: "Wellenform",
   spectrogram: "Spectrogram",

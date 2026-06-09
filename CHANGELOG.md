@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.1
+
+Selection analysis responsiveness update.
+
+- Moved selection frequency analysis to a cancellable background Worker so long selections no longer block the Webview UI.
+- Kept the frequency-domain selection metrics exact: dominant frequency, spectral centroid, and band percentages still use the full selected range with the same FFT/window/bin accumulation logic as before.
+- Added a blue calculating state for delayed frequency metrics while keeping time-domain metrics visible immediately.
+- Cancel stale selection analysis work when the user changes or clears the selection, preventing old results from being applied.
+- Made selection WAV export request the save path before encoding and encode large exports in chunks, so downloading a selection does not block delayed selection analysis results.
+- Added an opt-in spectrogram profiling setting for local performance diagnostics.
+- Reduced extension activation overhead by avoiding startup-finished activation while preserving audio-path actions in opened text/code files.
+
 ## 1.4.0
 
 Selection download and adjustable spectrogram frequency range.

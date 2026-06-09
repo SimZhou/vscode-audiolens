@@ -82,9 +82,15 @@
     const source = `
     self.onmessage = (event) => {
       const message = event.data;
+      if (message.type === "selectionSpectrum") {
+        analyzeSelectionSpectrum(message);
+        return;
+      }
       if (message.type !== "analyze") return;
       const samples = new Float32Array(message.samples);
       const settings = message.settings;
+      const profile = settings.profile === true;
+      const totalStart = profile ? performance.now() : 0;
       const windowSize = Math.max(8, Math.floor(settings.fftSize));
       const zeroPaddingFactor = Math.max(1, Math.floor(settings.zeroPaddingFactor || 1));
       const fftSize = nextPowerOfTwo(windowSize * zeroPaddingFactor);
@@ -99,6 +105,9 @@
       const nyquist = sampleRate / 2;
       const minFrequencyHz = Math.max(0, Math.min(Number(settings.minFrequencyHz) || 0, Math.max(0, nyquist - 1)));
       const maxFrequencyHz = Math.max(minFrequencyHz + 1, Math.min(Number(settings.maxFrequencyHz) || nyquist, nyquist));
+      const setupEnd = profile ? performance.now() : 0;
+      let fftMs = 0;
+      let rasterizeMs = 0;
 
       for (let frame = 0; frame < frames; frame += 1) {
         const offset = frame * hopSize;
@@ -107,7 +116,10 @@
         for (let i = 0; i < windowSize; i += 1) {
           re[i] = (samples[offset + i] || 0) * window[i];
         }
+        const fftStart = profile ? performance.now() : 0;
         fft(re, im);
+        if (profile) fftMs += performance.now() - fftStart;
+        const rasterizeStart = profile ? performance.now() : 0;
         for (let y = 0; y < bins; y += 1) {
           const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
           const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
@@ -121,9 +133,101 @@
           pixels[index + 2] = color[2];
           pixels[index + 3] = 255;
         }
+        if (profile) rasterizeMs += performance.now() - rasterizeStart;
       }
-      self.postMessage({ type: "spectrogram", requestId: message.requestId, width: frames, height: bins, pixels: pixels.buffer }, [pixels.buffer]);
+      const result = { type: "spectrogram", requestId: message.requestId, width: frames, height: bins, pixels: pixels.buffer };
+      if (profile) {
+        result.profile = {
+          totalMs: performance.now() - totalStart,
+          setupMs: setupEnd - totalStart,
+          fftMs,
+          rasterizeMs,
+          frames,
+          bins,
+          fftSize,
+          windowSize,
+          hopSize,
+          sampleCount: samples.length
+        };
+      }
+      self.postMessage(result, [pixels.buffer]);
     };
+
+    function analyzeSelectionSpectrum(message) {
+      const samples = new Float32Array(message.samples);
+      const sampleRate = Math.max(1, message.sampleRate || 1);
+      const available = samples.length;
+      const requestedSize = Math.max(1, Math.floor(message.fftSize || 512));
+      const fftSize = largestPowerOfTwo(Math.min(requestedSize, available));
+      const bandLimits = Array.isArray(message.bandLimits) ? message.bandLimits : [];
+      if (fftSize < 64) {
+        self.postMessage({
+          type: "selectionSpectrum",
+          requestId: message.requestId,
+          dominantHz: 0,
+          centroidHz: 0,
+          bandPercents: bandLimits.map(() => 0),
+          frames: 0
+        });
+        return;
+      }
+
+      const re = new Float32Array(fftSize);
+      const im = new Float32Array(fftSize);
+      const window = createWindow(message.windowFunction, fftSize);
+      let dominantBin = 1;
+      let dominantPower = 0;
+      let totalPower = 0;
+      let weightedFrequencySum = 0;
+      let frames = 0;
+      const bandPower = new Float64Array(bandLimits.length);
+      const binPower = new Float64Array(Math.floor(fftSize / 2));
+      const hopSize = Math.max(1, Math.floor(fftSize / 2));
+      const lastFrameStart = Math.max(0, available - fftSize);
+      let relativeStart = 0;
+
+      while (relativeStart <= lastFrameStart) {
+        im.fill(0);
+        for (let index = 0; index < fftSize; index += 1) {
+          re[index] = (samples[relativeStart + index] ?? 0) * window[index];
+        }
+        fft(re, im);
+        frames += 1;
+
+        for (let bin = 1; bin < fftSize / 2; bin += 1) {
+          const power = re[bin] * re[bin] + im[bin] * im[bin];
+          const frequency = (bin * sampleRate) / fftSize;
+          totalPower += power;
+          weightedFrequencySum += frequency * power;
+          binPower[bin] += power;
+          const bandIndex = bandLimits.findIndex((band) => frequency >= band.min && frequency < band.max);
+          if (bandIndex >= 0) {
+            bandPower[bandIndex] += power;
+          }
+        }
+
+        if (relativeStart === lastFrameStart) {
+          break;
+        }
+        relativeStart = Math.min(relativeStart + hopSize, lastFrameStart);
+      }
+
+      for (let bin = 1; bin < binPower.length; bin += 1) {
+        if (binPower[bin] > dominantPower) {
+          dominantPower = binPower[bin];
+          dominantBin = bin;
+        }
+      }
+
+      self.postMessage({
+        type: "selectionSpectrum",
+        requestId: message.requestId,
+        dominantHz: (dominantBin * sampleRate) / fftSize,
+        centroidHz: totalPower <= 0 ? 0 : weightedFrequencySum / totalPower,
+        bandPercents: Array.from(bandPower, (power) => totalPower <= 0 ? 0 : (power / totalPower) * 100),
+        frames
+      });
+    }
 
     function createWindow(type, size) {
       const values = new Float32Array(size);
@@ -149,6 +253,12 @@
     function nextPowerOfTwo(value) {
       let size = 1;
       while (size < value) size <<= 1;
+      return size;
+    }
+
+    function largestPowerOfTwo(value) {
+      let size = 1;
+      while (size * 2 <= value) size *= 2;
       return size;
     }
 
@@ -993,6 +1103,7 @@
     zeroCrossingRateHelp: "Zero-Crossing-Rate:\nRate der Vorzeichenwechsel. Eine einfache Zeitbereichsgr\xF6\xDFe f\xFCr hochfrequentes Rauschen, unvoiced speech und Frikative.",
     frequencyAnalysis: "Frequenzanalyse",
     frequencyAnalysisHelp: "Bedeutung:\nLinearer Energieanteil pro Frequenzband. Es ist kein RMS-Pegel und kein dB-Wert.\n\nBerechnung:\nDer ausgew\xE4hlte Bereich wird in Frames mit 50% \xDCberlappung geteilt. FFT-Bin-Leistung wird aufsummiert und auf Frequenzb\xE4nder verteilt.",
+    selectionAnalysisCalculating: "Wird berechnet...",
     bands: "Baender",
     waveform: "Wellenform",
     spectrogram: "Spectrogram",
@@ -1168,6 +1279,7 @@
     zeroCrossingRateHelp: "Zero Crossing Rate:\nThe rate at which the signal changes sign.\n\nCalculation:\nzeroCrossingRate = zeroCrossings / durationSeconds\n\nUse:\nA rough time-domain feature for high-frequency noise, unvoiced speech, and fricatives.\n\nLimit:\nSensitive to noise and DC offset. It is not the same as frequency or pitch.\n\nReferences:\nlibrosa.feature.zero_crossing_rate; librosa.zero_crossings.",
     frequencyAnalysis: "Frequency analysis",
     frequencyAnalysisHelp: "Meaning:\nLinear energy percentage by frequency band. It is not RMS level and not dB.\n\nCalculation:\n1. Sample the active channel in the selection.\n2. Use the current window function and FFT size, split the full selection into frames with 50% overlap.\n3. Each bin power is re\xB2 + im\xB2.\n4. Accumulate bin power across all frames and assign bins into frequency bands.\n5. Display bandPower / totalPower \xD7 100%.\n\nNote:\nThis is a multi-frame spectral energy distribution for the whole selection; it is still not dB/RMS.",
+    selectionAnalysisCalculating: "Calculating...",
     bands: "Bands",
     waveform: "Waveform",
     spectrogram: "Spectrogram",
@@ -1343,6 +1455,7 @@
     zeroCrossingRateHelp: "Tasa de cruces por cero:\nFrecuencia con la que la se\xF1al cambia de signo. \xDAtil para ruido de alta frecuencia, habla no sonora y fricativas.",
     frequencyAnalysis: "An\xE1lisis de frecuencia",
     frequencyAnalysisHelp: "Significado:\nPorcentaje de energ\xEDa lineal por banda de frecuencia. No es nivel RMS ni dB.\n\nC\xE1lculo:\nLa selecci\xF3n se divide en tramas con 50% de solape. Se acumula la potencia de bins FFT y se reparte por bandas.",
+    selectionAnalysisCalculating: "Calculando...",
     bands: "Bandas",
     waveform: "Forma de onda",
     spectrogram: "Espectrograma",
@@ -1518,6 +1631,7 @@
     zeroCrossingRateHelp: "Taux de passage par z\xE9ro:\nNombre de changements de signe par seconde. Indice temporel utile pour le bruit haute fr\xE9quence, les sons non vois\xE9s et les fricatives.",
     frequencyAnalysis: "Analyse fr\xE9quentielle",
     frequencyAnalysisHelp: "Signification:\nPourcentage d'\xE9nergie lin\xE9aire par bande de fr\xE9quences. Ce n'est ni un niveau RMS ni un dB.\n\nCalcul:\nLa s\xE9lection est d\xE9coup\xE9e en trames avec 50% de recouvrement. La puissance des bins FFT est cumul\xE9e puis r\xE9partie dans les bandes.",
+    selectionAnalysisCalculating: "Calcul en cours...",
     bands: "Bandes",
     waveform: "Forme d'onde",
     spectrogram: "Spectrogramme",
@@ -1693,6 +1807,7 @@
     zeroCrossingRateHelp: "Zero crossing rate:\nLaju perubahan tanda sinyal. Berguna untuk noise frekuensi tinggi, ucapan tak bersuara, dan frikatif.",
     frequencyAnalysis: "Analisis frekuensi",
     frequencyAnalysisHelp: "Makna:\nPersentase energi linear per band frekuensi. Ini bukan level RMS dan bukan dB.\n\nPerhitungan:\nPilihan dibagi menjadi frame dengan 50% overlap; power bin FFT diakumulasi lalu dibagi ke band frekuensi.",
+    selectionAnalysisCalculating: "Menghitung...",
     bands: "Band",
     waveform: "Waveform",
     spectrogram: "Spectrogram",
@@ -1868,6 +1983,7 @@
     zeroCrossingRateHelp: "Tasso di attraversamenti dello zero:\nFrequenza con cui il segnale cambia segno. Utile per rumore ad alta frequenza, parlato non sonoro e fricative.",
     frequencyAnalysis: "Analisi frequenze",
     frequencyAnalysisHelp: "Significato:\nPercentuale di energia lineare per banda di frequenza. Non \xE8 livello RMS n\xE9 dB.\n\nCalcolo:\nLa selezione viene divisa in frame con 50% di overlap; la potenza dei bin FFT viene accumulata e assegnata alle bande.",
+    selectionAnalysisCalculating: "Calcolo...",
     bands: "Bande",
     waveform: "Forma d'onda",
     spectrogram: "Spettrogramma",
@@ -2043,6 +2159,7 @@
     zeroCrossingRateHelp: "\u30BC\u30ED\u4EA4\u5DEE\u7387:\n\u4FE1\u53F7\u306E\u7B26\u53F7\u304C\u5909\u308F\u308B\u983B\u5EA6\u3067\u3059\u3002\n\n\u8A08\u7B97:\nzeroCrossingRate = zeroCrossings / durationSeconds\n\n\u7528\u9014:\n\u9AD8\u5468\u6CE2\u30CE\u30A4\u30BA\u3001\u7121\u58F0\u97F3\u3001\u6469\u64E6\u97F3\u306A\u3069\u3092\u5927\u307E\u304B\u306B\u898B\u308B\u6642\u9593\u9818\u57DF\u7279\u5FB4\u91CF\u3067\u3059\u3002\n\n\u5236\u9650:\n\u30CE\u30A4\u30BA\u3084 DC \u30AA\u30D5\u30BB\u30C3\u30C8\u306B\u654F\u611F\u3067\u3059\u3002\u5468\u6CE2\u6570\u3084\u30D4\u30C3\u30C1\u305D\u306E\u3082\u306E\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002\n\n\u53C2\u8003:\nlibrosa.feature.zero_crossing_rate; librosa.zero_crossings.",
     frequencyAnalysis: "\u5468\u6CE2\u6570\u5206\u6790",
     frequencyAnalysisHelp: "\u610F\u5473:\n\u5468\u6CE2\u6570\u5E2F\u57DF\u3054\u3068\u306E\u7DDA\u5F62\u30A8\u30CD\u30EB\u30AE\u30FC\u5272\u5408\u3067\u3059\u3002RMS \u30EC\u30D9\u30EB\u3067\u3082 dB \u3067\u3082\u3042\u308A\u307E\u305B\u3093\u3002\n\n\u8A08\u7B97:\n1. \u9078\u629E\u7BC4\u56F2\u5185\u306E\u30A2\u30AF\u30C6\u30A3\u30D6\u30C1\u30E3\u30F3\u30CD\u30EB\u3092\u30B5\u30F3\u30D7\u30EA\u30F3\u30B0\u3057\u307E\u3059\u3002\n2. \u73FE\u5728\u306E\u7A93\u95A2\u6570\u3068 FFT \u30B5\u30A4\u30BA\u3092\u4F7F\u3044\u3001\u9078\u629E\u7BC4\u56F2\u5168\u4F53\u3092 50% \u30AA\u30FC\u30D0\u30FC\u30E9\u30C3\u30D7\u306E\u30D5\u30EC\u30FC\u30E0\u306B\u5206\u5272\u3057\u307E\u3059\u3002\n3. \u5404\u30D3\u30F3\u306E\u30D1\u30EF\u30FC\u306F re\xB2 + im\xB2 \u3067\u3059\u3002\n4. \u5168\u30D5\u30EC\u30FC\u30E0\u3067\u30D3\u30F3\u306E\u30D1\u30EF\u30FC\u3092\u7D2F\u7A4D\u3057\u3001\u5468\u6CE2\u6570\u5E2F\u57DF\u3078\u5272\u308A\u5F53\u3066\u307E\u3059\u3002\n5. bandPower / totalPower \xD7 100% \u3092\u8868\u793A\u3057\u307E\u3059\u3002\n\n\u6CE8:\n\u3053\u308C\u306F\u9078\u629E\u7BC4\u56F2\u5168\u4F53\u306E\u8907\u6570\u30D5\u30EC\u30FC\u30E0\u306B\u3088\u308B\u30B9\u30DA\u30AF\u30C8\u30EB\u30A8\u30CD\u30EB\u30AE\u30FC\u5206\u5E03\u3067\u3042\u308A\u3001dB/RMS \u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    selectionAnalysisCalculating: "\u8A08\u7B97\u4E2D...",
     bands: "\u5E2F\u57DF",
     waveform: "\u6CE2\u5F62",
     spectrogram: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0",
@@ -2218,6 +2335,7 @@
     zeroCrossingRateHelp: "\uC601\uAD50\uCC28\uC728:\n\uC2E0\uD638 \uBD80\uD638\uAC00 \uBC14\uB00C\uB294 \uBE44\uC728\uC785\uB2C8\uB2E4. \uACE0\uC8FC\uD30C \uB178\uC774\uC988, \uBB34\uC131\uC74C, \uB9C8\uCC30\uC74C \uD655\uC778\uC5D0 \uC720\uC6A9\uD55C \uC2DC\uAC04 \uC601\uC5ED \uD2B9\uC9D5\uC785\uB2C8\uB2E4.",
     frequencyAnalysis: "\uC8FC\uD30C\uC218 \uBD84\uC11D",
     frequencyAnalysisHelp: "\uC758\uBBF8:\n\uC8FC\uD30C\uC218 \uB300\uC5ED\uBCC4 \uC120\uD615 \uC5D0\uB108\uC9C0 \uBE44\uC728\uC785\uB2C8\uB2E4. RMS \uB808\uBCA8\uC774\uB098 dB\uAC00 \uC544\uB2D9\uB2C8\uB2E4.\n\n\uACC4\uC0B0:\n\uC120\uD0DD \uAD6C\uAC04 \uC804\uCCB4\uB97C 50% overlap frame\uC73C\uB85C \uB098\uB204\uACE0, \uAC01 FFT bin\uC758 power\uB97C \uB204\uC801\uD55C \uB4A4 \uB300\uC5ED\uBCC4 \uBE44\uC728\uC744 \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
+    selectionAnalysisCalculating: "\uACC4\uC0B0 \uC911...",
     bands: "\uB300\uC5ED",
     waveform: "\uD30C\uD615",
     spectrogram: "Spectrogram",
@@ -2393,6 +2511,7 @@
     zeroCrossingRateHelp: "Zero-crossing-rate:\nHoe vaak het signaal van teken wisselt. Nuttig voor hoogfrequente ruis, stemloze spraak en fricatieven.",
     frequencyAnalysis: "Frequentieanalyse",
     frequencyAnalysisHelp: "Betekenis:\nLineair energiepercentage per frequentieband. Het is geen RMS-niveau en geen dB.\n\nBerekening:\nDe selectie wordt in frames met 50% overlap verdeeld. FFT-bin-power wordt opgeteld en aan frequentiebanden toegewezen.",
+    selectionAnalysisCalculating: "Berekenen...",
     bands: "Banden",
     waveform: "Golfvorm",
     spectrogram: "Spectrogram",
@@ -2568,6 +2687,7 @@
     zeroCrossingRateHelp: "Zero crossing rate:\nHvor ofte signalet skifter fortegn. Nyttig for h\xF8yfrekvent st\xF8y, ustemt tale og frikativer.",
     frequencyAnalysis: "Frekvensanalyse",
     frequencyAnalysisHelp: "Betydning:\nLine\xE6r energiprosent per frekvensb\xE5nd. Det er ikke RMS-niv\xE5 og ikke dB.\n\nBeregning:\nUtvalget deles i rammer med 50% overlapp. FFT-bin-effekt akkumuleres og fordeles p\xE5 frekvensb\xE5nd.",
+    selectionAnalysisCalculating: "Beregner...",
     bands: "B\xE5nd",
     waveform: "B\xF8lgeform",
     spectrogram: "Spectrogram",
@@ -2743,6 +2863,7 @@
     zeroCrossingRateHelp: "Zero crossing rate:\nCz\u0119sto\u015B\u0107 zmian znaku sygna\u0142u. Przydatne dla szumu wysokocz\u0119stotliwo\u015Bciowego, mowy bezd\u017Awi\u0119cznej i frykatyw.",
     frequencyAnalysis: "Analiza cz\u0119stotliwo\u015Bci",
     frequencyAnalysisHelp: "Znaczenie:\nLiniowy procent energii w pasmach cz\u0119stotliwo\u015Bci. To nie jest poziom RMS ani dB.\n\nObliczanie:\nZaznaczenie dzieli si\u0119 na ramki z 50% overlap. Moc bin\xF3w FFT jest sumowana i przypisywana do pasm.",
+    selectionAnalysisCalculating: "Obliczanie...",
     bands: "Pasma",
     waveform: "Przebieg",
     spectrogram: "Spektrogram",
@@ -2918,6 +3039,7 @@
     zeroCrossingRateHelp: "Taxa de cruzamento por zero:\nFrequ\xEAncia com que o sinal muda de sinal. \xDAtil para ru\xEDdo de alta frequ\xEAncia, fala n\xE3o vozeada e fricativas.",
     frequencyAnalysis: "An\xE1lise de frequ\xEAncia",
     frequencyAnalysisHelp: "Significado:\nPercentual de energia linear por banda de frequ\xEAncia. N\xE3o \xE9 n\xEDvel RMS nem dB.\n\nC\xE1lculo:\nA sele\xE7\xE3o \xE9 dividida em frames com 50% de overlap; a pot\xEAncia dos bins FFT \xE9 acumulada e distribu\xEDda por bandas.",
+    selectionAnalysisCalculating: "Calculando...",
     bands: "Bandas",
     waveform: "Forma de onda",
     spectrogram: "Espectrograma",
@@ -3093,6 +3215,7 @@
     zeroCrossingRateHelp: "Zero crossing rate:\n\u0427\u0430\u0441\u0442\u043E\u0442\u0430 \u0441\u043C\u0435\u043D\u044B \u0437\u043D\u0430\u043A\u0430 \u0441\u0438\u0433\u043D\u0430\u043B\u0430. \u041F\u043E\u043B\u0435\u0437\u043D\u043E \u0434\u043B\u044F \u0412\u0427-\u0448\u0443\u043C\u0430, \u0433\u043B\u0443\u0445\u043E\u0439 \u0440\u0435\u0447\u0438 \u0438 \u0444\u0440\u0438\u043A\u0430\u0442\u0438\u0432\u043E\u0432.",
     frequencyAnalysis: "\u0410\u043D\u0430\u043B\u0438\u0437 \u0447\u0430\u0441\u0442\u043E\u0442",
     frequencyAnalysisHelp: "\u0421\u043C\u044B\u0441\u043B:\n\u041B\u0438\u043D\u0435\u0439\u043D\u044B\u0439 \u043F\u0440\u043E\u0446\u0435\u043D\u0442 \u044D\u043D\u0435\u0440\u0433\u0438\u0438 \u043F\u043E \u0447\u0430\u0441\u0442\u043E\u0442\u043D\u044B\u043C \u043F\u043E\u043B\u043E\u0441\u0430\u043C. \u042D\u0442\u043E \u043D\u0435 RMS \u0438 \u043D\u0435 dB.\n\n\u0420\u0430\u0441\u0447\u0435\u0442:\n\u0412\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u0434\u0435\u043B\u0438\u0442\u0441\u044F \u043D\u0430 \u0444\u0440\u0435\u0439\u043C\u044B \u0441 50% overlap. \u041C\u043E\u0449\u043D\u043E\u0441\u0442\u044C FFT-bin \u0441\u0443\u043C\u043C\u0438\u0440\u0443\u0435\u0442\u0441\u044F \u0438 \u0440\u0430\u0441\u043F\u0440\u0435\u0434\u0435\u043B\u044F\u0435\u0442\u0441\u044F \u043F\u043E \u043F\u043E\u043B\u043E\u0441\u0430\u043C.",
+    selectionAnalysisCalculating: "\u0412\u044B\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u0435...",
     bands: "\u041F\u043E\u043B\u043E\u0441\u044B",
     waveform: "\u0412\u043E\u043B\u043D\u0430",
     spectrogram: "\u0421\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430",
@@ -3268,6 +3391,7 @@
     zeroCrossingRateHelp: "Zero crossing rate:\nSinyalin i\u015Faret de\u011Fi\u015Ftirme h\u0131z\u0131. Y\xFCksek frekansl\u0131 g\xFCr\xFClt\xFC, \xF6t\xFCms\xFCz konu\u015Fma ve s\xFCrt\xFCnmeli sesler i\xE7in kullan\u0131\u015Fl\u0131d\u0131r.",
     frequencyAnalysis: "Frekans analizi",
     frequencyAnalysisHelp: "Anlam:\nFrekans band\u0131 ba\u015F\u0131na do\u011Frusal enerji y\xFCzdesi. RMS seviyesi veya dB de\u011Fildir.\n\nHesaplama:\nSe\xE7im %50 overlap frame'lere b\xF6l\xFCn\xFCr; FFT bin g\xFCc\xFC toplan\u0131r ve frekans bantlar\u0131na atan\u0131r.",
+    selectionAnalysisCalculating: "Hesaplan\u0131yor...",
     bands: "Bantlar",
     waveform: "Dalga bicimi",
     spectrogram: "Spektrogram",
@@ -3443,6 +3567,7 @@
     zeroCrossingRateHelp: "Zero crossing rate:\nT\u1ED1c \u0111\u1ED9 t\xEDn hi\u1EC7u \u0111\u1ED5i d\u1EA5u. H\u1EEFu \xEDch cho nhi\u1EC5u t\u1EA7n s\u1ED1 cao, \xE2m v\xF4 thanh v\xE0 \xE2m x\xE1t.",
     frequencyAnalysis: "Ph\xE2n t\xEDch t\u1EA7n s\u1ED1",
     frequencyAnalysisHelp: "\xDD ngh\u0129a:\nPh\u1EA7n tr\u0103m n\u0103ng l\u01B0\u1EE3ng tuy\u1EBFn t\xEDnh theo d\u1EA3i t\u1EA7n. \u0110\xE2y kh\xF4ng ph\u1EA3i m\u1EE9c RMS v\xE0 kh\xF4ng ph\u1EA3i dB.\n\nC\xE1ch t\xEDnh:\nV\xF9ng ch\u1ECDn \u0111\u01B0\u1EE3c chia th\xE0nh frame overlap 50%; c\xF4ng su\u1EA5t bin FFT \u0111\u01B0\u1EE3c t\xEDch l\u0169y r\u1ED3i ph\xE2n v\xE0o c\xE1c d\u1EA3i t\u1EA7n.",
+    selectionAnalysisCalculating: "\u0110ang t\xEDnh...",
     bands: "D\u1EA3i",
     waveform: "D\u1EA1ng s\xF3ng",
     spectrogram: "Spectrogram",
@@ -3618,6 +3743,7 @@
     zeroCrossingRateHelp: "\u8FC7\u96F6\u7387\uFF08Zero Crossing Rate\uFF09\uFF1A\n\u7EDF\u8BA1\u4FE1\u53F7\u6B63\u8D1F\u53F7\u53D8\u5316\u7684\u9891\u7387\u3002\n\n\u8BA1\u7B97\uFF1A\nzeroCrossingRate = zeroCrossings / durationSeconds\n\n\u7528\u9014\uFF1A\n\u7C97\u7565\u89C2\u5BDF\u9AD8\u9891\u566A\u58F0\u3001\u6E05\u97F3\u3001\u6469\u64E6\u97F3\u7B49\u6210\u5206\uFF1B\u8BED\u97F3\u5206\u6790\u4E2D\u5E38\u4F5C\u4E3A\u65F6\u57DF\u7279\u5F81\u3002\n\n\u9650\u5236\uFF1A\n\u5BB9\u6613\u53D7\u566A\u58F0\u548C DC offset \u5F71\u54CD\uFF1B\u5B83\u4E0D\u80FD\u76F4\u63A5\u4EE3\u8868\u9891\u7387\u6216\u97F3\u9AD8\u3002\n\n\u53C2\u8003\uFF1A\nlibrosa.feature.zero_crossing_rate\uFF1Blibrosa.zero_crossings\u3002",
     frequencyAnalysis: "\u9891\u7387\u5206\u6790",
     frequencyAnalysisHelp: "\u542B\u4E49\uFF1A\n\u9891\u6BB5\u7EBF\u6027\u80FD\u91CF\u5360\u6BD4\uFF0C\u4E0D\u662F RMS level\uFF0C\u4E5F\u4E0D\u662F dB\u3002\n\n\u8BA1\u7B97\uFF1A\n1. \u5BF9\u9009\u533A\u5185\u5F53\u524D\u901A\u9053\u53D6\u6837\u3002\n2. \u4F7F\u7528\u5F53\u524D\u7A97\u53E3\u51FD\u6570\u548C FFT size\uFF0C\u628A\u6574\u4E2A\u9009\u533A\u6309 50% overlap \u5206\u6210\u591A\u5E27\u3002\n3. \u6BCF\u4E2A\u9891\u7387 bin \u7684\u529F\u7387\u4E3A re\xB2 + im\xB2\u3002\n4. \u7D2F\u8BA1\u6240\u6709\u5E27\u7684 bin \u529F\u7387\uFF0C\u5E76\u6309\u9891\u7387\u5F52\u5165\u5404\u9891\u6BB5\u3002\n5. \u663E\u793A bandPower / totalPower \xD7 100%\u3002\n\n\u6CE8\u610F\uFF1A\n\u8FD9\u662F\u6574\u4E2A\u9009\u533A\u7684\u591A\u5E27\u9891\u8C31\u80FD\u91CF\u5206\u5E03\uFF1B\u4ECD\u4E0D\u662F dB/RMS\u3002",
+    selectionAnalysisCalculating: "\u8BA1\u7B97\u4E2D...",
     bands: "\u9891\u6BB5",
     waveform: "\u6CE2\u5F62",
     spectrogram: "\u9891\u8C31\u56FE",
@@ -3793,6 +3919,7 @@
     zeroCrossingRateHelp: "\u904E\u96F6\u7387\uFF1A\n\u8A0A\u865F\u6539\u8B8A\u6B63\u8CA0\u865F\u7684\u983B\u7387\uFF0C\u5E38\u7528\u65BC\u89C0\u5BDF\u9AD8\u983B\u566A\u8072\u3001\u7121\u8072\u5B50\u97F3\u8207\u6469\u64E6\u97F3\u3002",
     frequencyAnalysis: "\u983B\u7387\u5206\u6790",
     frequencyAnalysisHelp: "\u542B\u7FA9\uFF1A\n\u5404\u983B\u5E36\u7684\u7DDA\u6027\u80FD\u91CF\u767E\u5206\u6BD4\uFF0C\u4E0D\u662F RMS \u96FB\u5E73\uFF0C\u4E5F\u4E0D\u662F dB\u3002\n\n\u8A08\u7B97\uFF1A\n\u5C07\u9078\u5340\u5207\u6210 50% overlap \u7684 FFT frame\uFF0C\u7D2F\u7A4D\u5404 bin \u529F\u7387\u5F8C\u5206\u914D\u5230\u983B\u5E36\u4E26\u986F\u793A\u767E\u5206\u6BD4\u3002",
+    selectionAnalysisCalculating: "\u8A08\u7B97\u4E2D...",
     bands: "\u983B\u5E36",
     waveform: "\u6CE2\u5F62",
     spectrogram: "\u983B\u8B5C\u5716",
@@ -4655,6 +4782,7 @@
   var AXIS_FONT_SIZE = 13;
   var WAVEFORM_AMPLITUDE_SCALE = 0.45;
   var PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
+  var SELECTION_SPECTRUM_DELAY_MS = 80;
   var BAND_LIMITS = [
     { labelKey: "frequencyBand0To250", min: 0, max: 250 },
     { labelKey: "frequencyBand250To500", min: 250, max: 500 },
@@ -5856,8 +5984,9 @@
       this.elements = elements;
       this.syncPlatformShortcuts();
       this.bindUi();
+      this.bindAnalysisWorker();
+      this.bindSelectionWorker();
       this.updateSelectionAnalysis();
-      this.bindWorker();
     }
     config;
     audioBuffer;
@@ -5887,6 +6016,7 @@
     pendingChunks = /* @__PURE__ */ new Map();
     pendingTranscodes = /* @__PURE__ */ new Map();
     pendingAnalysisTargets = /* @__PURE__ */ new Map();
+    pendingAnalysisProfiles = /* @__PURE__ */ new Map();
     spectrogramCache = /* @__PURE__ */ new Map();
     spectrogramBitmapCache = /* @__PURE__ */ new Map();
     spectrogramRangeCache = /* @__PURE__ */ new Map();
@@ -5894,6 +6024,13 @@
     waveformCache = /* @__PURE__ */ new Map();
     pcmStatusStates = /* @__PURE__ */ new WeakMap();
     worker = createAnalysisWorker();
+    selectionWorker = createAnalysisWorker();
+    selectionSpectrumTimer;
+    selectionSpectrumRequestSeq = 0;
+    currentSelectionSpectrumRequestId;
+    selectionSpectrumRunning = false;
+    selectionWavDownloadRequestSeq = 0;
+    pendingSelectionWavDownloads = /* @__PURE__ */ new Map();
     currentLocale = "en";
     messages = getMessages("en");
     settings = {
@@ -5947,14 +6084,29 @@
         case "transcodeError":
           this.rejectTranscode(message);
           break;
+        case "selectionWavSaveReady":
+          this.writePendingSelectionWav(message.requestId);
+          break;
+        case "selectionWavSaveCanceled":
+          this.pendingSelectionWavDownloads.delete(message.requestId);
+          break;
         case "error":
           this.setStatus(message.message, "warning");
           break;
       }
     }
-    bindWorker() {
+    bindAnalysisWorker() {
       this.worker.addEventListener("message", (event) => {
-        this.drawSpectrogramResult(event.data);
+        if (event.data.type === "spectrogram") {
+          this.drawSpectrogramResult(event.data);
+        }
+      });
+    }
+    bindSelectionWorker() {
+      this.selectionWorker.addEventListener("message", (event) => {
+        if (event.data.type === "selectionSpectrum") {
+          this.applySelectionSpectrumResult(event.data);
+        }
       });
     }
     syncPlatformShortcuts() {
@@ -5988,9 +6140,28 @@
     resetAnalysisWorker() {
       this.worker.terminate();
       this.worker = createAnalysisWorker();
-      this.bindWorker();
+      this.bindAnalysisWorker();
+    }
+    resetSelectionWorker() {
+      this.selectionWorker.terminate();
+      this.selectionWorker = createAnalysisWorker();
+      this.bindSelectionWorker();
+    }
+    cancelSelectionSpectrumAnalysis() {
+      if (this.selectionSpectrumTimer !== void 0) {
+        window.clearTimeout(this.selectionSpectrumTimer);
+        this.selectionSpectrumTimer = void 0;
+      }
+      this.selectionSpectrumRequestSeq += 1;
+      this.currentSelectionSpectrumRequestId = void 0;
+      if (this.selectionSpectrumRunning) {
+        this.selectionSpectrumRunning = false;
+        this.resetSelectionWorker();
+      }
     }
     clearDecodedAudio() {
+      this.cancelSelectionSpectrumAnalysis();
+      this.pendingSelectionWavDownloads.clear();
       this.audioBuffer = void 0;
       this.sourceSampleRate = void 0;
       this.clearAudioElement();
@@ -6796,20 +6967,47 @@
         this.reportPlaybackError(this.messages.noSelectionToDownload);
         return;
       }
-      const startFrame = clamp2(Math.floor(this.selection.start * this.audioBuffer.sampleRate), 0, this.audioBuffer.length);
-      const endFrame = clamp2(Math.ceil(this.selection.end * this.audioBuffer.sampleRate), startFrame, this.audioBuffer.length);
+      const audioBuffer = this.audioBuffer;
+      const startFrame = clamp2(Math.floor(this.selection.start * audioBuffer.sampleRate), 0, audioBuffer.length);
+      const endFrame = clamp2(Math.ceil(this.selection.end * audioBuffer.sampleRate), startFrame, audioBuffer.length);
       if (endFrame <= startFrame) {
         this.reportPlaybackError(this.messages.noSelectionToDownload);
         return;
       }
       const fileName = this.selectionWavFileName(this.selection.start, this.selection.end);
-      const bytes = encodeWav(this.audioBuffer, startFrame, endFrame);
+      const requestId = this.selectionWavDownloadRequestSeq + 1;
+      this.selectionWavDownloadRequestSeq = requestId;
+      this.pendingSelectionWavDownloads.set(requestId, { audioBuffer, startFrame, endFrame, fileName });
       this.vscode.postMessage({
-        type: "downloadSelectionWav",
+        type: "requestSelectionWavSave",
+        requestId,
         fileName,
-        bytesBase64: arrayBufferToBase64(bytes),
         saveLabel: this.messages.downloadSelection,
         title: this.messages.downloadSelectionWav
+      });
+    }
+    writePendingSelectionWav(requestId) {
+      const pending = this.pendingSelectionWavDownloads.get(requestId);
+      if (!pending) {
+        return;
+      }
+      window.setTimeout(() => {
+        const current = this.pendingSelectionWavDownloads.get(requestId);
+        if (!current) {
+          return;
+        }
+        this.pendingSelectionWavDownloads.delete(requestId);
+        void this.encodeAndWriteSelectionWav(requestId, current);
+      }, 0);
+    }
+    async encodeAndWriteSelectionWav(requestId, pending) {
+      const bytes = await encodeWavAsync(pending.audioBuffer, pending.startFrame, pending.endFrame);
+      const bytesBase64 = await arrayBufferToBase64Async(bytes);
+      this.vscode.postMessage({
+        type: "writeSelectionWav",
+        requestId,
+        fileName: pending.fileName,
+        bytesBase64
       });
     }
     selectionWavFileName(start, end) {
@@ -7714,6 +7912,7 @@
         this.resetAnalysisWorker();
         this.pendingAnalysisKeys.clear();
         this.pendingAnalysisTargets.clear();
+        this.pendingAnalysisProfiles.clear();
       }
       const visibleTracks = this.trackViews.filter((view) => view.mode !== "waveform");
       if (visibleTracks.length === 0) {
@@ -7744,6 +7943,16 @@
       const hopSize = Math.max(1, Math.floor(Math.max(1, source.length - windowSize) / targetFrames));
       this.pendingAnalysisKeys.add(cacheKey);
       this.pendingAnalysisTargets.set(cacheKey, view.channel);
+      if (this.shouldProfileSpectrogram()) {
+        this.pendingAnalysisProfiles.set(cacheKey, {
+          channel: view.channel,
+          startedAt: performance.now(),
+          startSample,
+          endSample,
+          targetFrames,
+          outputBins
+        });
+      }
       this.spectrogramRangeCache.set(cacheKey, { startSample, endSample });
       this.setStatus(this.messages.analyzingSpectrogram);
       this.worker.postMessage(
@@ -7764,7 +7973,8 @@
             minFrequencyHz: frequencyRange.minHz,
             maxFrequencyHz: frequencyRange.maxHz,
             frequencyScale: this.settings.frequencyScale,
-            palette: this.settings.palette
+            palette: this.settings.palette,
+            profile: this.shouldProfileSpectrogram()
           }
         },
         [source.buffer]
@@ -7803,12 +8013,15 @@
       this.pendingAnalysisKeys.delete(result.requestId);
       const targetChannel = this.pendingAnalysisTargets.get(result.requestId);
       this.pendingAnalysisTargets.delete(result.requestId);
+      const requestProfile = this.pendingAnalysisProfiles.get(result.requestId);
+      this.pendingAnalysisProfiles.delete(result.requestId);
       for (const view of this.trackViews) {
         const key = this.createSpectrogramCacheKey(view.channel, view.spectrogram);
         if (key === result.requestId || view.channel === targetChannel) {
           this.lastSpectrogramByChannel.set(view.channel, result);
           if (view.mode !== "waveform") {
-            this.drawSpectrogramCanvas(view.spectrogram, result);
+            const drawProfile = this.drawSpectrogramCanvas(view.spectrogram, result);
+            this.logSpectrogramProfile(result, drawProfile, requestProfile);
           }
         }
       }
@@ -7817,22 +8030,77 @@
       }
     }
     drawSpectrogramCanvas(canvas, result) {
+      const profile = this.shouldProfileSpectrogram();
+      const start = profile ? performance.now() : 0;
       const context = resizeCanvas(canvas);
       const rect = this.getPlotRect(canvas);
+      const setupEnd = profile ? performance.now() : 0;
+      const bitmapCached = this.spectrogramBitmapCache.has(result.requestId);
+      const bitmapStart = profile ? performance.now() : 0;
       const bitmap = this.spectrogramBitmapForResult(result);
+      const bitmapEnd = profile ? performance.now() : 0;
       if (!bitmap) {
-        return;
+        return void 0;
       }
       context.imageSmoothingEnabled = false;
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.fillStyle = canvasBackgroundColor();
       context.fillRect(0, 0, canvas.width, canvas.height);
+      const drawStart = profile ? performance.now() : 0;
       this.drawSpectrogramBitmap(context, bitmap, rect, result);
+      const drawEnd = profile ? performance.now() : 0;
       this.drawPlotFrame(context, rect);
       this.drawFrequencyAxis(context, rect);
       const range = this.visibleRange();
       this.drawSelectionOverlay(context, rect, range);
       this.drawPlayheadOverlay(context, rect, range);
+      if (!profile) {
+        return void 0;
+      }
+      const end = performance.now();
+      return {
+        totalMs: end - start,
+        setupMs: setupEnd - start,
+        bitmapMs: bitmapEnd - bitmapStart,
+        bitmapDrawMs: drawEnd - drawStart,
+        overlayMs: end - drawEnd,
+        bitmapCached
+      };
+    }
+    shouldProfileSpectrogram() {
+      return this.config?.profileSpectrogram === true;
+    }
+    logSpectrogramProfile(result, drawProfile, requestProfile) {
+      if (!this.shouldProfileSpectrogram() || !result.profile && !drawProfile && !requestProfile) {
+        return;
+      }
+      const worker = result.profile;
+      const roundTripMs = requestProfile ? performance.now() - requestProfile.startedAt : void 0;
+      console.groupCollapsed(
+        `[AudioLens] Spectrogram profile${requestProfile ? ` ch ${requestProfile.channel + 1}` : ""} ${result.width}x${result.height}`
+      );
+      console.table({
+        "request round trip": formatProfileMs(roundTripMs),
+        "worker total": formatProfileMs(worker?.totalMs),
+        "worker setup": formatProfileMs(worker?.setupMs),
+        "worker fft": formatProfileMs(worker?.fftMs),
+        "worker rasterize": formatProfileMs(worker?.rasterizeMs),
+        "main draw total": formatProfileMs(drawProfile?.totalMs),
+        "main canvas setup": formatProfileMs(drawProfile?.setupMs),
+        "main bitmap upload": formatProfileMs(drawProfile?.bitmapMs),
+        "main bitmap draw": formatProfileMs(drawProfile?.bitmapDrawMs),
+        "main axes/overlays": formatProfileMs(drawProfile?.overlayMs),
+        "bitmap cached": drawProfile?.bitmapCached ?? false,
+        frames: worker?.frames ?? result.width,
+        bins: worker?.bins ?? result.height,
+        "fft size": worker?.fftSize ?? this.settings.fftSize,
+        "window size": worker?.windowSize ?? this.settings.fftSize,
+        "hop size": worker?.hopSize ?? "n/a",
+        samples: worker?.sampleCount ?? (requestProfile ? requestProfile.endSample - requestProfile.startSample : "n/a"),
+        "target frames": requestProfile?.targetFrames ?? "n/a",
+        "output bins": requestProfile?.outputBins ?? "n/a"
+      });
+      console.groupEnd();
     }
     drawSpectrogramBitmap(context, bitmap, rect, result) {
       const sourceRange = this.spectrogramRangeCache.get(result.requestId);
@@ -8321,44 +8589,102 @@
     }
     updateSelectionAnalysis() {
       if (!this.audioBuffer || !this.selection) {
+        this.cancelSelectionSpectrumAnalysis();
         this.elements.analysisStart.closest(".selectionAnalysisPane")?.setAttribute("hidden", "");
-        this.elements.analysisStart.textContent = "--";
-        this.elements.analysisEnd.textContent = "--";
-        this.elements.analysisDuration.textContent = "--";
-        this.elements.analysisRms.textContent = "--";
-        this.elements.analysisPeak.textContent = "--";
-        this.elements.analysisDominant.textContent = "--";
-        this.elements.analysisCrest.textContent = "--";
-        this.elements.analysisClipping.textContent = "--";
-        this.elements.analysisNoiseFloor.textContent = "--";
-        this.elements.analysisCentroid.textContent = "--";
-        this.elements.analysisZcr.textContent = "--";
+        this.setAnalysisValue(this.elements.analysisStart, "--");
+        this.setAnalysisValue(this.elements.analysisEnd, "--");
+        this.setAnalysisValue(this.elements.analysisDuration, "--");
+        this.setAnalysisValue(this.elements.analysisRms, "--");
+        this.setAnalysisValue(this.elements.analysisPeak, "--");
+        this.setAnalysisValue(this.elements.analysisDominant, "--");
+        this.setAnalysisValue(this.elements.analysisCrest, "--");
+        this.setAnalysisValue(this.elements.analysisClipping, "--");
+        this.setAnalysisValue(this.elements.analysisNoiseFloor, "--");
+        this.setAnalysisValue(this.elements.analysisCentroid, "--");
+        this.setAnalysisValue(this.elements.analysisZcr, "--");
         this.renderFrequencyRows([]);
         return;
       }
       this.elements.analysisStart.closest(".selectionAnalysisPane")?.removeAttribute("hidden");
       const samples = this.samplesForActiveTrack();
       if (!samples) {
+        this.cancelSelectionSpectrumAnalysis();
         return;
       }
       const startSample = Math.floor(this.selection.start * this.audioBuffer.sampleRate);
       const endSample = Math.min(samples.length, Math.ceil(this.selection.end * this.audioBuffer.sampleRate));
       const timeMetrics = computeTimeSelectionMetrics(samples, startSample, endSample, this.audioBuffer.sampleRate);
-      const spectrum = computeSpectrum(samples, startSample, endSample, this.analysisSampleRate(), this.settings.fftSize, this.settings.windowFunction, this.messages);
-      this.elements.analysisStart.textContent = `${this.selection.start.toFixed(3)}s`;
-      this.elements.analysisEnd.textContent = `${this.selection.end.toFixed(3)}s`;
-      this.elements.analysisDuration.textContent = `${(this.selection.end - this.selection.start).toFixed(3)}s`;
-      this.elements.analysisRms.textContent = formatDb(amplitudeToDb(timeMetrics.rms));
-      this.elements.analysisPeak.textContent = formatDb(amplitudeToDb(timeMetrics.peak));
-      this.elements.analysisDominant.textContent = formatHz(spectrum.dominantHz);
-      this.elements.analysisCrest.textContent = Number.isFinite(timeMetrics.crestDb) ? `${timeMetrics.crestDb.toFixed(1)} dB` : "--";
-      this.elements.analysisClipping.textContent = `${timeMetrics.clippingPercent.toFixed(3)}%`;
-      this.elements.analysisNoiseFloor.textContent = formatDb(timeMetrics.noiseFloorDb);
-      this.elements.analysisCentroid.textContent = formatHz(spectrum.centroidHz);
-      this.elements.analysisZcr.textContent = `${timeMetrics.zeroCrossingRate.toFixed(1)}/s`;
-      this.renderFrequencyRows(spectrum.bands);
+      this.setAnalysisValue(this.elements.analysisStart, `${this.selection.start.toFixed(3)}s`);
+      this.setAnalysisValue(this.elements.analysisEnd, `${this.selection.end.toFixed(3)}s`);
+      this.setAnalysisValue(this.elements.analysisDuration, `${(this.selection.end - this.selection.start).toFixed(3)}s`);
+      this.setAnalysisValue(this.elements.analysisRms, formatDb(amplitudeToDb(timeMetrics.rms)));
+      this.setAnalysisValue(this.elements.analysisPeak, formatDb(amplitudeToDb(timeMetrics.peak)));
+      this.setAnalysisValue(this.elements.analysisDominant, this.selectionAnalysisCalculatingText(), true);
+      this.setAnalysisValue(this.elements.analysisCrest, Number.isFinite(timeMetrics.crestDb) ? `${timeMetrics.crestDb.toFixed(1)} dB` : "--");
+      this.setAnalysisValue(this.elements.analysisClipping, `${timeMetrics.clippingPercent.toFixed(3)}%`);
+      this.setAnalysisValue(this.elements.analysisNoiseFloor, formatDb(timeMetrics.noiseFloorDb));
+      this.setAnalysisValue(this.elements.analysisCentroid, this.selectionAnalysisCalculatingText(), true);
+      this.setAnalysisValue(this.elements.analysisZcr, `${timeMetrics.zeroCrossingRate.toFixed(1)}/s`);
+      this.renderFrequencyRows(BAND_LIMITS.map((band) => ({ label: this.messages[band.labelKey], percent: Number.NaN })), true);
+      this.scheduleSelectionSpectrumAnalysis(samples, startSample, endSample);
     }
-    renderFrequencyRows(bands) {
+    setAnalysisValue(element, value, loading = false) {
+      element.textContent = value;
+      element.classList.toggle("analysisValueLoading", loading);
+    }
+    selectionAnalysisCalculatingText() {
+      return this.messages.selectionAnalysisCalculating ?? this.messages.analyzingSpectrogram;
+    }
+    scheduleSelectionSpectrumAnalysis(samples, startSample, endSample) {
+      if (this.selectionSpectrumTimer !== void 0) {
+        window.clearTimeout(this.selectionSpectrumTimer);
+        this.selectionSpectrumTimer = void 0;
+      }
+      if (this.selectionSpectrumRunning) {
+        this.selectionSpectrumRunning = false;
+        this.resetSelectionWorker();
+      }
+      this.selectionSpectrumRequestSeq += 1;
+      const requestId = `selection-spectrum-${this.selectionSpectrumRequestSeq}`;
+      this.currentSelectionSpectrumRequestId = requestId;
+      this.selectionSpectrumTimer = window.setTimeout(() => {
+        this.selectionSpectrumTimer = void 0;
+        if (!this.selection || this.currentSelectionSpectrumRequestId !== requestId) {
+          return;
+        }
+        const selectedSamples = samples.slice(startSample, endSample);
+        if (this.currentSelectionSpectrumRequestId !== requestId) {
+          return;
+        }
+        this.selectionSpectrumRunning = true;
+        this.selectionWorker.postMessage(
+          {
+            type: "selectionSpectrum",
+            requestId,
+            samples: selectedSamples.buffer,
+            sampleRate: this.analysisSampleRate(),
+            fftSize: this.settings.fftSize,
+            windowFunction: this.settings.windowFunction,
+            bandLimits: BAND_LIMITS.map((band) => ({ min: band.min, max: band.max }))
+          },
+          [selectedSamples.buffer]
+        );
+      }, SELECTION_SPECTRUM_DELAY_MS);
+    }
+    applySelectionSpectrumResult(result) {
+      if (!this.selection || this.currentSelectionSpectrumRequestId !== result.requestId) {
+        return;
+      }
+      this.selectionSpectrumRunning = false;
+      this.currentSelectionSpectrumRequestId = void 0;
+      this.setAnalysisValue(this.elements.analysisDominant, formatHz(result.dominantHz));
+      this.setAnalysisValue(this.elements.analysisCentroid, formatHz(result.centroidHz));
+      this.renderFrequencyRows(BAND_LIMITS.map((band, index) => ({
+        label: this.messages[band.labelKey],
+        percent: result.bandPercents[index] ?? 0
+      })));
+    }
+    renderFrequencyRows(bands, loading = false) {
       this.elements.analysisBands.replaceChildren();
       const rows = bands.length > 0 ? bands : [{ label: this.messages.bands, percent: Number.NaN }];
       for (const band of rows) {
@@ -8366,7 +8692,8 @@
         const name = document.createElement("th");
         const value = document.createElement("td");
         name.textContent = band.label;
-        value.textContent = Number.isFinite(band.percent) ? `${band.percent.toFixed(1)}%` : "--";
+        value.textContent = loading ? this.selectionAnalysisCalculatingText() : Number.isFinite(band.percent) ? `${band.percent.toFixed(1)}%` : "--";
+        value.classList.toggle("analysisValueLoading", loading);
         row.append(name, value);
         this.elements.analysisBands.appendChild(row);
       }
@@ -8608,6 +8935,49 @@
     }
     return buffer;
   }
+  async function encodeWavAsync(audioBuffer, startFrame = 0, endFrame = audioBuffer.length) {
+    const channels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const start = clamp2(Math.floor(startFrame), 0, audioBuffer.length);
+    const end = clamp2(Math.ceil(endFrame), start, audioBuffer.length);
+    const frames = end - start;
+    const bytesPerSample = 2;
+    const blockAlign = channels * bytesPerSample;
+    const dataSize = frames * blockAlign;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+    writeAscii(view, 0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeAscii(view, 8, "WAVE");
+    writeAscii(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeAscii(view, 36, "data");
+    view.setUint32(40, dataSize, true);
+    const channelData = Array.from({ length: channels }, (_, channel) => audioBuffer.getChannelData(channel));
+    let offset = 44;
+    const chunkFrames = 262144;
+    for (let frame = 0; frame < frames; frame += 1) {
+      const sourceFrame = start + frame;
+      for (let channel = 0; channel < channels; channel += 1) {
+        const value = clamp2(channelData[channel][sourceFrame] ?? 0, -1, 1);
+        view.setInt16(offset, value < 0 ? value * 32768 : value * 32767, true);
+        offset += bytesPerSample;
+      }
+      if (frame > 0 && frame % chunkFrames === 0) {
+        await yieldToBrowser();
+      }
+    }
+    return buffer;
+  }
+  function yieldToBrowser() {
+    return new Promise((resolve) => window.setTimeout(resolve, 0));
+  }
   function writeAscii(view, offset, value) {
     for (let index = 0; index < value.length; index += 1) {
       view.setUint8(offset + index, value.charCodeAt(index));
@@ -8621,13 +8991,16 @@
   function formatSelectionTime(time) {
     return Math.max(0, time).toFixed(3);
   }
-  function arrayBufferToBase64(buffer) {
+  async function arrayBufferToBase64Async(buffer) {
     const bytes = new Uint8Array(buffer);
     const chunkSize = 32768;
     let binary = "";
     for (let offset = 0; offset < bytes.length; offset += chunkSize) {
       const chunk = bytes.subarray(offset, offset + chunkSize);
       binary += String.fromCharCode(...chunk);
+      if (offset > 0 && offset % (chunkSize * 128) === 0) {
+        await yieldToBrowser();
+      }
     }
     return btoa(binary);
   }
@@ -8952,62 +9325,6 @@
   function erbToHz(erb) {
     return (Math.pow(10, erb / 21.4) - 1) / 437e-5;
   }
-  function computeSpectrum(samples, startSample, endSample, sampleRate, requestedSize, windowFunction, messages18) {
-    const available = Math.max(0, endSample - startSample);
-    const fftSize = largestPowerOfTwo(Math.min(requestedSize, available));
-    if (fftSize < 64) {
-      return { dominantHz: 0, centroidHz: 0, bands: BAND_LIMITS.map((band) => ({ label: messages18[band.labelKey], percent: 0 })) };
-    }
-    const re = new Float32Array(fftSize);
-    const im = new Float32Array(fftSize);
-    const window2 = createWindow(windowFunction, fftSize);
-    let dominantBin = 1;
-    let dominantPower = 0;
-    let totalPower = 0;
-    let weightedFrequencySum = 0;
-    const bandPower = new Float64Array(BAND_LIMITS.length);
-    const binPower = new Float64Array(Math.floor(fftSize / 2));
-    const hopSize = Math.max(1, Math.floor(fftSize / 2));
-    const lastFrameStart = Math.max(0, available - fftSize);
-    let relativeStart = 0;
-    while (relativeStart <= lastFrameStart) {
-      const offset = startSample + relativeStart;
-      im.fill(0);
-      for (let index = 0; index < fftSize; index += 1) {
-        re[index] = (samples[offset + index] ?? 0) * window2[index];
-      }
-      fft(re, im);
-      for (let bin = 1; bin < fftSize / 2; bin += 1) {
-        const power = re[bin] * re[bin] + im[bin] * im[bin];
-        const frequency = bin * sampleRate / fftSize;
-        totalPower += power;
-        weightedFrequencySum += frequency * power;
-        binPower[bin] += power;
-        const bandIndex = BAND_LIMITS.findIndex((band) => frequency >= band.min && frequency < band.max);
-        if (bandIndex >= 0) {
-          bandPower[bandIndex] += power;
-        }
-      }
-      if (relativeStart === lastFrameStart) {
-        break;
-      }
-      relativeStart = Math.min(relativeStart + hopSize, lastFrameStart);
-    }
-    for (let bin = 1; bin < binPower.length; bin += 1) {
-      if (binPower[bin] > dominantPower) {
-        dominantPower = binPower[bin];
-        dominantBin = bin;
-      }
-    }
-    return {
-      dominantHz: dominantBin * sampleRate / fftSize,
-      centroidHz: totalPower <= 0 ? 0 : weightedFrequencySum / totalPower,
-      bands: BAND_LIMITS.map((band, index) => ({
-        label: messages18[band.labelKey],
-        percent: totalPower <= 0 ? 0 : bandPower[index] / totalPower * 100
-      }))
-    };
-  }
   function computeTimeSelectionMetrics(samples, startSample, endSample, sampleRate) {
     const count = Math.max(0, endSample - startSample);
     if (count <= 0) {
@@ -9087,83 +9404,8 @@
     const percentileIndex = Math.min(rmsValues.length - 1, Math.max(0, Math.floor((rmsValues.length - 1) * 0.1)));
     return amplitudeToDb(rmsValues[percentileIndex] ?? 0);
   }
-  function largestPowerOfTwo(value) {
-    let size = 1;
-    while (size * 2 <= value) {
-      size *= 2;
-    }
-    return size;
-  }
-  function createWindow(type, size) {
-    const values = new Float32Array(size);
-    const denom = Math.max(1, size - 1);
-    const center = denom / 2;
-    for (let i = 0; i < size; i += 1) {
-      const phase = 2 * Math.PI * i / denom;
-      const x = center === 0 ? 0 : (i - center) / center;
-      if (type === "bartlett") {
-        values[i] = 1 - Math.abs(x);
-      } else if (type === "hamming") {
-        values[i] = 0.54 - 0.46 * Math.cos(phase);
-      } else if (type === "blackman") {
-        values[i] = 0.42 - 0.5 * Math.cos(phase) + 0.08 * Math.cos(2 * phase);
-      } else if (type === "blackmanHarris") {
-        values[i] = 0.35875 - 0.48829 * Math.cos(phase) + 0.14128 * Math.cos(2 * phase) - 0.01168 * Math.cos(3 * phase);
-      } else if (type === "welch") {
-        values[i] = 1 - x * x;
-      } else if (type === "gaussian25") {
-        values[i] = Math.exp(-0.5 * Math.pow(2.5 * x, 2));
-      } else if (type === "gaussian35") {
-        values[i] = Math.exp(-0.5 * Math.pow(3.5 * x, 2));
-      } else if (type === "gaussian45") {
-        values[i] = Math.exp(-0.5 * Math.pow(4.5 * x, 2));
-      } else if (type === "rectangular") {
-        values[i] = 1;
-      } else {
-        values[i] = 0.5 - 0.5 * Math.cos(phase);
-      }
-    }
-    return values;
-  }
-  function fft(re, im) {
-    const n = re.length;
-    for (let i = 1, j = 0; i < n; i += 1) {
-      let bit = n >> 1;
-      for (; j & bit; bit >>= 1) {
-        j ^= bit;
-      }
-      j ^= bit;
-      if (i < j) {
-        const tr = re[i];
-        re[i] = re[j];
-        re[j] = tr;
-        const ti = im[i];
-        im[i] = im[j];
-        im[j] = ti;
-      }
-    }
-    for (let len = 2; len <= n; len <<= 1) {
-      const angle = -2 * Math.PI / len;
-      const wLenR = Math.cos(angle);
-      const wLenI = Math.sin(angle);
-      for (let i = 0; i < n; i += len) {
-        let wr = 1;
-        let wi = 0;
-        for (let j = 0; j < len / 2; j += 1) {
-          const uR = re[i + j];
-          const uI = im[i + j];
-          const vR = re[i + j + len / 2] * wr - im[i + j + len / 2] * wi;
-          const vI = re[i + j + len / 2] * wi + im[i + j + len / 2] * wr;
-          re[i + j] = uR + vR;
-          im[i + j] = uI + vI;
-          re[i + j + len / 2] = uR - vR;
-          im[i + j + len / 2] = uI - vI;
-          const nextWr = wr * wLenR - wi * wLenI;
-          wi = wr * wLenI + wi * wLenR;
-          wr = nextWr;
-        }
-      }
-    }
+  function formatProfileMs(value) {
+    return value === void 0 ? "n/a" : `${value.toFixed(2)} ms`;
   }
 
   // src/webview/styles.ts
@@ -10339,6 +10581,10 @@
       color: var(--vscode-foreground);
       overflow-wrap: anywhere;
       text-align: right;
+    }
+    .analysisValueLoading {
+      color: var(--vscode-charts-blue, #4fc3f7) !important;
+      font-style: italic;
     }
     @media (max-width: 720px) {
       .workspace {

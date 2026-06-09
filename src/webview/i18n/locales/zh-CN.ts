@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "过零率（Zero Crossing Rate）：\n统计信号正负号变化的频率。\n\n计算：\nzeroCrossingRate = zeroCrossings / durationSeconds\n\n用途：\n粗略观察高频噪声、清音、摩擦音等成分；语音分析中常作为时域特征。\n\n限制：\n容易受噪声和 DC offset 影响；它不能直接代表频率或音高。\n\n参考：\nlibrosa.feature.zero_crossing_rate；librosa.zero_crossings。",
   frequencyAnalysis: "频率分析",
   frequencyAnalysisHelp: "含义：\n频段线性能量占比，不是 RMS level，也不是 dB。\n\n计算：\n1. 对选区内当前通道取样。\n2. 使用当前窗口函数和 FFT size，把整个选区按 50% overlap 分成多帧。\n3. 每个频率 bin 的功率为 re² + im²。\n4. 累计所有帧的 bin 功率，并按频率归入各频段。\n5. 显示 bandPower / totalPower × 100%。\n\n注意：\n这是整个选区的多帧频谱能量分布；仍不是 dB/RMS。",
+  selectionAnalysisCalculating: "计算中...",
   bands: "频段",
   waveform: "波形",
   spectrogram: "频谱图",

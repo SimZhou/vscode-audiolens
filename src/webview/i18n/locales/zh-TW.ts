@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "過零率：\n訊號改變正負號的頻率，常用於觀察高頻噪聲、無聲子音與摩擦音。",
   frequencyAnalysis: "頻率分析",
   frequencyAnalysisHelp: "含義：\n各頻帶的線性能量百分比，不是 RMS 電平，也不是 dB。\n\n計算：\n將選區切成 50% overlap 的 FFT frame，累積各 bin 功率後分配到頻帶並顯示百分比。",
+  selectionAnalysisCalculating: "計算中...",
   bands: "頻帶",
   waveform: "波形",
   spectrogram: "頻譜圖",

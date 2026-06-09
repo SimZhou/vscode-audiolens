@@ -1171,6 +1171,10 @@ export function injectStyles(): void {
       overflow-wrap: anywhere;
       text-align: right;
     }
+    .analysisValueLoading {
+      color: var(--vscode-charts-blue, #4fc3f7) !important;
+      font-style: italic;
+    }
     @media (max-width: 720px) {
       .workspace {
         grid-template-columns: 1fr;

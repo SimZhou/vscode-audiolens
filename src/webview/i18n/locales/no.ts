@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero crossing rate:\nHvor ofte signalet skifter fortegn. Nyttig for høyfrekvent støy, ustemt tale og frikativer.",
   frequencyAnalysis: "Frekvensanalyse",
   frequencyAnalysisHelp: "Betydning:\nLineær energiprosent per frekvensbånd. Det er ikke RMS-nivå og ikke dB.\n\nBeregning:\nUtvalget deles i rammer med 50% overlapp. FFT-bin-effekt akkumuleres og fordeles på frekvensbånd.",
+  selectionAnalysisCalculating: "Beregner...",
   bands: "Bånd",
   waveform: "Bølgeform",
   spectrogram: "Spectrogram",

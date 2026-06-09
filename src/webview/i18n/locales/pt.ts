@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Taxa de cruzamento por zero:\nFrequência com que o sinal muda de sinal. Útil para ruído de alta frequência, fala não vozeada e fricativas.",
   frequencyAnalysis: "Análise de frequência",
   frequencyAnalysisHelp: "Significado:\nPercentual de energia linear por banda de frequência. Não é nível RMS nem dB.\n\nCálculo:\nA seleção é dividida em frames com 50% de overlap; a potência dos bins FFT é acumulada e distribuída por bandas.",
+  selectionAnalysisCalculating: "Calculando...",
   bands: "Bandas",
   waveform: "Forma de onda",
   spectrogram: "Espectrograma",

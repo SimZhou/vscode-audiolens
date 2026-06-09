@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Tasa de cruces por cero:\nFrecuencia con la que la señal cambia de signo. Útil para ruido de alta frecuencia, habla no sonora y fricativas.",
   frequencyAnalysis: "Análisis de frecuencia",
   frequencyAnalysisHelp: "Significado:\nPorcentaje de energía lineal por banda de frecuencia. No es nivel RMS ni dB.\n\nCálculo:\nLa selección se divide en tramas con 50% de solape. Se acumula la potencia de bins FFT y se reparte por bandas.",
+  selectionAnalysisCalculating: "Calculando...",
   bands: "Bandas",
   waveform: "Forma de onda",
   spectrogram: "Espectrograma",

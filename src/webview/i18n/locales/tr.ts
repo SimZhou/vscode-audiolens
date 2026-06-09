@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero crossing rate:\nSinyalin işaret değiştirme hızı. Yüksek frekanslı gürültü, ötümsüz konuşma ve sürtünmeli sesler için kullanışlıdır.",
   frequencyAnalysis: "Frekans analizi",
   frequencyAnalysisHelp: "Anlam:\nFrekans bandı başına doğrusal enerji yüzdesi. RMS seviyesi veya dB değildir.\n\nHesaplama:\nSeçim %50 overlap frame'lere bölünür; FFT bin gücü toplanır ve frekans bantlarına atanır.",
+  selectionAnalysisCalculating: "Hesaplanıyor...",
   bands: "Bantlar",
   waveform: "Dalga bicimi",
   spectrogram: "Spektrogram",

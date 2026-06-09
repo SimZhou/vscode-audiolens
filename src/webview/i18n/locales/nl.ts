@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero-crossing-rate:\nHoe vaak het signaal van teken wisselt. Nuttig voor hoogfrequente ruis, stemloze spraak en fricatieven.",
   frequencyAnalysis: "Frequentieanalyse",
   frequencyAnalysisHelp: "Betekenis:\nLineair energiepercentage per frequentieband. Het is geen RMS-niveau en geen dB.\n\nBerekening:\nDe selectie wordt in frames met 50% overlap verdeeld. FFT-bin-power wordt opgeteld en aan frequentiebanden toegewezen.",
+  selectionAnalysisCalculating: "Berekenen...",
   bands: "Banden",
   waveform: "Golfvorm",
   spectrogram: "Spectrogram",

@@ -190,6 +190,7 @@ class AudioLensDocument implements vscode.CustomDocument {
 
 export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvider<AudioLensDocument> {
   private static readonly viewType = "audiolens.audioPreview";
+  private readonly pendingSelectionWavDestinations = new WeakMap<vscode.Webview, Map<number, vscode.Uri>>();
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
     const provider = new AudioLensEditorProvider(context);
@@ -259,7 +260,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
         });
       }),
       vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("audiolens.language")) {
+        if (event.affectsConfiguration("audiolens.language") || event.affectsConfiguration("audiolens.profileSpectrogram")) {
           this.postMessage(webviewPanel.webview, {
             type: "configChanged",
             config: this.readConfig()
@@ -310,8 +311,11 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
         case "downloadAudio":
           await this.downloadAudio(document);
           break;
-        case "downloadSelectionWav":
-          await this.downloadSelectionWav(message.fileName, message.bytesBase64, message.saveLabel, message.title);
+        case "requestSelectionWavSave":
+          await this.requestSelectionWavSave(webview, message.requestId, message.fileName, message.saveLabel, message.title);
+          break;
+        case "writeSelectionWav":
+          await this.writeSelectionWav(webview, message.requestId, message.fileName, message.bytesBase64);
           break;
         case "transcodeAudio":
           await this.transcodeAudio(message.requestId, document, webview);
@@ -361,7 +365,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     vscode.window.showInformationMessage(`AudioLens saved ${fileName}.`);
   }
 
-  private async downloadSelectionWav(fileName: string, bytesBase64: string, saveLabel?: string, title?: string): Promise<void> {
+  private async requestSelectionWavSave(webview: vscode.Webview, requestId: number, fileName: string, saveLabel?: string, title?: string): Promise<void> {
     if (!vscode.workspace.isTrusted) {
       throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
     }
@@ -374,9 +378,32 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       title: title || "Download Selection as WAV"
     });
     if (!destination) {
+      this.postMessage(webview, { type: "selectionWavSaveCanceled", requestId });
       return;
     }
 
+    let destinations = this.pendingSelectionWavDestinations.get(webview);
+    if (!destinations) {
+      destinations = new Map();
+      this.pendingSelectionWavDestinations.set(webview, destinations);
+    }
+    destinations.set(requestId, destination);
+    this.postMessage(webview, { type: "selectionWavSaveReady", requestId });
+  }
+
+  private async writeSelectionWav(webview: vscode.Webview, requestId: number, fileName: string, bytesBase64: string): Promise<void> {
+    if (!vscode.workspace.isTrusted) {
+      throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+    }
+
+    const destinations = this.pendingSelectionWavDestinations.get(webview);
+    const destination = destinations?.get(requestId);
+    destinations?.delete(requestId);
+    if (!destination) {
+      return;
+    }
+
+    const safeFileName = sanitizeSuggestedFileName(fileName) || "audiolens_selection.wav";
     await vscode.workspace.fs.writeFile(destination, new Uint8Array(Buffer.from(bytesBase64, "base64")));
     vscode.window.showInformationMessage(`AudioLens saved ${path.basename(destination.fsPath || safeFileName)}.`);
   }
@@ -444,6 +471,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       maxFileSizeMB: config.get("maxFileSizeMB", 512),
       language: config.get("language", "auto"),
       vscodeLanguage: vscode.env.language,
+      profileSpectrogram: config.get("profileSpectrogram", false),
       analysis: {
         windowFunction: config.get("analysis.windowFunction", "hamming"),
         fftSize: config.get("analysis.fftSize", 512),

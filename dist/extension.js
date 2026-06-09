@@ -189,6 +189,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     this.context = context;
   }
   static viewType = "audiolens.audioPreview";
+  pendingSelectionWavDestinations = /* @__PURE__ */ new WeakMap();
   static register(context) {
     const provider = new _AudioLensEditorProvider(context);
     return vscode.Disposable.from(
@@ -243,7 +244,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
         });
       }),
       vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("audiolens.language")) {
+        if (event.affectsConfiguration("audiolens.language") || event.affectsConfiguration("audiolens.profileSpectrogram")) {
           this.postMessage(webviewPanel.webview, {
             type: "configChanged",
             config: this.readConfig()
@@ -287,8 +288,11 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
         case "downloadAudio":
           await this.downloadAudio(document);
           break;
-        case "downloadSelectionWav":
-          await this.downloadSelectionWav(message.fileName, message.bytesBase64, message.saveLabel, message.title);
+        case "requestSelectionWavSave":
+          await this.requestSelectionWavSave(webview, message.requestId, message.fileName, message.saveLabel, message.title);
+          break;
+        case "writeSelectionWav":
+          await this.writeSelectionWav(webview, message.requestId, message.fileName, message.bytesBase64);
           break;
         case "transcodeAudio":
           await this.transcodeAudio(message.requestId, document, webview);
@@ -333,7 +337,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     await vscode.workspace.fs.writeFile(destination, bytes);
     vscode.window.showInformationMessage(`AudioLens saved ${fileName}.`);
   }
-  async downloadSelectionWav(fileName, bytesBase64, saveLabel, title) {
+  async requestSelectionWavSave(webview, requestId, fileName, saveLabel, title) {
     if (!vscode.workspace.isTrusted) {
       throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
     }
@@ -345,8 +349,28 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
       title: title || "Download Selection as WAV"
     });
     if (!destination) {
+      this.postMessage(webview, { type: "selectionWavSaveCanceled", requestId });
       return;
     }
+    let destinations = this.pendingSelectionWavDestinations.get(webview);
+    if (!destinations) {
+      destinations = /* @__PURE__ */ new Map();
+      this.pendingSelectionWavDestinations.set(webview, destinations);
+    }
+    destinations.set(requestId, destination);
+    this.postMessage(webview, { type: "selectionWavSaveReady", requestId });
+  }
+  async writeSelectionWav(webview, requestId, fileName, bytesBase64) {
+    if (!vscode.workspace.isTrusted) {
+      throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+    }
+    const destinations = this.pendingSelectionWavDestinations.get(webview);
+    const destination = destinations?.get(requestId);
+    destinations?.delete(requestId);
+    if (!destination) {
+      return;
+    }
+    const safeFileName = sanitizeSuggestedFileName(fileName) || "audiolens_selection.wav";
     await vscode.workspace.fs.writeFile(destination, new Uint8Array(Buffer.from(bytesBase64, "base64")));
     vscode.window.showInformationMessage(`AudioLens saved ${path.basename(destination.fsPath || safeFileName)}.`);
   }
@@ -408,6 +432,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
       maxFileSizeMB: config.get("maxFileSizeMB", 512),
       language: config.get("language", "auto"),
       vscodeLanguage: vscode.env.language,
+      profileSpectrogram: config.get("profileSpectrogram", false),
       analysis: {
         windowFunction: config.get("analysis.windowFunction", "hamming"),
         fftSize: config.get("analysis.fftSize", 512),

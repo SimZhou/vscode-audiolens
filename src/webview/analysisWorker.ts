@@ -4,15 +4,44 @@ export interface SpectrogramResult {
   width: number;
   height: number;
   pixels: ArrayBuffer;
+  profile?: {
+    totalMs: number;
+    setupMs: number;
+    fftMs: number;
+    rasterizeMs: number;
+    frames: number;
+    bins: number;
+    fftSize: number;
+    windowSize: number;
+    hopSize: number;
+    sampleCount: number;
+  };
 }
+
+export interface SelectionSpectrumResult {
+  type: "selectionSpectrum";
+  requestId: string;
+  dominantHz: number;
+  centroidHz: number;
+  bandPercents: number[];
+  frames: number;
+}
+
+export type AnalysisWorkerResult = SpectrogramResult | SelectionSpectrumResult;
 
 export function createAnalysisWorker(): Worker {
   const source = `
     self.onmessage = (event) => {
       const message = event.data;
+      if (message.type === "selectionSpectrum") {
+        analyzeSelectionSpectrum(message);
+        return;
+      }
       if (message.type !== "analyze") return;
       const samples = new Float32Array(message.samples);
       const settings = message.settings;
+      const profile = settings.profile === true;
+      const totalStart = profile ? performance.now() : 0;
       const windowSize = Math.max(8, Math.floor(settings.fftSize));
       const zeroPaddingFactor = Math.max(1, Math.floor(settings.zeroPaddingFactor || 1));
       const fftSize = nextPowerOfTwo(windowSize * zeroPaddingFactor);
@@ -27,6 +56,9 @@ export function createAnalysisWorker(): Worker {
       const nyquist = sampleRate / 2;
       const minFrequencyHz = Math.max(0, Math.min(Number(settings.minFrequencyHz) || 0, Math.max(0, nyquist - 1)));
       const maxFrequencyHz = Math.max(minFrequencyHz + 1, Math.min(Number(settings.maxFrequencyHz) || nyquist, nyquist));
+      const setupEnd = profile ? performance.now() : 0;
+      let fftMs = 0;
+      let rasterizeMs = 0;
 
       for (let frame = 0; frame < frames; frame += 1) {
         const offset = frame * hopSize;
@@ -35,7 +67,10 @@ export function createAnalysisWorker(): Worker {
         for (let i = 0; i < windowSize; i += 1) {
           re[i] = (samples[offset + i] || 0) * window[i];
         }
+        const fftStart = profile ? performance.now() : 0;
         fft(re, im);
+        if (profile) fftMs += performance.now() - fftStart;
+        const rasterizeStart = profile ? performance.now() : 0;
         for (let y = 0; y < bins; y += 1) {
           const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
           const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
@@ -49,9 +84,101 @@ export function createAnalysisWorker(): Worker {
           pixels[index + 2] = color[2];
           pixels[index + 3] = 255;
         }
+        if (profile) rasterizeMs += performance.now() - rasterizeStart;
       }
-      self.postMessage({ type: "spectrogram", requestId: message.requestId, width: frames, height: bins, pixels: pixels.buffer }, [pixels.buffer]);
+      const result = { type: "spectrogram", requestId: message.requestId, width: frames, height: bins, pixels: pixels.buffer };
+      if (profile) {
+        result.profile = {
+          totalMs: performance.now() - totalStart,
+          setupMs: setupEnd - totalStart,
+          fftMs,
+          rasterizeMs,
+          frames,
+          bins,
+          fftSize,
+          windowSize,
+          hopSize,
+          sampleCount: samples.length
+        };
+      }
+      self.postMessage(result, [pixels.buffer]);
     };
+
+    function analyzeSelectionSpectrum(message) {
+      const samples = new Float32Array(message.samples);
+      const sampleRate = Math.max(1, message.sampleRate || 1);
+      const available = samples.length;
+      const requestedSize = Math.max(1, Math.floor(message.fftSize || 512));
+      const fftSize = largestPowerOfTwo(Math.min(requestedSize, available));
+      const bandLimits = Array.isArray(message.bandLimits) ? message.bandLimits : [];
+      if (fftSize < 64) {
+        self.postMessage({
+          type: "selectionSpectrum",
+          requestId: message.requestId,
+          dominantHz: 0,
+          centroidHz: 0,
+          bandPercents: bandLimits.map(() => 0),
+          frames: 0
+        });
+        return;
+      }
+
+      const re = new Float32Array(fftSize);
+      const im = new Float32Array(fftSize);
+      const window = createWindow(message.windowFunction, fftSize);
+      let dominantBin = 1;
+      let dominantPower = 0;
+      let totalPower = 0;
+      let weightedFrequencySum = 0;
+      let frames = 0;
+      const bandPower = new Float64Array(bandLimits.length);
+      const binPower = new Float64Array(Math.floor(fftSize / 2));
+      const hopSize = Math.max(1, Math.floor(fftSize / 2));
+      const lastFrameStart = Math.max(0, available - fftSize);
+      let relativeStart = 0;
+
+      while (relativeStart <= lastFrameStart) {
+        im.fill(0);
+        for (let index = 0; index < fftSize; index += 1) {
+          re[index] = (samples[relativeStart + index] ?? 0) * window[index];
+        }
+        fft(re, im);
+        frames += 1;
+
+        for (let bin = 1; bin < fftSize / 2; bin += 1) {
+          const power = re[bin] * re[bin] + im[bin] * im[bin];
+          const frequency = (bin * sampleRate) / fftSize;
+          totalPower += power;
+          weightedFrequencySum += frequency * power;
+          binPower[bin] += power;
+          const bandIndex = bandLimits.findIndex((band) => frequency >= band.min && frequency < band.max);
+          if (bandIndex >= 0) {
+            bandPower[bandIndex] += power;
+          }
+        }
+
+        if (relativeStart === lastFrameStart) {
+          break;
+        }
+        relativeStart = Math.min(relativeStart + hopSize, lastFrameStart);
+      }
+
+      for (let bin = 1; bin < binPower.length; bin += 1) {
+        if (binPower[bin] > dominantPower) {
+          dominantPower = binPower[bin];
+          dominantBin = bin;
+        }
+      }
+
+      self.postMessage({
+        type: "selectionSpectrum",
+        requestId: message.requestId,
+        dominantHz: (dominantBin * sampleRate) / fftSize,
+        centroidHz: totalPower <= 0 ? 0 : weightedFrequencySum / totalPower,
+        bandPercents: Array.from(bandPower, (power) => totalPower <= 0 ? 0 : (power / totalPower) * 100),
+        frames
+      });
+    }
 
     function createWindow(type, size) {
       const values = new Float32Array(size);
@@ -77,6 +204,12 @@ export function createAnalysisWorker(): Worker {
     function nextPowerOfTwo(value) {
       let size = 1;
       while (size < value) size <<= 1;
+      return size;
+    }
+
+    function largestPowerOfTwo(value) {
+      let size = 1;
+      while (size * 2 <= value) size *= 2;
       return size;
     }
 

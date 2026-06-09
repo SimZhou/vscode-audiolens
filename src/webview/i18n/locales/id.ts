@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero crossing rate:\nLaju perubahan tanda sinyal. Berguna untuk noise frekuensi tinggi, ucapan tak bersuara, dan frikatif.",
   frequencyAnalysis: "Analisis frekuensi",
   frequencyAnalysisHelp: "Makna:\nPersentase energi linear per band frekuensi. Ini bukan level RMS dan bukan dB.\n\nPerhitungan:\nPilihan dibagi menjadi frame dengan 50% overlap; power bin FFT diakumulasi lalu dibagi ke band frekuensi.",
+  selectionAnalysisCalculating: "Menghitung...",
   bands: "Band",
   waveform: "Waveform",
   spectrogram: "Spectrogram",

@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero Crossing Rate:\nThe rate at which the signal changes sign.\n\nCalculation:\nzeroCrossingRate = zeroCrossings / durationSeconds\n\nUse:\nA rough time-domain feature for high-frequency noise, unvoiced speech, and fricatives.\n\nLimit:\nSensitive to noise and DC offset. It is not the same as frequency or pitch.\n\nReferences:\nlibrosa.feature.zero_crossing_rate; librosa.zero_crossings.",
   frequencyAnalysis: "Frequency analysis",
   frequencyAnalysisHelp: "Meaning:\nLinear energy percentage by frequency band. It is not RMS level and not dB.\n\nCalculation:\n1. Sample the active channel in the selection.\n2. Use the current window function and FFT size, split the full selection into frames with 50% overlap.\n3. Each bin power is re² + im².\n4. Accumulate bin power across all frames and assign bins into frequency bands.\n5. Display bandPower / totalPower × 100%.\n\nNote:\nThis is a multi-frame spectral energy distribution for the whole selection; it is still not dB/RMS.",
+  selectionAnalysisCalculating: "Calculating...",
   bands: "Bands",
   waveform: "Waveform",
   spectrogram: "Spectrogram",

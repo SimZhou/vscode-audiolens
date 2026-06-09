@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero crossing rate:\nCzęstość zmian znaku sygnału. Przydatne dla szumu wysokoczęstotliwościowego, mowy bezdźwięcznej i frykatyw.",
   frequencyAnalysis: "Analiza częstotliwości",
   frequencyAnalysisHelp: "Znaczenie:\nLiniowy procent energii w pasmach częstotliwości. To nie jest poziom RMS ani dB.\n\nObliczanie:\nZaznaczenie dzieli się na ramki z 50% overlap. Moc binów FFT jest sumowana i przypisywana do pasm.",
+  selectionAnalysisCalculating: "Obliczanie...",
   bands: "Pasma",
   waveform: "Przebieg",
   spectrogram: "Spektrogram",

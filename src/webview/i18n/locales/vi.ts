@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "Zero crossing rate:\nTốc độ tín hiệu đổi dấu. Hữu ích cho nhiễu tần số cao, âm vô thanh và âm xát.",
   frequencyAnalysis: "Phân tích tần số",
   frequencyAnalysisHelp: "Ý nghĩa:\nPhần trăm năng lượng tuyến tính theo dải tần. Đây không phải mức RMS và không phải dB.\n\nCách tính:\nVùng chọn được chia thành frame overlap 50%; công suất bin FFT được tích lũy rồi phân vào các dải tần.",
+  selectionAnalysisCalculating: "Đang tính...",
   bands: "Dải",
   waveform: "Dạng sóng",
   spectrogram: "Spectrogram",

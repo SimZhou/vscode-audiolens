@@ -136,6 +136,7 @@ export const messages = {
   zeroCrossingRateHelp: "ゼロ交差率:\n信号の符号が変わる頻度です。\n\n計算:\nzeroCrossingRate = zeroCrossings / durationSeconds\n\n用途:\n高周波ノイズ、無声音、摩擦音などを大まかに見る時間領域特徴量です。\n\n制限:\nノイズや DC オフセットに敏感です。周波数やピッチそのものではありません。\n\n参考:\nlibrosa.feature.zero_crossing_rate; librosa.zero_crossings.",
   frequencyAnalysis: "周波数分析",
   frequencyAnalysisHelp: "意味:\n周波数帯域ごとの線形エネルギー割合です。RMS レベルでも dB でもありません。\n\n計算:\n1. 選択範囲内のアクティブチャンネルをサンプリングします。\n2. 現在の窓関数と FFT サイズを使い、選択範囲全体を 50% オーバーラップのフレームに分割します。\n3. 各ビンのパワーは re² + im² です。\n4. 全フレームでビンのパワーを累積し、周波数帯域へ割り当てます。\n5. bandPower / totalPower × 100% を表示します。\n\n注:\nこれは選択範囲全体の複数フレームによるスペクトルエネルギー分布であり、dB/RMS ではありません。",
+  selectionAnalysisCalculating: "計算中...",
   bands: "帯域",
   waveform: "波形",
   spectrogram: "スペクトログラム",
