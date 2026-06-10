@@ -228,6 +228,12 @@ AudioLens includes practical spectrogram controls for speech and signal inspecti
 - palettes: Rose, Classic, Grayscale, Inverse Grayscale
 - configurable dB brightness range and auto brightness
 
+The settings menu in the top-right corner keeps these controls close to the spectrogram view, including display-only frequency range limits and Nyquist-following maximum frequency.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/config_menu.en-US.png" alt="AudioLens spectrogram settings menu" width="520">
+</p>
+
 Spectrogram work runs in a worker so expensive analysis does not block Webview interactions.
 
 ## Controls

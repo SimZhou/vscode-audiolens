@@ -228,6 +228,12 @@ AudioLens は音声や信号確認に使いやすいスペクトログラム設�
 - パレット: Rose、Classic、Grayscale、Inverse Grayscale
 - dB 輝度範囲と自動輝度
 
+右上の設定メニューから、これらのスペクトログラム設定を現在の表示の近くで調整できます。表示専用の周波数範囲や、最大周波数を Nyquist に追従させる設定もここで扱えます。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/config_menu.ja-JP.png" alt="AudioLens スペクトログラム設定メニュー" width="520">
+</p>
+
 重いスペクトログラム解析は Worker の境界の向こうで実行されるため、Webview の操作感を妨げにくくなっています。
 
 ## ショートカット
