@@ -894,6 +894,7 @@ var UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}]+?\\.(${EXT_PATTERN}))
 var AUDIO_PATH_HINT_RE = new RegExp(`\\.(${EXT_PATTERN})`, "i");
 var AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
 var TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
+var GLOB_WILDCARD_RE = /[*?[\]]/;
 var AUDIO_PATH_MESSAGES = {
   en: {
     openInAudioLens: "Open in AudioLens",
@@ -1142,6 +1143,9 @@ function trimAudioPathCandidate(value) {
 }
 function shouldLinkAudioPath(value) {
   if (!value || /^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    return false;
+  }
+  if (GLOB_WILDCARD_RE.test(value)) {
     return false;
   }
   return AUDIO_EXTENSION_RE.test(value);

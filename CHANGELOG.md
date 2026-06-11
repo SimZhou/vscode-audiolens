@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2
+
+Audio path glob filtering update.
+
+- Ignore glob-style audio path patterns such as `*.wav`, `foo?.wav`, and `[0-9].wav` in text-file audio path actions, so batch patterns are not treated as directly openable audio files.
+
 ## 1.4.1
 
 Selection analysis responsiveness update.

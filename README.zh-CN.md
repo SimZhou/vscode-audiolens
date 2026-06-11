@@ -97,7 +97,7 @@ code --install-extension simzhou.audiolens
 **离线 VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.4.1.vsix
+code --install-extension dist/audiolens-1.4.2.vsix
 ```
 
 ## 功能演示
@@ -231,7 +231,7 @@ AudioLens 提供适合语音和信号检查的语谱图参数：
 右上角设置菜单会把这些频谱图控制项集中在当前视图旁边，包括仅影响显示的频率范围，以及最大频率跟随 Nyquist 的模式。
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/config_menu.zh-CN.png" alt="AudioLens 频谱图设置菜单" width="520">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/config_menu.zh-CN.png" alt="AudioLens 频谱图设置菜单" width="260">
 </p>
 
 耗时的语谱图分析会放到 Worker 后台执行，避免阻塞 Webview 主交互。

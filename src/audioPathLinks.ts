@@ -16,6 +16,7 @@ const UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}]+?\\.(${EXT_PATTERN}
 const AUDIO_PATH_HINT_RE = new RegExp(`\\.(${EXT_PATTERN})`, "i");
 const AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
 const TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
+const GLOB_WILDCARD_RE = /[*?[\]]/;
 
 interface AudioPathLinkArgs {
   text: string;
@@ -294,6 +295,9 @@ function trimAudioPathCandidate(value: string): string {
 
 function shouldLinkAudioPath(value: string): boolean {
   if (!value || /^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    return false;
+  }
+  if (GLOB_WILDCARD_RE.test(value)) {
     return false;
   }
   return AUDIO_EXTENSION_RE.test(value);
