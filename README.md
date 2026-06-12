@@ -9,29 +9,29 @@
 </p>
 
 <p align="center">
-  <a href="#1-multi-channel-tracks-and-multi-view">Waveform</a> ·
-  <a href="#1-multi-channel-tracks-and-multi-view">Spectrogram</a> ·
-  <a href="#1-multi-channel-tracks-and-multi-view">Multi-channel tracks</a> ·
-  <a href="#2-selection-playback-and-analysis">Selection analysis</a> ·
-  <a href="#3-open-pcm--raw-files">Raw PCM</a> ·
-  <a href="#6-open-kaldi-wav-ark-directly">Kaldi WAV Ark</a> ·
-  <a href="#use-with-remote-ssh">Remote SSH</a>
+  <a href="#feature-multichannel">Waveform</a> ·
+  <a href="#feature-multichannel">Spectrogram</a> ·
+  <a href="#feature-multichannel">Multi-channel tracks</a> ·
+  <a href="#feature-selection">Selection analysis</a> ·
+  <a href="#feature-pcm-raw">Raw PCM</a> ·
+  <a href="#feature-kaldi-ark">Kaldi WAV Ark</a> ·
+  <a href="#remote-ssh">Remote SSH</a>
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://img.shields.io/badge/VS%20Marketplace-Install-007ACC?logo=visualstudiocode&logoColor=white" alt="Install from VS Code Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://vsmarketplacebadges.dev/version-short/simzhou.audiolens.svg" alt="VS Code Marketplace version"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://vsmarketplacebadges.dev/installs-short/simzhou.audiolens.svg" alt="VS Code Marketplace installs"></a>
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/v/simzhou/audiolens?label=Open%20VSX" alt="Open VSX version"></a>
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/dt/simzhou/audiolens?label=Open%20VSX%20downloads" alt="Open VSX downloads"></a>
-  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><img src="https://img.shields.io/github/v/release/SimZhou/vscode-audiolens?label=release" alt="GitHub release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 License"></a>
 </p>
 
 <p align="center">
-  <a href="#1-multi-channel-tracks-and-multi-view"><img src="https://img.shields.io/badge/Multi--channel-tracks-2ea44f" alt="Multi-channel tracks"></a>
-  <a href="#2-selection-playback-and-analysis"><img src="https://img.shields.io/badge/Spectrogram-analysis-7c3aed" alt="Spectrogram analysis"></a>
-  <a href="#3-open-pcm--raw-files"><img src="https://img.shields.io/badge/Raw%20PCM-supported-f97316" alt="Raw PCM supported"></a>
-  <a href="#6-open-kaldi-wav-ark-directly"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-supported-0ea5e9" alt="Kaldi WAV Ark supported"></a>
-  <a href="#use-with-remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-ready-2563eb" alt="Remote SSH ready"></a>
+  <a href="#feature-multichannel"><img src="https://img.shields.io/badge/Multi--channel-tracks-2ea44f" alt="Multi-channel tracks"></a>
+  <a href="#feature-selection"><img src="https://img.shields.io/badge/Spectrogram-analysis-7c3aed" alt="Spectrogram analysis"></a>
+  <a href="#feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-supported-f97316" alt="Raw PCM supported"></a>
+  <a href="#feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-supported-0ea5e9" alt="Kaldi WAV Ark supported"></a>
+  <a href="#remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-ready-2563eb" alt="Remote SSH ready"></a>
 </p>
 
 <p align="center">
@@ -97,10 +97,12 @@ code --install-extension simzhou.audiolens
 **Offline VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.4.2.vsix
+code --install-extension dist/audiolens-1.4.3.vsix
 ```
 
 ## Feature Demos
+
+<a id="feature-multichannel" name="feature-multichannel"></a>
 
 ### 1. Multi-Channel Tracks and Multi-View
 
@@ -108,11 +110,15 @@ code --install-extension dist/audiolens-1.4.2.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.en-US.gif" alt="Multi-channel tracks and multi-view demo" width="920">
 </p>
 
+<a id="feature-selection" name="feature-selection"></a>
+
 ### 2. Selection Playback and Analysis
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.en-US.gif" alt="Selection playback and analysis demo" width="920">
 </p>
+
+<a id="feature-pcm-raw" name="feature-pcm-raw"></a>
 
 ### 3. Open PCM / RAW Files
 
@@ -131,6 +137,8 @@ code --install-extension dist/audiolens-1.4.2.vsix
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.en-US.gif" alt="Open audio paths from any file demo" width="920">
 </p>
+
+<a id="feature-kaldi-ark" name="feature-kaldi-ark"></a>
 
 ### 6. Open Kaldi WAV Ark Directly
 
@@ -261,6 +269,8 @@ Supported languages:
 Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Russian, Spanish, Italian, Portuguese, Indonesian, Norwegian, Dutch, Polish, Turkish, and Vietnamese.
 
 New interface strings fall back to English until a locale has a complete translation.
+
+<a id="remote-ssh" name="remote-ssh"></a>
 
 ## Use With Remote SSH
 

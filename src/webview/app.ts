@@ -141,6 +141,7 @@ interface TrackView {
 
 const MIN_DRAG_PIXELS = 6;
 const ENCODED_DECODE_TIMEOUT_MS = 8000;
+const SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
 const PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
 const TRACK_AXIS_WIDTH = 96;
 const AXIS_FONT_SIZE = 13;
@@ -2459,13 +2460,21 @@ export class AudioLensApp {
 
   private async encodeAndWriteSelectionWav(requestId: number, pending: PendingSelectionWavDownload): Promise<void> {
     const bytes = await encodeWavAsync(pending.audioBuffer, pending.startFrame, pending.endFrame);
-    const bytesBase64 = await arrayBufferToBase64Async(bytes);
-    this.vscode.postMessage({
-      type: "writeSelectionWav",
-      requestId,
-      fileName: pending.fileName,
-      bytesBase64
-    });
+    const view = new Uint8Array(bytes);
+    const chunkCount = Math.max(1, Math.ceil(view.byteLength / SELECTION_WAV_CHUNK_SIZE));
+    for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
+      const offset = chunkIndex * SELECTION_WAV_CHUNK_SIZE;
+      const chunk = view.subarray(offset, Math.min(view.byteLength, offset + SELECTION_WAV_CHUNK_SIZE));
+      this.vscode.postMessage({
+        type: "writeSelectionWavChunk",
+        requestId,
+        fileName: pending.fileName,
+        chunkIndex,
+        bytesBase64: await bytesToBase64Async(chunk),
+        isLast: chunkIndex === chunkCount - 1
+      });
+      await yieldToBrowser();
+    }
   }
 
   private selectionWavFileName(start: number, end: number): string {
@@ -4616,8 +4625,7 @@ function formatSelectionTime(time: number): string {
   return Math.max(0, time).toFixed(3);
 }
 
-async function arrayBufferToBase64Async(buffer: ArrayBuffer): Promise<string> {
-  const bytes = new Uint8Array(buffer);
+async function bytesToBase64Async(bytes: Uint8Array): Promise<string> {
   const chunkSize = 0x8000;
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += chunkSize) {

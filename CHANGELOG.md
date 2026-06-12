@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.3
+
+Security and resource-boundary hardening.
+
+- Added runtime validation for Webview-to-extension messages before the extension host reads files, writes selection WAV data, or starts FFmpeg fallback transcoding.
+- Enforced the configured audio transfer size limit in the extension host as well as the Webview, covering downloads, chunk reads, fallback transcoding, and non-file workspace providers.
+- Added FFmpeg fallback safeguards: per-document transcode concurrency control, timeout handling, and output size limits.
+- Changed selection WAV export to send base64 data in ordered chunks after the save dialog is confirmed, reducing large-selection message and string-memory spikes.
+- Switched Webview CSP nonce generation to cryptographic randomness.
+
 ## 1.4.2
 
 Audio path glob filtering update.

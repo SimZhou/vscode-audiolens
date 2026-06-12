@@ -1,10 +1,7 @@
+import { randomBytes } from "node:crypto";
+
 export function getNonce(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let value = "";
-  for (let index = 0; index < 32; index += 1) {
-    value += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return value;
+  return randomBytes(16).toString("base64");
 }
 
 export function formatBytes(size: number): string {

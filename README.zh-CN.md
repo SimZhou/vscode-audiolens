@@ -9,29 +9,29 @@
 </p>
 
 <p align="center">
-  <a href="#1-多通道音轨与多视图">波形图</a> ·
-  <a href="#1-多通道音轨与多视图">语谱图</a> ·
-  <a href="#1-多通道音轨与多视图">多通道音轨</a> ·
-  <a href="#2-选区播放与分析">选区分析</a> ·
-  <a href="#3-打开-pcm--raw-文件">Raw PCM</a> ·
-  <a href="#6-直接打开-kaldi-wav-ark">Kaldi WAV Ark</a> ·
-  <a href="#在-remote-ssh-中使用">Remote SSH</a>
+  <a href="#feature-multichannel">波形图</a> ·
+  <a href="#feature-multichannel">语谱图</a> ·
+  <a href="#feature-multichannel">多通道音轨</a> ·
+  <a href="#feature-selection">选区分析</a> ·
+  <a href="#feature-pcm-raw">Raw PCM</a> ·
+  <a href="#feature-kaldi-ark">Kaldi WAV Ark</a> ·
+  <a href="#remote-ssh">Remote SSH</a>
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://img.shields.io/badge/VS%20Marketplace-Install-007ACC?logo=visualstudiocode&logoColor=white" alt="从 VS Code Marketplace 安装"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://vsmarketplacebadges.dev/version-short/simzhou.audiolens.svg" alt="VS Code Marketplace 版本"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://vsmarketplacebadges.dev/installs-short/simzhou.audiolens.svg" alt="VS Code Marketplace 安装量"></a>
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/v/simzhou/audiolens?label=Open%20VSX" alt="Open VSX 版本"></a>
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/dt/simzhou/audiolens?label=Open%20VSX%20downloads" alt="Open VSX 下载量"></a>
-  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><img src="https://img.shields.io/github/v/release/SimZhou/vscode-audiolens?label=release" alt="GitHub Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 License"></a>
 </p>
 
 <p align="center">
-  <a href="#1-多通道音轨与多视图"><img src="https://img.shields.io/badge/多通道-音轨-2ea44f" alt="多通道音轨"></a>
-  <a href="#2-选区播放与分析"><img src="https://img.shields.io/badge/语谱图-分析-7c3aed" alt="语谱图分析"></a>
-  <a href="#3-打开-pcm--raw-文件"><img src="https://img.shields.io/badge/Raw%20PCM-支持-f97316" alt="支持 Raw PCM"></a>
-  <a href="#6-直接打开-kaldi-wav-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-支持-0ea5e9" alt="支持 Kaldi WAV Ark"></a>
-  <a href="#在-remote-ssh-中使用"><img src="https://img.shields.io/badge/Remote%20SSH-支持-2563eb" alt="支持 Remote SSH"></a>
+  <a href="#feature-multichannel"><img src="https://img.shields.io/badge/多通道-音轨-2ea44f" alt="多通道音轨"></a>
+  <a href="#feature-selection"><img src="https://img.shields.io/badge/语谱图-分析-7c3aed" alt="语谱图分析"></a>
+  <a href="#feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-支持-f97316" alt="支持 Raw PCM"></a>
+  <a href="#feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-支持-0ea5e9" alt="支持 Kaldi WAV Ark"></a>
+  <a href="#remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-支持-2563eb" alt="支持 Remote SSH"></a>
 </p>
 
 <p align="center">
@@ -97,10 +97,12 @@ code --install-extension simzhou.audiolens
 **离线 VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.4.2.vsix
+code --install-extension dist/audiolens-1.4.3.vsix
 ```
 
 ## 功能演示
+
+<a id="feature-multichannel" name="feature-multichannel"></a>
 
 ### 1. 多通道音轨与多视图
 
@@ -108,11 +110,15 @@ code --install-extension dist/audiolens-1.4.2.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.zh-CN.gif" alt="多通道音轨与多视图演示" width="920">
 </p>
 
+<a id="feature-selection" name="feature-selection"></a>
+
 ### 2. 选区播放与分析
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.zh-CN.gif" alt="选区播放与分析演示" width="920">
 </p>
+
+<a id="feature-pcm-raw" name="feature-pcm-raw"></a>
 
 ### 3. 打开 PCM / RAW 文件
 
@@ -131,6 +137,8 @@ code --install-extension dist/audiolens-1.4.2.vsix
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.zh-CN.gif" alt="从任意文件中打开音频路径演示" width="920">
 </p>
+
+<a id="feature-kaldi-ark" name="feature-kaldi-ark"></a>
 
 ### 6. 直接打开 Kaldi WAV Ark
 
@@ -261,6 +269,8 @@ AudioLens 默认跟随 VS Code 显示语言。也可以通过 `audiolens.languag
 简体中文、繁体中文、英语、日语、韩语、法语、德语、俄语、西班牙语、意大利语、葡萄牙语、印尼语、挪威语、荷兰语、波兰语、土耳其语和越南语。
 
 新增界面文案会在对应语种未补齐前回退到英语。
+
+<a id="remote-ssh" name="remote-ssh"></a>
 
 ## 在 Remote SSH 中使用
 

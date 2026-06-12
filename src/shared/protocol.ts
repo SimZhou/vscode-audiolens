@@ -83,7 +83,7 @@ export type WebviewMessage =
   | { type: "transcodeAudio"; requestId: number }
   | { type: "downloadAudio" }
   | { type: "requestSelectionWavSave"; requestId: number; fileName: string; saveLabel?: string; title?: string }
-  | { type: "writeSelectionWav"; requestId: number; fileName: string; bytesBase64: string }
+  | { type: "writeSelectionWavChunk"; requestId: number; fileName: string; chunkIndex: number; bytesBase64: string; isLast: boolean }
   | { type: "updatePreferences"; preferences: AudioLensPreferences }
   | { type: "showError"; message: string };
 

@@ -47,18 +47,29 @@ var vscode = __toESM(require("vscode"));
 var DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024;
 
 // src/util.ts
+var import_node_crypto = require("node:crypto");
 function getNonce() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let value = "";
-  for (let index = 0; index < 32; index += 1) {
-    value += chars.charAt(Math.floor(Math.random() * chars.length));
+  return (0, import_node_crypto.randomBytes)(16).toString("base64");
+}
+function formatBytes(size) {
+  if (size < 1024) {
+    return `${size} B`;
   }
-  return value;
+  const units = ["KB", "MB", "GB"];
+  let value = size / 1024;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value.toFixed(value >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
 // src/audioLensEditor.ts
 var PREFERENCES_KEY = "audiolens.preferences.v1";
 var ARK_OFFSET_QUERY_KEY = "arkOffset";
+var MAX_MESSAGE_TEXT_LENGTH = 1024;
+var FFMPEG_TIMEOUT_MS = 6e4;
 var AudioLensDocument = class _AudioLensDocument {
   constructor(uri, source) {
     this.uri = uri;
@@ -190,6 +201,8 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
   }
   static viewType = "audiolens.audioPreview";
   pendingSelectionWavDestinations = /* @__PURE__ */ new WeakMap();
+  pendingSelectionWavWrites = /* @__PURE__ */ new WeakMap();
+  activeTranscodes = /* @__PURE__ */ new WeakSet();
   static register(context) {
     const provider = new _AudioLensEditorProvider(context);
     return vscode.Disposable.from(
@@ -251,7 +264,12 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
           });
         }
       }),
-      webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      webviewPanel.webview.onDidReceiveMessage(async (rawMessage) => {
+        const message = parseWebviewMessage(rawMessage, this.maxTransferBytes());
+        if (!message) {
+          this.postMessage(webviewPanel.webview, { type: "error", message: "AudioLens received an invalid Webview message." });
+          return;
+        }
         await this.handleWebviewMessage(message, document, webviewPanel.webview, postBootstrap);
       })
     ];
@@ -268,11 +286,8 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
           await postBootstrap();
           break;
         case "readChunk": {
-          if (!vscode.workspace.isTrusted) {
-            throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
-          }
-          const length = Math.min(message.length, DEFAULT_CHUNK_SIZE);
-          const bytes = await document.readRange(message.offset, length);
+          this.assertTransferAllowed(document);
+          const bytes = await document.readRange(message.offset, message.length);
           this.postMessage(webview, {
             type: "chunk",
             requestId: message.requestId,
@@ -291,8 +306,8 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
         case "requestSelectionWavSave":
           await this.requestSelectionWavSave(webview, message.requestId, message.fileName, message.saveLabel, message.title);
           break;
-        case "writeSelectionWav":
-          await this.writeSelectionWav(webview, message.requestId, message.fileName, message.bytesBase64);
+        case "writeSelectionWavChunk":
+          await this.writeSelectionWavChunk(webview, message);
           break;
         case "transcodeAudio":
           await this.transcodeAudio(message.requestId, document, webview);
@@ -321,9 +336,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     };
   }
   async downloadAudio(document) {
-    if (!vscode.workspace.isTrusted) {
-      throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
-    }
+    this.assertTransferAllowed(document);
     const fileName = document.displayName;
     const destination = await vscode.window.showSaveDialog({
       defaultUri: vscode.Uri.file(fileName),
@@ -360,42 +373,82 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     destinations.set(requestId, destination);
     this.postMessage(webview, { type: "selectionWavSaveReady", requestId });
   }
-  async writeSelectionWav(webview, requestId, fileName, bytesBase64) {
+  async writeSelectionWavChunk(webview, message) {
     if (!vscode.workspace.isTrusted) {
       throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
     }
-    const destinations = this.pendingSelectionWavDestinations.get(webview);
-    const destination = destinations?.get(requestId);
-    destinations?.delete(requestId);
-    if (!destination) {
+    const decodedSize = decodedBase64Size(message.bytesBase64);
+    const maxBytes = this.maxTransferBytes();
+    let writes = this.pendingSelectionWavWrites.get(webview);
+    if (!writes) {
+      writes = /* @__PURE__ */ new Map();
+      this.pendingSelectionWavWrites.set(webview, writes);
+    }
+    let pending = writes.get(message.requestId);
+    if (!pending) {
+      const destinations = this.pendingSelectionWavDestinations.get(webview);
+      const destination = destinations?.get(message.requestId);
+      destinations?.delete(message.requestId);
+      if (!destination || message.chunkIndex !== 0) {
+        return;
+      }
+      pending = {
+        destination,
+        fileName: sanitizeSuggestedFileName(message.fileName) || "audiolens_selection.wav",
+        chunks: [],
+        nextChunkIndex: 0,
+        totalBytes: 0
+      };
+      writes.set(message.requestId, pending);
+    }
+    if (message.chunkIndex !== pending.nextChunkIndex) {
+      writes.delete(message.requestId);
+      throw new Error("Selection WAV chunks arrived out of order.");
+    }
+    if (pending.totalBytes + decodedSize > maxBytes) {
+      writes.delete(message.requestId);
+      throw new Error(`Selection WAV is too large: ${formatBytes(pending.totalBytes + decodedSize)} / ${formatBytes(maxBytes)}.`);
+    }
+    pending.chunks.push(Buffer.from(message.bytesBase64, "base64"));
+    pending.totalBytes += decodedSize;
+    pending.nextChunkIndex += 1;
+    if (!message.isLast) {
       return;
     }
-    const safeFileName = sanitizeSuggestedFileName(fileName) || "audiolens_selection.wav";
-    await vscode.workspace.fs.writeFile(destination, new Uint8Array(Buffer.from(bytesBase64, "base64")));
-    vscode.window.showInformationMessage(`AudioLens saved ${path.basename(destination.fsPath || safeFileName)}.`);
+    writes.delete(message.requestId);
+    await vscode.workspace.fs.writeFile(pending.destination, new Uint8Array(Buffer.concat(pending.chunks, pending.totalBytes)));
+    vscode.window.showInformationMessage(`AudioLens saved ${path.basename(pending.destination.fsPath || pending.fileName)}.`);
   }
   async transcodeAudio(requestId, document, webview) {
+    let transcodeStarted = false;
     try {
-      if (!vscode.workspace.isTrusted) {
-        throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+      this.assertTransferAllowed(document);
+      if (this.activeTranscodes.has(document)) {
+        throw new Error("AudioLens is already transcoding this audio file.");
       }
+      this.activeTranscodes.add(document);
+      transcodeStarted = true;
       const bytes = await this.transcodeDocumentToWav(document);
       this.postMessage(webview, { type: "transcodedAudio", requestId, bytes: toArrayBuffer(bytes) });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.postMessage(webview, { type: "transcodeError", requestId, message });
+    } finally {
+      if (transcodeStarted) {
+        this.activeTranscodes.delete(document);
+      }
     }
   }
   async transcodeDocumentToWav(document) {
     if (document.sourceUri.scheme === "file" && !document.isFileSlice) {
-      return runFfmpegToWav(document.sourceUri.fsPath);
+      return runFfmpegToWav(document.sourceUri.fsPath, this.maxTransferBytes());
     }
     const tempDir = await (0, import_promises.mkdtemp)(path.join(os.tmpdir(), "audiolens-"));
     const extension = document.extension ? `.${document.extension}` : ".audio";
     const inputPath = path.join(tempDir, `input${extension}`);
     try {
       await (0, import_promises.writeFile)(inputPath, await document.readRange(0, document.size));
-      return await runFfmpegToWav(inputPath);
+      return await runFfmpegToWav(inputPath, this.maxTransferBytes());
     } finally {
       await (0, import_promises.rm)(tempDir, { recursive: true, force: true });
     }
@@ -429,7 +482,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     const config = vscode.workspace.getConfiguration("audiolens");
     return {
       autoAnalyze: config.get("autoAnalyze", true),
-      maxFileSizeMB: config.get("maxFileSizeMB", 512),
+      maxFileSizeMB: this.maxTransferBytes() / (1024 * 1024),
       language: config.get("language", "auto"),
       vscodeLanguage: vscode.env.language,
       profileSpectrogram: config.get("profileSpectrogram", false),
@@ -439,6 +492,21 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
         zeroPaddingFactor: config.get("analysis.zeroPaddingFactor", 2)
       }
     };
+  }
+  maxTransferBytes() {
+    const config = vscode.workspace.getConfiguration("audiolens");
+    const maxFileSizeMB = config.get("maxFileSizeMB", 512);
+    const safeMaxFileSizeMB = Number.isFinite(maxFileSizeMB) && maxFileSizeMB >= 16 ? maxFileSizeMB : 512;
+    return Math.floor(safeMaxFileSizeMB * 1024 * 1024);
+  }
+  assertTransferAllowed(document) {
+    if (!vscode.workspace.isTrusted) {
+      throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
+    }
+    const maxBytes = this.maxTransferBytes();
+    if (document.size > maxBytes) {
+      throw new Error(`Audio file is too large: ${formatBytes(document.size)} / ${formatBytes(maxBytes)}.`);
+    }
   }
   postMessage(webview, message) {
     webview.postMessage(message);
@@ -828,8 +896,9 @@ async function readUriRange(uri, offset, length) {
   const data = await vscode.workspace.fs.readFile(uri);
   return data.slice(offset, offset + length);
 }
-async function runFfmpegToWav(inputPath) {
+async function runFfmpegToWav(inputPath, maxOutputBytes) {
   return new Promise((resolve2, reject) => {
+    let settled = false;
     const child = (0, import_node_child_process.spawn)("ffmpeg", [
       "-hide_banner",
       "-loglevel",
@@ -845,20 +914,47 @@ async function runFfmpegToWav(inputPath) {
     ]);
     const stdout = [];
     const stderr = [];
-    child.stdout.on("data", (chunk) => stdout.push(chunk));
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
+    const timeout = setTimeout(() => {
+      fail(new Error(`FFmpeg timed out after ${Math.round(FFMPEG_TIMEOUT_MS / 1e3)} seconds.`));
+    }, FFMPEG_TIMEOUT_MS);
+    const fail = (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      child.kill();
+      reject(error);
+    };
+    child.stdout.on("data", (chunk) => {
+      stdoutBytes += chunk.byteLength;
+      if (stdoutBytes > maxOutputBytes) {
+        fail(new Error(`FFmpeg output is too large: ${formatBytes(stdoutBytes)} / ${formatBytes(maxOutputBytes)}.`));
+        return;
+      }
+      stdout.push(chunk);
+    });
     child.stderr.on("data", (chunk) => {
-      if (Buffer.concat(stderr).byteLength < 8192) {
+      if (stderrBytes < 8192) {
         stderr.push(chunk);
+        stderrBytes += chunk.byteLength;
       }
     });
     child.on("error", (error) => {
       if (error.code === "ENOENT") {
-        reject(new Error("FFmpeg is required to open this encoded audio format, but the ffmpeg command was not found."));
+        fail(new Error("FFmpeg is required to open this encoded audio format, but the ffmpeg command was not found."));
       } else {
-        reject(error);
+        fail(error);
       }
     });
     child.on("close", (code) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
       if (code === 0) {
         resolve2(new Uint8Array(Buffer.concat(stdout)));
         return;
@@ -867,6 +963,89 @@ async function runFfmpegToWav(inputPath) {
       reject(new Error(detail || `FFmpeg exited with code ${code ?? "unknown"}.`));
     });
   });
+}
+function parseWebviewMessage(value, maxTransferBytes) {
+  if (!isRecord(value) || typeof value.type !== "string") {
+    return void 0;
+  }
+  switch (value.type) {
+    case "ready":
+    case "downloadAudio":
+      return { type: value.type };
+    case "readChunk":
+      if (isSafeRequestId(value.requestId) && isSafeOffset(value.offset) && isChunkLength(value.length)) {
+        return { type: "readChunk", requestId: value.requestId, offset: value.offset, length: value.length };
+      }
+      return void 0;
+    case "transcodeAudio":
+      if (isSafeRequestId(value.requestId)) {
+        return { type: "transcodeAudio", requestId: value.requestId };
+      }
+      return void 0;
+    case "requestSelectionWavSave":
+      if (isSafeRequestId(value.requestId) && isBoundedString(value.fileName) && isOptionalBoundedString(value.saveLabel) && isOptionalBoundedString(value.title)) {
+        return {
+          type: "requestSelectionWavSave",
+          requestId: value.requestId,
+          fileName: value.fileName,
+          saveLabel: value.saveLabel,
+          title: value.title
+        };
+      }
+      return void 0;
+    case "writeSelectionWavChunk":
+      if (isSafeRequestId(value.requestId) && isBoundedString(value.fileName) && isSafeChunkIndex(value.chunkIndex) && isBase64Payload(value.bytesBase64, maxTransferBytes)) {
+        return {
+          type: "writeSelectionWavChunk",
+          requestId: value.requestId,
+          fileName: value.fileName,
+          chunkIndex: value.chunkIndex,
+          bytesBase64: value.bytesBase64,
+          isLast: value.isLast === true
+        };
+      }
+      return void 0;
+    case "updatePreferences":
+      if (isRecord(value.preferences)) {
+        return { type: "updatePreferences", preferences: value.preferences };
+      }
+      return void 0;
+    case "showError":
+      if (isBoundedString(value.message)) {
+        return { type: "showError", message: value.message };
+      }
+      return void 0;
+    default:
+      return void 0;
+  }
+}
+function isRecord(value) {
+  return typeof value === "object" && value !== null;
+}
+function isSafeRequestId(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+function isSafeOffset(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+function isChunkLength(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0 && value <= DEFAULT_CHUNK_SIZE;
+}
+function isSafeChunkIndex(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+function isBoundedString(value) {
+  return typeof value === "string" && value.length > 0 && value.length <= MAX_MESSAGE_TEXT_LENGTH;
+}
+function isOptionalBoundedString(value) {
+  return value === void 0 || typeof value === "string" && value.length <= MAX_MESSAGE_TEXT_LENGTH;
+}
+function isBase64Payload(value, maxDecodedBytes) {
+  return typeof value === "string" && value.length % 4 === 0 && decodedBase64Size(value) <= maxDecodedBytes && /^[A-Za-z0-9+/]*={0,2}$/.test(value);
+}
+function decodedBase64Size(value) {
+  const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+  return Math.floor(value.length * 3 / 4) - padding;
 }
 function sanitizeSuggestedFileName(fileName) {
   const normalized = path.basename(fileName || "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").trim();

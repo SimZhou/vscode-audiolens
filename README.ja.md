@@ -9,29 +9,29 @@
 </p>
 
 <p align="center">
-  <a href="#1-マルチチャンネルトラックと複合表示">波形</a> ·
-  <a href="#1-マルチチャンネルトラックと複合表示">スペクトログラム</a> ·
-  <a href="#1-マルチチャンネルトラックと複合表示">マルチチャンネル</a> ·
-  <a href="#2-選択範囲の再生と解析">選択範囲解析</a> ·
-  <a href="#3-pcm--raw-ファイルを開く">Raw PCM</a> ·
-  <a href="#6-kaldi-wav-ark-を直接開く">Kaldi WAV Ark</a> ·
-  <a href="#remote-ssh-で使う">Remote SSH</a>
+  <a href="#feature-multichannel">波形</a> ·
+  <a href="#feature-multichannel">スペクトログラム</a> ·
+  <a href="#feature-multichannel">マルチチャンネル</a> ·
+  <a href="#feature-selection">選択範囲解析</a> ·
+  <a href="#feature-pcm-raw">Raw PCM</a> ·
+  <a href="#feature-kaldi-ark">Kaldi WAV Ark</a> ·
+  <a href="#remote-ssh">Remote SSH</a>
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://img.shields.io/badge/VS%20Marketplace-Install-007ACC?logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace からインストール"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://vsmarketplacebadges.dev/version-short/simzhou.audiolens.svg" alt="VS Code Marketplace version"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=simzhou.audiolens"><img src="https://vsmarketplacebadges.dev/installs-short/simzhou.audiolens.svg" alt="VS Code Marketplace installs"></a>
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/v/simzhou/audiolens?label=Open%20VSX" alt="Open VSX version"></a>
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><img src="https://img.shields.io/open-vsx/dt/simzhou/audiolens?label=Open%20VSX%20downloads" alt="Open VSX downloads"></a>
-  <a href="https://github.com/SimZhou/vscode-audiolens/releases"><img src="https://img.shields.io/github/v/release/SimZhou/vscode-audiolens?label=release" alt="GitHub release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 License"></a>
 </p>
 
 <p align="center">
-  <a href="#1-マルチチャンネルトラックと複合表示"><img src="https://img.shields.io/badge/%E3%83%9E%E3%83%AB%E3%83%81%E3%83%81%E3%83%A3%E3%83%B3%E3%83%8D%E3%83%AB-%E9%9F%B3%E5%A3%B0%E3%83%88%E3%83%A9%E3%83%83%E3%82%AF-2ea44f" alt="マルチチャンネル音声トラック"></a>
-  <a href="#2-選択範囲の再生と解析"><img src="https://img.shields.io/badge/%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0-%E8%A7%A3%E6%9E%90-7c3aed" alt="スペクトログラム解析"></a>
-  <a href="#3-pcm--raw-ファイルを開く"><img src="https://img.shields.io/badge/Raw%20PCM-%E5%AF%BE%E5%BF%9C-f97316" alt="Raw PCM 対応"></a>
-  <a href="#6-kaldi-wav-ark-を直接開く"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-%E5%AF%BE%E5%BF%9C-0ea5e9" alt="Kaldi WAV Ark 対応"></a>
-  <a href="#remote-ssh-で使う"><img src="https://img.shields.io/badge/Remote%20SSH-%E5%AF%BE%E5%BF%9C-2563eb" alt="Remote SSH 対応"></a>
+  <a href="#feature-multichannel"><img src="https://img.shields.io/badge/%E3%83%9E%E3%83%AB%E3%83%81%E3%83%81%E3%83%A3%E3%83%B3%E3%83%8D%E3%83%AB-%E9%9F%B3%E5%A3%B0%E3%83%88%E3%83%A9%E3%83%83%E3%82%AF-2ea44f" alt="マルチチャンネル音声トラック"></a>
+  <a href="#feature-selection"><img src="https://img.shields.io/badge/%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0-%E8%A7%A3%E6%9E%90-7c3aed" alt="スペクトログラム解析"></a>
+  <a href="#feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-%E5%AF%BE%E5%BF%9C-f97316" alt="Raw PCM 対応"></a>
+  <a href="#feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-%E5%AF%BE%E5%BF%9C-0ea5e9" alt="Kaldi WAV Ark 対応"></a>
+  <a href="#remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-%E5%AF%BE%E5%BF%9C-2563eb" alt="Remote SSH 対応"></a>
 </p>
 
 <p align="center">
@@ -97,10 +97,12 @@ code --install-extension simzhou.audiolens
 **オフライン VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.4.2.vsix
+code --install-extension dist/audiolens-1.4.3.vsix
 ```
 
 ## デモ
+
+<a id="feature-multichannel" name="feature-multichannel"></a>
 
 ### 1. マルチチャンネルトラックと複合表示
 
@@ -108,11 +110,15 @@ code --install-extension dist/audiolens-1.4.2.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.ja-JP.gif" alt="マルチチャンネルトラックと複合表示のデモ" width="920">
 </p>
 
+<a id="feature-selection" name="feature-selection"></a>
+
 ### 2. 選択範囲の再生と解析
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.ja-JP.gif" alt="選択範囲の再生と解析のデモ" width="920">
 </p>
+
+<a id="feature-pcm-raw" name="feature-pcm-raw"></a>
 
 ### 3. PCM / RAW ファイルを開く
 
@@ -131,6 +137,8 @@ code --install-extension dist/audiolens-1.4.2.vsix
 <p align="center">
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.ja-JP.gif" alt="任意のファイルから音声パスを開くデモ" width="920">
 </p>
+
+<a id="feature-kaldi-ark" name="feature-kaldi-ark"></a>
 
 ### 6. Kaldi WAV Ark を直接開く
 
@@ -261,6 +269,8 @@ AudioLens は既定で VS Code の表示言語に従います。`audiolens.langu
 簡体字中国語、繁体字中国語、英語、日本語、韓国語、フランス語、ドイツ語、ロシア語、スペイン語、イタリア語、ポルトガル語、インドネシア語、ノルウェー語、オランダ語、ポーランド語、トルコ語、ベトナム語。
 
 新しい UI 文字列は、各ロケールの翻訳がそろうまで英語へフォールバックします。
+
+<a id="remote-ssh" name="remote-ssh"></a>
 
 ## Remote SSH で使う
 

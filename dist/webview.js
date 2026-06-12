@@ -4777,6 +4777,7 @@
   // src/webview/app.ts
   var MIN_DRAG_PIXELS = 6;
   var ENCODED_DECODE_TIMEOUT_MS = 8e3;
+  var SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
   var PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
   var TRACK_AXIS_WIDTH = 96;
   var AXIS_FONT_SIZE = 13;
@@ -7002,13 +7003,21 @@
     }
     async encodeAndWriteSelectionWav(requestId, pending) {
       const bytes = await encodeWavAsync(pending.audioBuffer, pending.startFrame, pending.endFrame);
-      const bytesBase64 = await arrayBufferToBase64Async(bytes);
-      this.vscode.postMessage({
-        type: "writeSelectionWav",
-        requestId,
-        fileName: pending.fileName,
-        bytesBase64
-      });
+      const view = new Uint8Array(bytes);
+      const chunkCount = Math.max(1, Math.ceil(view.byteLength / SELECTION_WAV_CHUNK_SIZE));
+      for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
+        const offset = chunkIndex * SELECTION_WAV_CHUNK_SIZE;
+        const chunk = view.subarray(offset, Math.min(view.byteLength, offset + SELECTION_WAV_CHUNK_SIZE));
+        this.vscode.postMessage({
+          type: "writeSelectionWavChunk",
+          requestId,
+          fileName: pending.fileName,
+          chunkIndex,
+          bytesBase64: await bytesToBase64Async(chunk),
+          isLast: chunkIndex === chunkCount - 1
+        });
+        await yieldToBrowser();
+      }
     }
     selectionWavFileName(start, end) {
       const base = sanitizeFileNameBase(this.currentFileName || "audio");
@@ -8991,8 +9000,7 @@
   function formatSelectionTime(time) {
     return Math.max(0, time).toFixed(3);
   }
-  async function arrayBufferToBase64Async(buffer) {
-    const bytes = new Uint8Array(buffer);
+  async function bytesToBase64Async(bytes) {
     const chunkSize = 32768;
     let binary = "";
     for (let offset = 0; offset < bytes.length; offset += chunkSize) {
