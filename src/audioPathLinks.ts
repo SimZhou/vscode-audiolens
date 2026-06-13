@@ -12,9 +12,10 @@ const DEFAULT_MAX_LINE_LENGTH = 20_000;
 const AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "opus", "m4a", "aac", "pcm", "raw"] as const;
 const EXT_PATTERN = AUDIO_EXTENSIONS.join("|");
 const QUOTED_AUDIO_PATH_RE = new RegExp(`(["'\`])([^"'\`\\r\\n]*?\\.(${EXT_PATTERN}))\\1`, "gi");
-const UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}])`, "gi");
+const UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}|]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}|])`, "gi");
 const AUDIO_PATH_HINT_RE = new RegExp(`\\.(${EXT_PATTERN})`, "i");
 const AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
+const FIELD_DELIMITER_RE = /[|]/;
 const TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
 const GLOB_WILDCARD_RE = /[*?[\]]/;
 
@@ -298,6 +299,9 @@ function shouldLinkAudioPath(value: string): boolean {
     return false;
   }
   if (GLOB_WILDCARD_RE.test(value)) {
+    return false;
+  }
+  if (FIELD_DELIMITER_RE.test(value)) {
     return false;
   }
   return AUDIO_EXTENSION_RE.test(value);

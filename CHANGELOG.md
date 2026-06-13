@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.4
+
+Audio path manifest parsing update.
+
+- Fixed text-file audio path actions for pipe-delimited manifest rows such as `id|text|/remote/path.wav`, so AudioLens opens only the actual audio path instead of treating the whole row as a path.
+
 ## 1.4.3
 
 Security and resource-boundary hardening.

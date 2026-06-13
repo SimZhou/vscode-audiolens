@@ -1069,9 +1069,10 @@ var DEFAULT_MAX_LINE_LENGTH = 2e4;
 var AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "opus", "m4a", "aac", "pcm", "raw"];
 var EXT_PATTERN = AUDIO_EXTENSIONS.join("|");
 var QUOTED_AUDIO_PATH_RE = new RegExp(`(["'\`])([^"'\`\\r\\n]*?\\.(${EXT_PATTERN}))\\1`, "gi");
-var UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}])`, "gi");
+var UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}|]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}|])`, "gi");
 var AUDIO_PATH_HINT_RE = new RegExp(`\\.(${EXT_PATTERN})`, "i");
 var AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
+var FIELD_DELIMITER_RE = /[|]/;
 var TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
 var GLOB_WILDCARD_RE = /[*?[\]]/;
 var AUDIO_PATH_MESSAGES = {
@@ -1325,6 +1326,9 @@ function shouldLinkAudioPath(value) {
     return false;
   }
   if (GLOB_WILDCARD_RE.test(value)) {
+    return false;
+  }
+  if (FIELD_DELIMITER_RE.test(value)) {
     return false;
   }
   return AUDIO_EXTENSION_RE.test(value);
