@@ -44,6 +44,9 @@ export interface AudioLensPreferences {
   defaultTrackMode?: "both" | "waveform" | "spectrogram";
   waveformHeight?: number;
   spectrogramHeight?: number;
+  defaultTrackRowHeight?: number;
+  defaultTrackWaveFr?: number;
+  defaultTrackSpecFr?: number;
   playbackGain?: number;
   defaultPcmFormat?: {
     sampleRate: number;

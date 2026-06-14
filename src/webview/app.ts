@@ -59,6 +59,9 @@ interface AnalysisSettings {
   frequencyScale: FrequencyScale;
   palette: SpectrogramPalette;
   playbackGain: number;
+  defaultTrackRowHeight: number;
+  defaultTrackWaveFr: number;
+  defaultTrackSpecFr: number;
 }
 
 interface AudioFileMetadata {
@@ -147,6 +150,9 @@ const TRACK_AXIS_WIDTH = 96;
 const AXIS_FONT_SIZE = 13;
 const WAVEFORM_AMPLITUDE_SCALE = 0.45;
 const PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
+const TRACK_ROW_DEFAULT_H = 280;
+const TRACK_WAVE_DEFAULT_FR = 0.38;
+const TRACK_SPEC_DEFAULT_FR = 0.62;
 const SELECTION_SPECTRUM_DELAY_MS = 80;
 const BAND_LIMITS = [
   { labelKey: "frequencyBand0To250", min: 0, max: 250 },
@@ -1428,7 +1434,10 @@ export class AudioLensApp {
     timeOffset: 0,
     frequencyScale: "linear",
     palette: "rose",
-    playbackGain: 0
+    playbackGain: 0,
+    defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
+    defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
+    defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
   };
 
   public constructor(
