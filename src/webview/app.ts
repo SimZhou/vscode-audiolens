@@ -3244,6 +3244,7 @@ export class AudioLensApp {
       this.redrawVisuals();
       this.analyze();
     });
+    handle.addEventListener("dblclick", () => this.resetTrackLayout(view));
   }
 
   private bindTrackSplitHandle(handle: HTMLElement, view: TrackView): void {
@@ -3307,6 +3308,16 @@ export class AudioLensApp {
       this.redrawVisuals();
       this.analyze();
     });
+    handle.addEventListener("dblclick", () => this.resetTrackLayout(view));
+  }
+
+  private resetTrackLayout(view: TrackView): void {
+    view.rowHeight = this.settings.defaultTrackRowHeight;
+    view.waveFr = this.settings.defaultTrackWaveFr;
+    view.specFr = this.settings.defaultTrackSpecFr;
+    this.applyTrackLayout(view);
+    this.redrawVisuals();
+    this.analyze();
   }
 
   private toggleSolo(target: TrackView): void {
