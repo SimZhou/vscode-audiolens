@@ -154,8 +154,11 @@ const AXIS_FONT_SIZE = 13;
 const WAVEFORM_AMPLITUDE_SCALE = 0.45;
 const PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
 const TRACK_ROW_DEFAULT_H = 280;
+const TRACK_ROW_MIN_H = 132;
 const TRACK_WAVE_DEFAULT_FR = 0.38;
 const TRACK_SPEC_DEFAULT_FR = 0.62;
+const TRACK_WAVE_MIN_PX = 90;
+const TRACK_SPEC_MIN_PX = 160;
 const SELECTION_SPECTRUM_DELAY_MS = 80;
 const BAND_LIMITS = [
   { labelKey: "frequencyBand0To250", min: 0, max: 250 },
@@ -3140,7 +3143,9 @@ export class AudioLensApp {
     spectrogram.tabIndex = 0;
     spectrogramWrap.append(spectrogram);
     body.append(waveformWrap, spectrogramWrap);
-    row.append(sidebar, body);
+    const rowHandle = document.createElement("div");
+    rowHandle.className = "trackRowHandle";
+    row.append(sidebar, body, rowHandle);
 
     const view: TrackView = {
       channel,
@@ -3175,6 +3180,7 @@ export class AudioLensApp {
     this.trackViews.push(view);
     this.applyTrackMode(view);
     this.applyTrackLayout(view);
+    this.bindTrackRowHandle(rowHandle, view);
   }
 
   private applyTrackLayout(view: TrackView): void {
@@ -3182,6 +3188,59 @@ export class AudioLensApp {
     row.style.setProperty("--track-row-h", `${view.rowHeight}px`);
     row.style.setProperty("--track-wave-fr", `${view.waveFr}fr`);
     row.style.setProperty("--track-spec-fr", `${view.specFr}fr`);
+  }
+
+  private bindTrackRowHandle(handle: HTMLElement, view: TrackView): void {
+    let startY = 0;
+    let startHeight = 0;
+    let frameId: number | undefined;
+
+    const redraw = (): void => {
+      frameId = undefined;
+      this.redrawVisuals();
+      this.scheduleAnalyze();
+    };
+
+    handle.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      startY = event.clientY;
+      startHeight = view.rowHeight;
+      handle.setPointerCapture(event.pointerId);
+      document.body.classList.add("is-resizing");
+    });
+
+    handle.addEventListener("pointermove", (event) => {
+      if (!handle.hasPointerCapture(event.pointerId)) {
+        return;
+      }
+      // both 模式下 trackBody 内波形/频谱各有 minmax 下限，需保留两者最小高度之和；单视图模式用通用下限。
+      const minH = view.mode === "both" ? TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX : TRACK_ROW_MIN_H;
+      const next = Math.max(minH, startHeight + event.clientY - startY);
+      if (next === view.rowHeight) {
+        return;
+      }
+      view.rowHeight = next;
+      this.applyTrackLayout(view);
+      if (frameId === undefined) {
+        frameId = requestAnimationFrame(redraw);
+      }
+    });
+
+    handle.addEventListener("pointerup", (event) => {
+      if (handle.hasPointerCapture(event.pointerId)) {
+        handle.releasePointerCapture(event.pointerId);
+      }
+      document.body.classList.remove("is-resizing");
+      if (frameId !== undefined) {
+        cancelAnimationFrame(frameId);
+        frameId = undefined;
+      }
+      this.redrawVisuals();
+      this.analyze();
+    });
   }
 
   private toggleSolo(target: TrackView): void {
