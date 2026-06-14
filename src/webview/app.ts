@@ -3141,7 +3141,9 @@ export class AudioLensApp {
     spectrogram.className = "trackSpectrogram";
     spectrogram.dataset.channel = String(channel);
     spectrogram.tabIndex = 0;
-    spectrogramWrap.append(spectrogram);
+    const splitHandle = document.createElement("div");
+    splitHandle.className = "trackSplitHandle";
+    spectrogramWrap.append(spectrogram, splitHandle);
     body.append(waveformWrap, spectrogramWrap);
     const rowHandle = document.createElement("div");
     rowHandle.className = "trackRowHandle";
@@ -3181,6 +3183,7 @@ export class AudioLensApp {
     this.applyTrackMode(view);
     this.applyTrackLayout(view);
     this.bindTrackRowHandle(rowHandle, view);
+    this.bindTrackSplitHandle(splitHandle, view);
   }
 
   private applyTrackLayout(view: TrackView): void {
@@ -3223,6 +3226,69 @@ export class AudioLensApp {
         return;
       }
       view.rowHeight = next;
+      this.applyTrackLayout(view);
+      if (frameId === undefined) {
+        frameId = requestAnimationFrame(redraw);
+      }
+    });
+
+    handle.addEventListener("pointerup", (event) => {
+      if (handle.hasPointerCapture(event.pointerId)) {
+        handle.releasePointerCapture(event.pointerId);
+      }
+      document.body.classList.remove("is-resizing");
+      if (frameId !== undefined) {
+        cancelAnimationFrame(frameId);
+        frameId = undefined;
+      }
+      this.redrawVisuals();
+      this.analyze();
+    });
+  }
+
+  private bindTrackSplitHandle(handle: HTMLElement, view: TrackView): void {
+    let bodyTop = 0;
+    let bodyHeight = 0;
+    let frameId: number | undefined;
+
+    const redraw = (): void => {
+      frameId = undefined;
+      this.redrawVisuals();
+      this.scheduleAnalyze();
+    };
+
+    handle.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      const body = view.row.querySelector<HTMLElement>(".trackBody");
+      if (!body) {
+        return;
+      }
+      const rect = body.getBoundingClientRect();
+      bodyTop = rect.top;
+      bodyHeight = rect.height;
+      handle.setPointerCapture(event.pointerId);
+      document.body.classList.add("is-resizing");
+    });
+
+    handle.addEventListener("pointermove", (event) => {
+      if (!handle.hasPointerCapture(event.pointerId) || bodyHeight <= 0) {
+        return;
+      }
+      // 指针相对于 trackBody 顶部的位置 = 波形目标像素高度；两端各保留 minmax 下限。
+      const wavePx = Math.min(
+        Math.max(TRACK_WAVE_MIN_PX, event.clientY - bodyTop),
+        bodyHeight - TRACK_SPEC_MIN_PX
+      );
+      const waveFr = wavePx / bodyHeight;
+      const specFr = 1 - waveFr;
+      if (waveFr === view.waveFr) {
+        return;
+      }
+      view.waveFr = waveFr;
+      view.specFr = specFr;
       this.applyTrackLayout(view);
       if (frameId === undefined) {
         frameId = requestAnimationFrame(redraw);
