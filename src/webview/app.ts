@@ -2638,6 +2638,15 @@ export class AudioLensApp {
     if (preferences.spectrogramHeight !== undefined) {
       this.setPlotHeight("--spectrogram-height", preferences.spectrogramHeight, PLOT_HEIGHT_LIMITS.spectrogramMin, PLOT_HEIGHT_LIMITS.spectrogramMax);
     }
+    if (preferences.defaultTrackRowHeight !== undefined) {
+      this.settings.defaultTrackRowHeight = preferences.defaultTrackRowHeight;
+    }
+    if (preferences.defaultTrackWaveFr !== undefined) {
+      this.settings.defaultTrackWaveFr = preferences.defaultTrackWaveFr;
+    }
+    if (preferences.defaultTrackSpecFr !== undefined) {
+      this.settings.defaultTrackSpecFr = preferences.defaultTrackSpecFr;
+    }
     if (preferences.defaultPcmFormat) {
       this.defaultPcmFormat = preferences.defaultPcmFormat as PcmFormat;
     }
@@ -2669,6 +2678,9 @@ export class AudioLensApp {
       spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
       autoBrightness: this.settings.autoBrightness,
       playbackGain: this.settings.playbackGain,
+      defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
+      defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
+      defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
       waveformHeight: this.getPlotHeight(this.elements.waveformPane),
       spectrogramHeight: this.getPlotHeight(this.elements.spectrogramPane),
       defaultPcmFormat: this.defaultPcmFormat
