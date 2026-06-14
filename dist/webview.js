@@ -4783,6 +4783,12 @@
   var AXIS_FONT_SIZE = 13;
   var WAVEFORM_AMPLITUDE_SCALE = 0.45;
   var PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
+  var TRACK_ROW_DEFAULT_H = 280;
+  var TRACK_ROW_MIN_H = 132;
+  var TRACK_WAVE_DEFAULT_FR = 0.38;
+  var TRACK_SPEC_DEFAULT_FR = 0.62;
+  var TRACK_WAVE_MIN_PX = 90;
+  var TRACK_SPEC_MIN_PX = 160;
   var SELECTION_SPECTRUM_DELAY_MS = 80;
   var BAND_LIMITS = [
     { labelKey: "frequencyBand0To250", min: 0, max: 250 },
@@ -6052,7 +6058,10 @@
       timeOffset: 0,
       frequencyScale: "linear",
       palette: "rose",
-      playbackGain: 0
+      playbackGain: 0,
+      defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
+      defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
+      defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
     };
     async handleMessage(message) {
       switch (message.type) {
@@ -7158,6 +7167,15 @@
       if (preferences.spectrogramHeight !== void 0) {
         this.setPlotHeight("--spectrogram-height", preferences.spectrogramHeight, PLOT_HEIGHT_LIMITS.spectrogramMin, PLOT_HEIGHT_LIMITS.spectrogramMax);
       }
+      if (preferences.defaultTrackRowHeight !== void 0) {
+        this.settings.defaultTrackRowHeight = preferences.defaultTrackRowHeight;
+      }
+      if (preferences.defaultTrackWaveFr !== void 0) {
+        this.settings.defaultTrackWaveFr = preferences.defaultTrackWaveFr;
+      }
+      if (preferences.defaultTrackSpecFr !== void 0) {
+        this.settings.defaultTrackSpecFr = preferences.defaultTrackSpecFr;
+      }
       if (preferences.defaultPcmFormat) {
         this.defaultPcmFormat = preferences.defaultPcmFormat;
       }
@@ -7187,6 +7205,9 @@
         spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
         autoBrightness: this.settings.autoBrightness,
         playbackGain: this.settings.playbackGain,
+        defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
+        defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
+        defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
         waveformHeight: this.getPlotHeight(this.elements.waveformPane),
         spectrogramHeight: this.getPlotHeight(this.elements.spectrogramPane),
         defaultPcmFormat: this.defaultPcmFormat
@@ -7621,9 +7642,13 @@
       spectrogram.className = "trackSpectrogram";
       spectrogram.dataset.channel = String(channel);
       spectrogram.tabIndex = 0;
-      spectrogramWrap.append(spectrogram);
+      const splitHandle = document.createElement("div");
+      splitHandle.className = "trackSplitHandle";
+      spectrogramWrap.append(spectrogram, splitHandle);
       body.append(waveformWrap, spectrogramWrap);
-      row.append(sidebar, body);
+      const rowHandle = document.createElement("div");
+      rowHandle.className = "trackRowHandle";
+      row.append(sidebar, body, rowHandle);
       const view = {
         channel,
         row,
@@ -7631,7 +7656,10 @@
         spectrogram,
         mode: this.settings.defaultTrackMode,
         muted: false,
-        solo: false
+        solo: false,
+        rowHeight: this.settings.defaultTrackRowHeight,
+        waveFr: this.settings.defaultTrackWaveFr,
+        specFr: this.settings.defaultTrackSpecFr
       };
       const select = () => this.selectChannel(channel);
       waveform.addEventListener("click", select);
@@ -7653,6 +7681,129 @@
       this.elements.trackList.append(row);
       this.trackViews.push(view);
       this.applyTrackMode(view);
+      this.applyTrackLayout(view);
+      this.bindTrackRowHandle(rowHandle, view);
+      this.bindTrackSplitHandle(splitHandle, view);
+    }
+    applyTrackLayout(view) {
+      const { row } = view;
+      row.style.setProperty("--track-row-h", `${view.rowHeight}px`);
+      row.style.setProperty("--track-wave-fr", `${view.waveFr}fr`);
+      row.style.setProperty("--track-spec-fr", `${view.specFr}fr`);
+    }
+    bindTrackRowHandle(handle, view) {
+      let startY = 0;
+      let startHeight = 0;
+      let frameId;
+      const redraw = () => {
+        frameId = void 0;
+        this.redrawVisuals();
+        this.scheduleAnalyze();
+      };
+      handle.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        startY = event.clientY;
+        startHeight = view.rowHeight;
+        handle.setPointerCapture(event.pointerId);
+        document.body.classList.add("is-resizing");
+      });
+      handle.addEventListener("pointermove", (event) => {
+        if (!handle.hasPointerCapture(event.pointerId)) {
+          return;
+        }
+        const minH = view.mode === "both" ? TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX : TRACK_ROW_MIN_H;
+        const next = Math.max(minH, startHeight + event.clientY - startY);
+        if (next === view.rowHeight) {
+          return;
+        }
+        view.rowHeight = next;
+        this.applyTrackLayout(view);
+        if (frameId === void 0) {
+          frameId = requestAnimationFrame(redraw);
+        }
+      });
+      handle.addEventListener("pointerup", (event) => {
+        if (handle.hasPointerCapture(event.pointerId)) {
+          handle.releasePointerCapture(event.pointerId);
+        }
+        document.body.classList.remove("is-resizing");
+        if (frameId !== void 0) {
+          cancelAnimationFrame(frameId);
+          frameId = void 0;
+        }
+        this.redrawVisuals();
+        this.analyze();
+      });
+      handle.addEventListener("dblclick", () => this.resetTrackLayout(view));
+    }
+    bindTrackSplitHandle(handle, view) {
+      let bodyTop = 0;
+      let bodyHeight = 0;
+      let frameId;
+      const redraw = () => {
+        frameId = void 0;
+        this.redrawVisuals();
+        this.scheduleAnalyze();
+      };
+      handle.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        const body = view.row.querySelector(".trackBody");
+        if (!body) {
+          return;
+        }
+        const rect = body.getBoundingClientRect();
+        bodyTop = rect.top;
+        bodyHeight = rect.height;
+        handle.setPointerCapture(event.pointerId);
+        document.body.classList.add("is-resizing");
+      });
+      handle.addEventListener("pointermove", (event) => {
+        if (!handle.hasPointerCapture(event.pointerId) || bodyHeight <= 0) {
+          return;
+        }
+        const wavePx = Math.min(
+          Math.max(TRACK_WAVE_MIN_PX, event.clientY - bodyTop),
+          bodyHeight - TRACK_SPEC_MIN_PX
+        );
+        const waveFr = wavePx / bodyHeight;
+        const specFr = 1 - waveFr;
+        if (waveFr === view.waveFr) {
+          return;
+        }
+        view.waveFr = waveFr;
+        view.specFr = specFr;
+        this.applyTrackLayout(view);
+        if (frameId === void 0) {
+          frameId = requestAnimationFrame(redraw);
+        }
+      });
+      handle.addEventListener("pointerup", (event) => {
+        if (handle.hasPointerCapture(event.pointerId)) {
+          handle.releasePointerCapture(event.pointerId);
+        }
+        document.body.classList.remove("is-resizing");
+        if (frameId !== void 0) {
+          cancelAnimationFrame(frameId);
+          frameId = void 0;
+        }
+        this.redrawVisuals();
+        this.analyze();
+      });
+      handle.addEventListener("dblclick", () => this.resetTrackLayout(view));
+    }
+    resetTrackLayout(view) {
+      view.rowHeight = this.settings.defaultTrackRowHeight;
+      view.waveFr = this.settings.defaultTrackWaveFr;
+      view.specFr = this.settings.defaultTrackSpecFr;
+      this.applyTrackLayout(view);
+      this.redrawVisuals();
+      this.analyze();
     }
     toggleSolo(target) {
       const enabled = !target.solo;
@@ -9851,6 +10002,7 @@
       display: grid;
       gap: 0;
       overflow: auto;
+      align-content: start;
       scrollbar-gutter: stable;
       margin-top: -1px;
       background: var(--vscode-editor-background);
@@ -9859,7 +10011,8 @@
       position: relative;
       display: grid;
       grid-template-columns: 104px minmax(0, 1fr);
-      min-height: 280px;
+      height: var(--track-row-h, 280px);
+      min-height: 132px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
       overflow: hidden;
@@ -9870,12 +10023,6 @@
     }
     .trackRow + .trackRow {
       margin-top: -1px;
-    }
-    .trackRow[data-mode="waveform"] {
-      min-height: 132px;
-    }
-    .trackRow[data-mode="spectrogram"] {
-      min-height: 220px;
     }
     .trackRow.isSelected {
       z-index: 4;
@@ -9955,7 +10102,9 @@
     }
     .trackBody {
       display: grid;
-      grid-template-rows: minmax(90px, 0.38fr) minmax(160px, 0.62fr);
+      grid-template-rows:
+        minmax(90px, var(--track-wave-fr, 0.38fr))
+        minmax(160px, var(--track-spec-fr, 0.62fr));
       min-width: 0;
       min-height: 0;
       gap: 0;
@@ -9976,6 +10125,38 @@
     }
     .trackCanvasWrap:last-child {
       border-bottom: 0;
+    }
+    .trackRowHandle,
+    .trackSplitHandle {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 8px;
+      z-index: 6;
+      cursor: ns-resize;
+      background: transparent;
+      transition: background 120ms ease;
+    }
+    .trackRowHandle {
+      bottom: 0;
+    }
+    .trackSplitHandle {
+      top: 0;
+      transform: translateY(-50%);
+    }
+    .trackRowHandle:hover,
+    .trackSplitHandle:hover,
+    .trackRowHandle:active,
+    .trackSplitHandle:active {
+      background: var(--vscode-focusBorder);
+    }
+    .trackRow[data-mode="waveform"] .trackSplitHandle,
+    .trackRow[data-mode="spectrogram"] .trackSplitHandle {
+      display: none;
+    }
+    body.is-resizing {
+      user-select: none;
+      cursor: ns-resize;
     }
     .trackWaveform:focus,
     .trackSpectrogram:focus {
