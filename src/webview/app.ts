@@ -140,6 +140,9 @@ interface TrackView {
   mode: TrackViewMode;
   muted: boolean;
   solo: boolean;
+  rowHeight: number;
+  waveFr: number;
+  specFr: number;
 }
 
 const MIN_DRAG_PIXELS = 6;
@@ -3146,7 +3149,10 @@ export class AudioLensApp {
       spectrogram,
       mode: this.settings.defaultTrackMode,
       muted: false,
-      solo: false
+      solo: false,
+      rowHeight: this.settings.defaultTrackRowHeight,
+      waveFr: this.settings.defaultTrackWaveFr,
+      specFr: this.settings.defaultTrackSpecFr
     };
     const select = () => this.selectChannel(channel);
     waveform.addEventListener("click", select);
@@ -3168,6 +3174,14 @@ export class AudioLensApp {
     this.elements.trackList.append(row);
     this.trackViews.push(view);
     this.applyTrackMode(view);
+    this.applyTrackLayout(view);
+  }
+
+  private applyTrackLayout(view: TrackView): void {
+    const { row } = view;
+    row.style.setProperty("--track-row-h", `${view.rowHeight}px`);
+    row.style.setProperty("--track-wave-fr", `${view.waveFr}fr`);
+    row.style.setProperty("--track-spec-fr", `${view.specFr}fr`);
   }
 
   private toggleSolo(target: TrackView): void {
