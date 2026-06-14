@@ -432,6 +432,7 @@ export function injectStyles(): void {
       display: grid;
       gap: 0;
       overflow: auto;
+      align-content: start;
       scrollbar-gutter: stable;
       margin-top: -1px;
       background: var(--vscode-editor-background);
@@ -440,7 +441,8 @@ export function injectStyles(): void {
       position: relative;
       display: grid;
       grid-template-columns: 104px minmax(0, 1fr);
-      min-height: 280px;
+      height: var(--track-row-h, 280px);
+      min-height: 132px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
       overflow: hidden;
@@ -451,12 +453,6 @@ export function injectStyles(): void {
     }
     .trackRow + .trackRow {
       margin-top: -1px;
-    }
-    .trackRow[data-mode="waveform"] {
-      min-height: 132px;
-    }
-    .trackRow[data-mode="spectrogram"] {
-      min-height: 220px;
     }
     .trackRow.isSelected {
       z-index: 4;
@@ -536,7 +532,9 @@ export function injectStyles(): void {
     }
     .trackBody {
       display: grid;
-      grid-template-rows: minmax(90px, 0.38fr) minmax(160px, 0.62fr);
+      grid-template-rows:
+        minmax(90px, var(--track-wave-fr, 0.38fr))
+        minmax(160px, var(--track-spec-fr, 0.62fr));
       min-width: 0;
       min-height: 0;
       gap: 0;
@@ -557,6 +555,38 @@ export function injectStyles(): void {
     }
     .trackCanvasWrap:last-child {
       border-bottom: 0;
+    }
+    .trackRowHandle,
+    .trackSplitHandle {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 8px;
+      z-index: 6;
+      cursor: ns-resize;
+      background: transparent;
+      transition: background 120ms ease;
+    }
+    .trackRowHandle {
+      bottom: 0;
+    }
+    .trackSplitHandle {
+      top: 0;
+      transform: translateY(-50%);
+    }
+    .trackRowHandle:hover,
+    .trackSplitHandle:hover,
+    .trackRowHandle:active,
+    .trackSplitHandle:active {
+      background: var(--vscode-focusBorder);
+    }
+    .trackRow[data-mode="waveform"] .trackSplitHandle,
+    .trackRow[data-mode="spectrogram"] .trackSplitHandle {
+      display: none;
+    }
+    body.is-resizing {
+      user-select: none;
+      cursor: ns-resize;
     }
     .trackWaveform:focus,
     .trackSpectrogram:focus {
