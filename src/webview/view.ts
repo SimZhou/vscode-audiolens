@@ -92,7 +92,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
       <header class="topbar">
         <div class="identity">
           <strong class="brand">AudioLens</strong>
-          <span id="fileMeta" class="muted" data-i18n="waitingAudioFile">Waiting for audio file</span>
+          <span id="fileMeta" class="muted fileMeta" tabindex="0" data-i18n="waitingAudioFile">Waiting for audio file</span>
           <button id="pcmReveal" class="secondary pcmReveal" data-i18n="pcmReadAs" hidden>Read as PCM</button>
         </div>
         <div id="status" class="status" data-i18n="initializing" hidden>Initializing</div>
@@ -144,48 +144,50 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
-        <button id="headerInfo" class="iconButton secondaryIcon headerInfoButton" data-i18n-title="headerInfo" data-i18n-aria="headerInfo" data-i18n-tooltip="headerInfo" title="Header info" aria-label="Header info" data-tooltip="Header info" hidden>
-          <svg class="headerInfoIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M6.75 3.5h7.5L19 8.25v12.25H6.75z" />
-            <path d="M14.25 3.5v4.75H19" />
-            <path d="M9.25 12.25h6.5M9.25 15.25h6.5M9.25 18.25h4.25" />
-          </svg>
-        </button>
-        <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">↓</button>
-        <details id="helpMenu" class="helpMenu">
-          <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
-          <div class="helpPopover">
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpPlaybackGroup">Playback & selection</div>
-              <div class="helpRow"><span><kbd>Space</kbd></span><span data-i18n="helpPlayPause">Play / pause</span></div>
-              <div class="helpRow"><span><kbd>Esc</kbd></span><span data-i18n="helpClearSelection">Close menu, clear selection, or reset playback cursor</span></div>
-              <div class="helpNote" data-i18n="helpSelectionPlayback">Drag waveform or spectrogram to select a segment. Playing with a selection active only plays that range.</div>
-            </section>
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpViewGroup">View navigation</div>
-              <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <kbd>F</kbd></span><span data-i18n="helpResetTimeZoom">Reset time zoom</span></div>
-              <div class="helpRow"><span><kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimeZoom">Time zoom:</span></div>
-              <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimePan">Time pan:</span></div>
-              <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAmplitudeZoom">Amplitude zoom:</span></div>
-            </section>
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpMouseGroup">Mouse & trackpad</div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="resetView">Reset view</span></div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpPinch">Pinch</span></span><span data-i18n="helpTrackpadZoom">Pinch on trackpad to zoom time</span></div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpHorizontalSwipe">Horizontal swipe</span></span><span data-i18n="helpTrackpadPan">Horizontal trackpad swipe pans time</span></div>
-            </section>
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain</div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click the gain slider to reset to 0 dB</span></div>
-            </section>
+        <div class="topbarTools">
+          <button id="headerInfo" class="iconButton secondaryIcon headerInfoButton" data-i18n-title="headerInfo" data-i18n-aria="headerInfo" data-i18n-tooltip="headerInfo" title="Header info" aria-label="Header info" data-tooltip="Header info" hidden>
+            <svg class="headerInfoIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M6.75 3.5h7.5L19 8.25v12.25H6.75z" />
+              <path d="M14.25 3.5v4.75H19" />
+              <path d="M9.25 12.25h6.5M9.25 15.25h6.5M9.25 18.25h4.25" />
+            </svg>
+          </button>
+          <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">↓</button>
+          <details id="helpMenu" class="helpMenu">
+            <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
+            <div class="helpPopover">
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpPlaybackGroup">Playback & selection</div>
+                <div class="helpRow"><span><kbd>Space</kbd></span><span data-i18n="helpPlayPause">Play / pause</span></div>
+                <div class="helpRow"><span><kbd>Esc</kbd></span><span data-i18n="helpClearSelection">Close menu, clear selection, or reset playback cursor</span></div>
+                <div class="helpNote" data-i18n="helpSelectionPlayback">Drag waveform or spectrogram to select a segment. Playing with a selection active only plays that range.</div>
+              </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpViewGroup">View navigation</div>
+                <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <kbd>F</kbd></span><span data-i18n="helpResetTimeZoom">Reset time zoom</span></div>
+                <div class="helpRow"><span><kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimeZoom">Time zoom:</span></div>
+                <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimePan">Time pan:</span></div>
+                <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAmplitudeZoom">Amplitude zoom:</span></div>
+              </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpMouseGroup">Mouse & trackpad</div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="resetView">Reset view</span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpPinch">Pinch</span></span><span data-i18n="helpTrackpadZoom">Pinch on trackpad to zoom time</span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpHorizontalSwipe">Horizontal swipe</span></span><span data-i18n="helpTrackpadPan">Horizontal trackpad swipe pans time</span></div>
+              </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain</div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click the gain slider to reset to 0 dB</span></div>
+              </section>
+            </div>
+          </details>
+          <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
+            <span class="gainTitle" data-i18n="playbackGainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">Gain</span>
+            <span id="gainLabel" class="gainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">0 dB</span>
+            <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" />
           </div>
-        </details>
-        <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
-          <span class="gainTitle" data-i18n="playbackGainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">Gain</span>
-          <span id="gainLabel" class="gainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">0 dB</span>
-          <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" />
+          <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">⚙</span></button>
         </div>
-        <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">⚙</span></button>
       </header>
 
       <section id="wavPcmPanel" class="wavPcmPanel" role="dialog" data-i18n-aria="wavPcmRead" aria-label="Read WAV as PCM" hidden>

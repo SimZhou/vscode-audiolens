@@ -10,6 +10,7 @@ import {
   AudioLensConfig,
   AudioLensPreferences
 } from "./shared/protocol";
+import { normalizePipedWavSizes } from "./ffmpegWav";
 import { formatBytes, getNonce } from "./util";
 
 const PREFERENCES_KEY = "audiolens.preferences.v1";
@@ -1036,7 +1037,9 @@ async function runFfmpegToWav(inputPath: string, maxOutputBytes: number): Promis
       settled = true;
       clearTimeout(timeout);
       if (code === 0) {
-        resolve(new Uint8Array(Buffer.concat(stdout)));
+        const output = Buffer.concat(stdout);
+        normalizePipedWavSizes(output);
+        resolve(new Uint8Array(output));
         return;
       }
       const detail = Buffer.concat(stderr).toString("utf8").trim();

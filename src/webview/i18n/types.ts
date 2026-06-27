@@ -169,6 +169,7 @@ export interface LocaleMessages {
   decodingAudio: string;
   transcodingAudio: string;
   encodedPlaybackOnly: string;
+  emptyWavNoAudio: string;
   waitingPcmParams: string;
   pcmUsedDefaultParams: string;
   pcmFillParams: string;

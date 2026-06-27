@@ -7,6 +7,7 @@ import {
   WebviewMessage,
   WindowFunction
 } from "../shared/protocol";
+import { resolveWaveDataSize } from "../ffmpegWav";
 import {
   createAnalysisCacheKey,
   computeWaveformPeaks,
@@ -1397,7 +1398,12 @@ export class AudioLensApp {
   private analysisTimer: number | undefined;
   private playbackAudioContext: AudioContext | undefined;
   private playbackGainNode: GainNode | undefined;
-  private playbackSourceNode: MediaElementAudioSourceNode | undefined;
+  private playbackSourceNode: AudioNode | undefined;
+  private playbackMediaSourceNode: MediaElementAudioSourceNode | undefined;
+  private playbackBufferSourceNode: AudioBufferSourceNode | undefined;
+  private bufferPlaybackPaused = true;
+  private bufferPlaybackOffset = 0;
+  private bufferPlaybackStartedAt = 0;
   private playbackSplitterNode: ChannelSplitterNode | undefined;
   private playbackMergerNode: ChannelMergerNode | undefined;
   private playbackChannelGains: GainNode[] = [];
@@ -1594,6 +1600,10 @@ export class AudioLensApp {
   }
 
   private clearAudioElement(): void {
+    this.stopBufferSource();
+    this.bufferPlaybackPaused = true;
+    this.bufferPlaybackOffset = 0;
+    this.bufferPlaybackStartedAt = 0;
     this.elements.audio.pause();
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
@@ -1606,7 +1616,9 @@ export class AudioLensApp {
   private async load(metadata: AudioFileMetadata): Promise<void> {
     this.currentFileName = metadata.fileName;
     this.currentSourceLabel = metadata.sourceKind === "ark" && metadata.sourceOffset !== undefined ? ` · ${this.messages.arkOffsetLabel} ${metadata.sourceOffset}` : "";
-    this.elements.fileMeta.textContent = `${metadata.fileName} · ${formatBytes(metadata.size)}${this.currentSourceLabel}`;
+    const fileMetaText = `${metadata.fileName} · ${formatBytes(metadata.size)}${this.currentSourceLabel}`;
+    this.elements.fileMeta.textContent = fileMetaText;
+    this.elements.fileMeta.title = fileMetaText;
 
     if (!metadata.trusted) {
       this.setStatus(this.messages.workspaceNotTrusted);
@@ -1624,6 +1636,11 @@ export class AudioLensApp {
 
     this.setStatus(this.messages.readingAudio);
     this.audioBytes = await this.readAll(metadata.size);
+    if (isEmptyWaveFile(this.audioBytes)) {
+      this.clearDecodedAudio();
+      this.setStatus(`${this.messages.encodedPlaybackOnly} ${this.messages.emptyWavNoAudio}`, "error");
+      return;
+    }
     this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
     this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav" || metadata.sourceKind === "ark";
     this.elements.headerInfo.hidden = !this.audioHasHeaderInfo(metadata);
@@ -1680,6 +1697,10 @@ export class AudioLensApp {
     const facts = readAudioFileFacts(this.audioBytes, fileName);
     this.elements.pcmPanel.hidden = true;
     this.elements.wavPcmPanel.hidden = true;
+    if (fileName.toLowerCase().endsWith(".wav") && await this.tryLoadWavePcmDirectly(fileName)) {
+      return;
+    }
+
     const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
     try {
       this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, this.audioBytes, ENCODED_DECODE_TIMEOUT_MS);
@@ -1750,7 +1771,7 @@ export class AudioLensApp {
 
   private loadWavePcmBytes(bytes: Uint8Array, audioContext: BaseAudioContext): boolean {
     const parsed = parseWavePcmFormat(bytes);
-    if (!parsed) {
+    if (!parsed || parsed.bytes.byteLength === 0) {
       return false;
     }
 
@@ -1824,10 +1845,10 @@ export class AudioLensApp {
       this.syncPlaybackState({ redraw: this.playbackFrameId === undefined });
     });
     this.elements.seek.addEventListener("input", () => {
-      if (!Number.isNaN(this.elements.audio.duration)) {
+      const duration = this.audioBuffer?.duration ?? this.elements.audio.duration;
+      if (!Number.isNaN(duration)) {
         this.selectionPlaybackEnd = undefined;
-        this.playheadTime = (Number(this.elements.seek.value) / 1000) * this.elements.audio.duration;
-        this.elements.audio.currentTime = this.playheadTime;
+        this.setPlaybackPosition((Number(this.elements.seek.value) / 1000) * duration);
         this.updateClock();
         this.redrawVisuals();
       }
@@ -1980,6 +2001,10 @@ export class AudioLensApp {
   }
 
   private async togglePlayback(): Promise<void> {
+    if (this.audioBuffer) {
+      await this.toggleBufferPlayback();
+      return;
+    }
     if (!this.elements.audio.src) {
       this.reportPlaybackError(this.messages.audioNotReady);
       return;
@@ -1987,7 +2012,6 @@ export class AudioLensApp {
 
     try {
       if (this.elements.audio.paused) {
-        this.preparePlaybackStart();
         this.updateGainNode();
         if (this.playbackAudioContext?.state === "suspended") {
           await this.playbackAudioContext.resume();
@@ -2003,24 +2027,115 @@ export class AudioLensApp {
     }
   }
 
-  private preparePlaybackStart(): void {
+  private async toggleBufferPlayback(): Promise<void> {
+    if (!this.audioBuffer) {
+      this.reportPlaybackError(this.messages.audioNotReady);
+      return;
+    }
+
+    try {
+      if (this.bufferPlaybackPaused) {
+        this.prepareBufferPlaybackStart();
+        await this.startBufferPlayback();
+      } else {
+        this.selectionPlaybackEnd = undefined;
+        this.pauseBufferPlayback();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.reportPlaybackError(message);
+    }
+  }
+
+  private prepareBufferPlaybackStart(): void {
     if (!this.audioBuffer) {
       return;
     }
     if (this.selection) {
-      this.elements.audio.currentTime = this.selection.start;
       this.playheadTime = this.selection.start;
       this.selectionPlaybackEnd = this.selection.end;
+      this.bufferPlaybackOffset = this.selection.start;
       this.redrawVisuals();
       return;
     }
-    if (this.playheadTime === undefined) {
-      this.elements.audio.currentTime = 0;
-      this.playheadTime = 0;
-      this.redrawVisuals();
+    const nextTime = this.playheadTime === undefined ? 0 : clamp(this.playheadTime, 0, this.audioBuffer.duration);
+    this.playheadTime = nextTime;
+    this.bufferPlaybackOffset = nextTime;
+    this.redrawVisuals();
+  }
+
+  private async startBufferPlayback(): Promise<void> {
+    if (!this.audioBuffer) {
       return;
     }
-    this.elements.audio.currentTime = clamp(this.playheadTime, 0, this.audioBuffer.duration);
+    if (!this.playbackAudioContext) {
+      this.playbackAudioContext = new AudioContext();
+    }
+    if (this.playbackAudioContext.state === "suspended") {
+      await this.playbackAudioContext.resume();
+    }
+
+    this.stopBufferSource();
+    const source = this.playbackAudioContext.createBufferSource();
+    source.buffer = this.audioBuffer;
+    source.onended = () => {
+      if (this.playbackBufferSourceNode === source) {
+        this.finishBufferPlayback();
+      }
+    };
+    this.playbackBufferSourceNode = source;
+    this.playbackSourceNode = source;
+    this.bufferPlaybackStartedAt = this.playbackAudioContext.currentTime;
+    this.bufferPlaybackPaused = false;
+    this.updateGainNode();
+    source.start(0, this.bufferPlaybackOffset);
+    this.elements.play.textContent = "⏸";
+    this.startPlaybackTicker();
+  }
+
+  private pauseBufferPlayback(): void {
+    const currentTime = this.currentPlaybackTime();
+    this.stopBufferSource();
+    this.bufferPlaybackPaused = true;
+    this.bufferPlaybackOffset = currentTime;
+    this.playheadTime = currentTime;
+    this.elements.play.textContent = "▶";
+    this.stopPlaybackTicker();
+    this.syncPlaybackState({ redraw: true });
+  }
+
+  private finishBufferPlayback(): void {
+    if (!this.audioBuffer) {
+      return;
+    }
+    const endTime = this.selectionPlaybackEnd ?? this.audioBuffer.duration;
+    this.playbackBufferSourceNode = undefined;
+    this.playbackSourceNode = undefined;
+    this.bufferPlaybackPaused = true;
+    this.selectionPlaybackEnd = undefined;
+    this.bufferPlaybackOffset = clamp(endTime, 0, this.audioBuffer.duration);
+    this.playheadTime = this.bufferPlaybackOffset;
+    this.elements.play.textContent = "▶";
+    this.stopPlaybackTicker();
+    this.syncPlaybackState({ redraw: true });
+  }
+
+  private stopBufferSource(): void {
+    const source = this.playbackBufferSourceNode;
+    if (!source) {
+      return;
+    }
+    source.onended = null;
+    this.playbackBufferSourceNode = undefined;
+    if (this.playbackSourceNode === source) {
+      this.playbackSourceNode = undefined;
+    }
+    try {
+      source.stop();
+    } catch {
+      // Source may already have ended.
+    }
+    source.disconnect();
   }
 
   private startPlaybackTicker(): void {
@@ -2030,7 +2145,7 @@ export class AudioLensApp {
 
     const tick = () => {
       this.syncPlaybackState({ redraw: true });
-      if (!this.elements.audio.paused) {
+      if (!this.isPlaybackPaused()) {
         this.playbackFrameId = requestAnimationFrame(tick);
       } else {
         this.playbackFrameId = undefined;
@@ -2049,19 +2164,28 @@ export class AudioLensApp {
 
   private syncPlaybackState(options: { redraw: boolean }): void {
     const audio = this.elements.audio;
-    if (this.selectionPlaybackEnd !== undefined && audio.currentTime >= this.selectionPlaybackEnd) {
+    const currentTime = this.currentPlaybackTime();
+    const duration = this.audioBuffer?.duration ?? audio.duration;
+    if (this.selectionPlaybackEnd !== undefined && currentTime >= this.selectionPlaybackEnd) {
       const end = this.selectionPlaybackEnd;
       this.selectionPlaybackEnd = undefined;
-      audio.pause();
-      audio.currentTime = end;
+      if (this.audioBuffer) {
+        this.stopBufferSource();
+        this.bufferPlaybackPaused = true;
+        this.bufferPlaybackOffset = end;
+        this.elements.play.textContent = "▶";
+      } else {
+        audio.pause();
+        audio.currentTime = end;
+      }
       this.playheadTime = end;
     } else {
-      this.playheadTime = audio.currentTime;
+      this.playheadTime = currentTime;
     }
 
     this.updateClock();
-    if (!Number.isNaN(audio.duration) && audio.duration > 0) {
-      this.elements.seek.value = String((audio.currentTime / audio.duration) * 1000);
+    if (!Number.isNaN(duration) && duration > 0) {
+      this.elements.seek.value = String((this.currentPlaybackTime() / duration) * 1000);
     }
     this.followPlayheadDuringPlayback();
     if (options.redraw) {
@@ -2070,7 +2194,7 @@ export class AudioLensApp {
   }
 
   private followPlayheadDuringPlayback(): void {
-    if (!this.audioBuffer || this.playheadTime === undefined || this.elements.audio.paused) {
+    if (!this.audioBuffer || this.playheadTime === undefined || this.isPlaybackPaused()) {
       return;
     }
     const range = this.visibleRange();
@@ -2143,9 +2267,14 @@ export class AudioLensApp {
       this.redrawVisuals();
       return;
     }
-    this.elements.audio.pause();
-    this.elements.audio.currentTime = 0;
+    if (this.audioBuffer) {
+      this.pauseBufferPlayback();
+    } else {
+      this.elements.audio.pause();
+      this.elements.audio.currentTime = 0;
+    }
     this.playheadTime = undefined;
+    this.bufferPlaybackOffset = 0;
     this.dragPlayheadTime = undefined;
     this.selectionPlaybackEnd = undefined;
     this.elements.seek.value = "0";
@@ -2859,13 +2988,18 @@ export class AudioLensApp {
     }
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = undefined;
     }
-    this.objectUrl = URL.createObjectURL(new Blob([encodeWav(this.audioBuffer)], { type: "audio/wav" }));
-    this.elements.audio.src = this.objectUrl;
-    this.elements.audio.load();
+    this.stopBufferSource();
+    this.bufferPlaybackPaused = true;
+    this.bufferPlaybackOffset = 0;
+    this.elements.audio.removeAttribute("src");
     this.elements.seek.value = "0";
     this.updateClock();
-    this.elements.fileMeta.textContent = `${fileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
+    const fileMetaText = `${fileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
+    this.elements.fileMeta.textContent = fileMetaText;
+    this.elements.fileMeta.title = fileMetaText;
+    this.setStatus(this.messages.audioLoaded);
   }
 
   private async applyPcmFormat(format: PcmFormat, statusElement = this.elements.pcmStatus): Promise<boolean> {
@@ -3885,9 +4019,44 @@ export class AudioLensApp {
   }
 
   private updateClock(): void {
-    const current = formatTime(this.elements.audio.currentTime || 0);
-    const duration = formatTime(Number.isFinite(this.elements.audio.duration) ? this.elements.audio.duration : 0);
+    const rawDuration = this.audioBuffer?.duration ?? this.elements.audio.duration;
+    const current = formatTime(this.currentPlaybackTime());
+    const duration = formatTime(Number.isFinite(rawDuration) ? rawDuration : 0);
     this.elements.clock.textContent = `${current} / ${duration}`;
+  }
+
+  private currentPlaybackTime(): number {
+    if (this.audioBuffer) {
+      if (!this.bufferPlaybackPaused && this.playbackAudioContext) {
+        return clamp(
+          this.bufferPlaybackOffset + this.playbackAudioContext.currentTime - this.bufferPlaybackStartedAt,
+          0,
+          this.audioBuffer.duration
+        );
+      }
+      return clamp(this.playheadTime ?? this.bufferPlaybackOffset, 0, this.audioBuffer.duration);
+    }
+    return this.elements.audio.currentTime || 0;
+  }
+
+  private isPlaybackPaused(): boolean {
+    return this.audioBuffer ? this.bufferPlaybackPaused : this.elements.audio.paused;
+  }
+
+  private setPlaybackPosition(time: number): void {
+    if (this.audioBuffer) {
+      const nextTime = clamp(time, 0, this.audioBuffer.duration);
+      const wasPlaying = !this.bufferPlaybackPaused;
+      this.stopBufferSource();
+      this.bufferPlaybackPaused = !wasPlaying;
+      this.bufferPlaybackOffset = nextTime;
+      this.playheadTime = nextTime;
+      if (wasPlaying) {
+        void this.startBufferPlayback();
+      }
+      return;
+    }
+    this.elements.audio.currentTime = time;
   }
 
   private setStatus(message: string, tone: "info" | "warning" | "error" = "info"): void {
@@ -3918,8 +4087,13 @@ export class AudioLensApp {
   private updateGainNode(): void {
     if (!this.playbackAudioContext) {
       this.playbackAudioContext = new AudioContext();
-      this.playbackSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
+    }
+    if (!this.playbackGainNode) {
       this.playbackGainNode = this.playbackAudioContext.createGain();
+    }
+    if (!this.audioBuffer && !this.playbackMediaSourceNode) {
+      this.playbackMediaSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
+      this.playbackSourceNode = this.playbackMediaSourceNode;
     }
     this.rebuildPlaybackChannelGraph();
     if (this.playbackGainNode) {
@@ -4140,7 +4314,7 @@ export class AudioLensApp {
     this.updateSelectionAnalysis();
     this.playheadTime = clamp(time, 0, this.audioBuffer.duration);
     this.dragPlayheadTime = undefined;
-    this.elements.audio.currentTime = this.playheadTime;
+    this.setPlaybackPosition(this.playheadTime);
     this.updateClock();
     this.redrawVisuals();
   }
@@ -4152,7 +4326,7 @@ export class AudioLensApp {
     const time = this.timeFromCanvasX(canvas, clientX);
     this.dragPlayheadTime = clamp(time, 0, this.audioBuffer.duration);
     this.drawTimeline();
-    if (this.elements.audio.paused) {
+    if (this.isPlaybackPaused()) {
       this.drawTrackVisuals();
     }
   }
@@ -4171,8 +4345,8 @@ export class AudioLensApp {
     this.hideSelectionContextMenu();
     this.playheadTime = selection.start;
     this.dragPlayheadTime = undefined;
-    this.selectionPlaybackEnd = this.elements.audio.paused ? undefined : selection.end;
-    this.elements.audio.currentTime = selection.start;
+    this.selectionPlaybackEnd = this.isPlaybackPaused() ? undefined : selection.end;
+    this.setPlaybackPosition(selection.start);
     this.updateClock();
     this.updateSelectionAnalysis();
     this.redrawVisuals();
@@ -4702,44 +4876,6 @@ async function decodeAudioDataWithTimeout(audioContext: AudioContext, bytes: Uin
   }
 }
 
-function encodeWav(audioBuffer: AudioBuffer, startFrame = 0, endFrame = audioBuffer.length): ArrayBuffer {
-  const channels = audioBuffer.numberOfChannels;
-  const sampleRate = audioBuffer.sampleRate;
-  const start = clamp(Math.floor(startFrame), 0, audioBuffer.length);
-  const end = clamp(Math.ceil(endFrame), start, audioBuffer.length);
-  const frames = end - start;
-  const bytesPerSample = 2;
-  const blockAlign = channels * bytesPerSample;
-  const dataSize = frames * blockAlign;
-  const buffer = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(buffer);
-  writeAscii(view, 0, "RIFF");
-  view.setUint32(4, 36 + dataSize, true);
-  writeAscii(view, 8, "WAVE");
-  writeAscii(view, 12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, channels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * blockAlign, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, 16, true);
-  writeAscii(view, 36, "data");
-  view.setUint32(40, dataSize, true);
-
-  const channelData = Array.from({ length: channels }, (_, channel) => audioBuffer.getChannelData(channel));
-  let offset = 44;
-  for (let frame = 0; frame < frames; frame += 1) {
-    const sourceFrame = start + frame;
-    for (let channel = 0; channel < channels; channel += 1) {
-      const value = clamp(channelData[channel][sourceFrame] ?? 0, -1, 1);
-      view.setInt16(offset, value < 0 ? value * 32768 : value * 32767, true);
-      offset += bytesPerSample;
-    }
-  }
-  return buffer;
-}
-
 async function encodeWavAsync(audioBuffer: AudioBuffer, startFrame = 0, endFrame = audioBuffer.length): Promise<ArrayBuffer> {
   const channels = audioBuffer.numberOfChannels;
   const sampleRate = audioBuffer.sampleRate;
@@ -5049,16 +5185,17 @@ function parseWavePcmFormat(bytes: Uint8Array): { bytes: Uint8Array; format: Pcm
     const chunkId = asciiAt(bytes, offset, 4);
     const chunkSize = readUint32Le(bytes, offset + 4);
     const payloadOffset = offset + 8;
+    if (chunkId === "data") {
+      dataOffset = payloadOffset;
+      dataSize = resolveWaveDataSize(chunkSize, bytes.byteLength - payloadOffset);
+      break;
+    }
     if (payloadOffset + chunkSize > bytes.byteLength) {
       return undefined;
     }
     if (chunkId === "fmt ") {
       fmtOffset = payloadOffset;
       fmtSize = chunkSize;
-    } else if (chunkId === "data") {
-      dataOffset = payloadOffset;
-      dataSize = chunkSize;
-      break;
     }
     offset = payloadOffset + chunkSize + (chunkSize % 2);
   }
@@ -5105,6 +5242,28 @@ function parseWavePcmFormat(bytes: Uint8Array): { bytes: Uint8Array; format: Pcm
       startOffsetBytes: 0
     }
   };
+}
+
+function isEmptyWaveFile(bytes: Uint8Array): boolean {
+  if (bytes.byteLength < 44 || asciiAt(bytes, 0, 4) !== "RIFF" || asciiAt(bytes, 8, 4) !== "WAVE") {
+    return false;
+  }
+
+  let offset = 12;
+  while (offset + 8 <= bytes.byteLength) {
+    const chunkId = asciiAt(bytes, offset, 4);
+    const chunkSize = readUint32Le(bytes, offset + 4);
+    const payloadOffset = offset + 8;
+    if (chunkId === "data") {
+      return resolveWaveDataSize(chunkSize, bytes.byteLength - payloadOffset) === 0;
+    }
+    const nextOffset = payloadOffset + chunkSize + (chunkSize % 2);
+    if (nextOffset <= offset || nextOffset > bytes.byteLength) {
+      return false;
+    }
+    offset = nextOffset;
+  }
+  return false;
 }
 
 function waveAudioFormatToPcmSampleFormat(audioFormat: number, bitsPerSample: number): PcmSampleFormat | undefined {

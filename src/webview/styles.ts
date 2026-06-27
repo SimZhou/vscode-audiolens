@@ -41,17 +41,34 @@ export function injectStyles(): void {
       background: var(--vscode-sideBar-background);
     }
     .topbar {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-auto-rows: auto;
+      align-items: center;
     }
     .identity {
+      grid-column: 1;
+      grid-row: 1;
       min-width: 0;
       display: flex;
       align-items: baseline;
       gap: 10px;
-      flex: 1;
+      flex: 1 1 auto;
+    }
+    .topbarTools {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      flex: 0 0 auto;
+      min-width: max-content;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .gainControl {
       position: relative;
+      flex: 0 0 auto;
       display: grid;
       grid-template-columns: 6ch 80px;
       grid-template-rows: 14px 22px;
@@ -120,8 +137,29 @@ export function injectStyles(): void {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    #fileMeta {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      cursor: text;
+      user-select: text;
+      scrollbar-width: none;
+    }
+    #fileMeta:hover,
+    #fileMeta:focus,
+    #fileMeta:active {
+      overflow-x: auto;
+      text-overflow: clip;
+    }
+    #fileMeta::-webkit-scrollbar {
+      display: none;
+    }
     .status {
+      grid-column: 1 / -1;
       color: var(--vscode-notificationsInfoIcon-foreground);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
     .status.isWarning {

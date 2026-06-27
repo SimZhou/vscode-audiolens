@@ -34,6 +34,10 @@ dist/*.map
 *.pcm
 *.raw
 *.wav
+._*
+**/._*
+.DS_Store
+**/.DS_Store
 tsconfig.json
 
 AudioLens_logo.v1.png

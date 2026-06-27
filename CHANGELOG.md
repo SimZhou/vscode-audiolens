@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.1
+
+Remote WAV decode and playback compatibility update.
+
+- Fixed FFmpeg fallback WAV output whose RIFF or data chunk sizes are zero or unknown when written to stdout.
+- Prefer AudioLens' direct WAV PCM parser for standard PCM WAV files, and report empty WAV files as containing no audio data instead of invoking FFmpeg.
+- Play decoded PCM/FFmpeg fallback audio through Web Audio directly, avoiding Remote Webview media decoder failures and silent playback.
+- Resolve audio path links that point to symbolic links targeting regular audio files.
+- Keep the top toolbar controls visible when very long audio file names are shown; the file title now stays selectable and can scroll horizontally without drawing a scrollbar over the text.
+
 ## 1.5.0
 
 Resizable track layout update.

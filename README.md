@@ -97,7 +97,7 @@ code --install-extension simzhou.audiolens
 **Offline VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.5.0.vsix
+code --install-extension dist/audiolens-1.5.1.vsix
 ```
 
 ## Feature Demos

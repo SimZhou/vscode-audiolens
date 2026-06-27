@@ -411,7 +411,7 @@ async function resolveAudioPath(value: string, sourceUri: vscode.Uri): Promise<v
   for (const candidate of candidates) {
     try {
       const stat = await vscode.workspace.fs.stat(candidate);
-      if (stat.type === vscode.FileType.File) {
+      if ((stat.type & vscode.FileType.File) !== 0) {
         return candidate;
       }
     } catch {

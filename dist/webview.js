@@ -3,6 +3,15 @@
   // src/shared/protocol.ts
   var DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024;
 
+  // src/ffmpegWav.ts
+  var UNKNOWN_WAV_SIZE = 4294967295;
+  function resolveWaveDataSize(chunkSize, remainingBytes) {
+    if (chunkSize === 0 && remainingBytes > 0 || chunkSize === UNKNOWN_WAV_SIZE || chunkSize > remainingBytes) {
+      return remainingBytes;
+    }
+    return chunkSize;
+  }
+
   // src/shared/analysis.ts
   function getVisibleRange(input) {
     const duration = Math.max(0, input.duration);
@@ -1116,7 +1125,8 @@
     readingAudioProgress: "Audio wird gelesen",
     decodingAudio: "Audio wird decodiert",
     transcodingAudio: "Audio wird mit FFmpeg transcodiert",
-    encodedPlaybackOnly: "Dieses codierte Audioformat wird vom VS Code Webview-Decoder nicht unterst\xFCtzt. Installieren Sie FFmpeg auf dem Extension-Host, um Fallback-Decoding zu aktivieren.",
+    encodedPlaybackOnly: "Die Audiodekodierung ist fehlgeschlagen.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Warte auf PCM-Parameter",
     pcmUsedDefaultParams: "Mit Standard-PCM-Parametern geladen.",
     pcmFillParams: "PCM-Parameter ausf\xFCllen und dann Lesen klicken.",
@@ -1292,7 +1302,8 @@
     readingAudioProgress: "Reading audio",
     decodingAudio: "Decoding audio",
     transcodingAudio: "Transcoding audio with FFmpeg",
-    encodedPlaybackOnly: "This encoded audio format is not supported by the VS Code Webview decoder. Install FFmpeg on the extension host machine to enable fallback decoding.",
+    encodedPlaybackOnly: "Audio decoding failed.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Waiting for PCM parameters",
     pcmUsedDefaultParams: "Loaded with default PCM parameters.",
     pcmFillParams: "Fill PCM parameters, then click Read.",
@@ -1468,7 +1479,8 @@
     readingAudioProgress: "Leyendo audio",
     decodingAudio: "Decodificando audio",
     transcodingAudio: "Transcodificando audio con FFmpeg",
-    encodedPlaybackOnly: "Este formato de audio codificado no es compatible con el decodificador del Webview de VS Code. Instala FFmpeg en la m\xE1quina del host de la extensi\xF3n para activar la decodificaci\xF3n de respaldo.",
+    encodedPlaybackOnly: "No se pudo decodificar el audio.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Esperando par\xE1metros PCM",
     pcmUsedDefaultParams: "Cargado con par\xE1metros PCM predeterminados.",
     pcmFillParams: "Completa los par\xE1metros PCM y haz clic en Leer.",
@@ -1644,7 +1656,8 @@
     readingAudioProgress: "Lecture de l'audio",
     decodingAudio: "D\xE9codage de l'audio",
     transcodingAudio: "Transcodage audio avec FFmpeg",
-    encodedPlaybackOnly: "Ce format audio encod\xE9 n'est pas pris en charge par le d\xE9codeur du Webview VS Code. Installez FFmpeg sur l'h\xF4te de l'extension pour activer le d\xE9codage de secours.",
+    encodedPlaybackOnly: "Le d\xE9codage audio a \xE9chou\xE9.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "En attente des param\xE8tres PCM",
     pcmUsedDefaultParams: "Charg\xE9 avec les param\xE8tres PCM par d\xE9faut.",
     pcmFillParams: "Renseignez les param\xE8tres PCM, puis cliquez sur Lire.",
@@ -1820,7 +1833,8 @@
     readingAudioProgress: "Membaca audio",
     decodingAudio: "Mendekode audio",
     transcodingAudio: "Mengonversi audio dengan FFmpeg",
-    encodedPlaybackOnly: "Format audio ini tidak didukung decoder VS Code Webview. Instal FFmpeg di mesin extension host untuk mengaktifkan decoding fallback.",
+    encodedPlaybackOnly: "Dekode audio gagal.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Menunggu parameter PCM",
     pcmUsedDefaultParams: "Dimuat dengan parameter PCM default.",
     pcmFillParams: "Isi parameter PCM, lalu klik Baca.",
@@ -1996,7 +2010,8 @@
     readingAudioProgress: "Lettura audio",
     decodingAudio: "Decodifica audio",
     transcodingAudio: "Transcodifica audio con FFmpeg",
-    encodedPlaybackOnly: "Questo formato audio codificato non \xE8 supportato dal decoder Webview di VS Code. Installa FFmpeg sulla macchina dell'extension host per abilitare la decodifica di fallback.",
+    encodedPlaybackOnly: "Decodifica audio non riuscita.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "In attesa dei parametri PCM",
     pcmUsedDefaultParams: "Caricato con i parametri PCM predefiniti.",
     pcmFillParams: "Inserisci i parametri PCM, poi fai clic su Leggi.",
@@ -2172,7 +2187,8 @@
     readingAudioProgress: "\u97F3\u58F0\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D",
     decodingAudio: "\u97F3\u58F0\u3092\u30C7\u30B3\u30FC\u30C9\u4E2D",
     transcodingAudio: "FFmpeg \u3067\u97F3\u58F0\u3092\u5909\u63DB\u4E2D",
-    encodedPlaybackOnly: "\u3053\u306E\u30A8\u30F3\u30B3\u30FC\u30C9\u5F62\u5F0F\u306F VS Code Webview \u306E\u30C7\u30B3\u30FC\u30C0\u30FC\u3067\u30B5\u30DD\u30FC\u30C8\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002\u515C\u5E95\u30C7\u30B3\u30FC\u30C9\u3092\u6709\u52B9\u306B\u3059\u308B\u306B\u306F\u3001\u62E1\u5F35\u6A5F\u80FD\u30DB\u30B9\u30C8\u5074\u306E\u30DE\u30B7\u30F3\u306B FFmpeg \u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    encodedPlaybackOnly: "\u97F3\u58F0\u306E\u30C7\u30B3\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+    emptyWavNoAudio: "WAV \u30D5\u30A1\u30A4\u30EB\u306B\u97F3\u58F0\u30C7\u30FC\u30BF\u304C\u3042\u308A\u307E\u305B\u3093\u3002",
     waitingPcmParams: "PCM \u30D1\u30E9\u30E1\u30FC\u30BF\u5F85\u6A5F\u4E2D",
     pcmUsedDefaultParams: "\u65E2\u5B9A\u306E PCM \u30D1\u30E9\u30E1\u30FC\u30BF\u3067\u8AAD\u307F\u8FBC\u307F\u307E\u3057\u305F\u3002",
     pcmFillParams: "PCM \u30D1\u30E9\u30E1\u30FC\u30BF\u3092\u5165\u529B\u3057\u3066\u304B\u3089\u3001\u8AAD\u307F\u8FBC\u307F\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
@@ -2348,7 +2364,8 @@
     readingAudioProgress: "\uC624\uB514\uC624 \uC77D\uB294 \uC911",
     decodingAudio: "\uC624\uB514\uC624 \uB514\uCF54\uB529 \uC911",
     transcodingAudio: "FFmpeg\uB85C \uC624\uB514\uC624 \uBCC0\uD658 \uC911",
-    encodedPlaybackOnly: "\uC774 \uC778\uCF54\uB529 \uD615\uC2DD\uC740 VS Code Webview \uB514\uCF54\uB354\uC5D0\uC11C \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. fallback \uB514\uCF54\uB529\uC744 \uC0AC\uC6A9\uD558\uB824\uBA74 extension host \uBA38\uC2E0\uC5D0 FFmpeg\uB97C \uC124\uCE58\uD558\uC138\uC694.",
+    encodedPlaybackOnly: "\uC624\uB514\uC624 \uB514\uCF54\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "PCM \uB9E4\uAC1C\uBCC0\uC218 \uB300\uAE30 \uC911",
     pcmUsedDefaultParams: "\uAE30\uBCF8 PCM \uB9E4\uAC1C\uBCC0\uC218\uB85C \uB85C\uB4DC\uD588\uC2B5\uB2C8\uB2E4.",
     pcmFillParams: "PCM \uB9E4\uAC1C\uBCC0\uC218\uB97C \uC785\uB825\uD55C \uB4A4 \uC77D\uAE30\uB97C \uD074\uB9AD\uD558\uC138\uC694.",
@@ -2524,7 +2541,8 @@
     readingAudioProgress: "Audio lezen",
     decodingAudio: "Audio decoderen",
     transcodingAudio: "Audio transcoderen met FFmpeg",
-    encodedPlaybackOnly: "Dit gecodeerde audioformaat wordt niet ondersteund door de VS Code Webview-decoder. Installeer FFmpeg op de extension host-machine voor fallback-decoding.",
+    encodedPlaybackOnly: "Audiodecodering mislukt.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Wachten op PCM-parameters",
     pcmUsedDefaultParams: "Geladen met standaard PCM-parameters.",
     pcmFillParams: "Vul PCM-parameters in en klik op Lezen.",
@@ -2700,7 +2718,8 @@
     readingAudioProgress: "Leser lyd",
     decodingAudio: "Dekoder lyd",
     transcodingAudio: "Transkoder lyd med FFmpeg",
-    encodedPlaybackOnly: "Dette kodede lydformatet st\xF8ttes ikke av VS Code Webview-dekoderen. Installer FFmpeg p\xE5 extension host-maskinen for fallback-dekoding.",
+    encodedPlaybackOnly: "Lyddekoding mislyktes.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Venter p\xE5 PCM-parametere",
     pcmUsedDefaultParams: "Lastet med standard PCM-parametere.",
     pcmFillParams: "Fyll inn PCM-parametere og klikk Les.",
@@ -2876,7 +2895,8 @@
     readingAudioProgress: "Odczyt audio",
     decodingAudio: "Dekodowanie audio",
     transcodingAudio: "Transkodowanie audio przez FFmpeg",
-    encodedPlaybackOnly: "Ten zakodowany format audio nie jest obs\u0142ugiwany przez dekoder VS Code Webview. Zainstaluj FFmpeg na maszynie hosta rozszerzenia, aby w\u0142\u0105czy\u0107 dekodowanie awaryjne.",
+    encodedPlaybackOnly: "Dekodowanie d\u017Awi\u0119ku nie powiod\u0142o si\u0119.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Oczekiwanie na parametry PCM",
     pcmUsedDefaultParams: "Wczytano z domy\u015Blnymi parametrami PCM.",
     pcmFillParams: "Uzupe\u0142nij parametry PCM, a nast\u0119pnie kliknij Czytaj.",
@@ -3052,7 +3072,8 @@
     readingAudioProgress: "Lendo \xE1udio",
     decodingAudio: "Decodificando \xE1udio",
     transcodingAudio: "Transcodificando \xE1udio com FFmpeg",
-    encodedPlaybackOnly: "Este formato de \xE1udio codificado n\xE3o \xE9 suportado pelo decodificador do VS Code Webview. Instale o FFmpeg na m\xE1quina do extension host para ativar a decodifica\xE7\xE3o de fallback.",
+    encodedPlaybackOnly: "Falha ao decodificar o \xE1udio.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "Aguardando par\xE2metros PCM",
     pcmUsedDefaultParams: "Carregado com par\xE2metros PCM padr\xE3o.",
     pcmFillParams: "Preencha os par\xE2metros PCM e clique em Ler.",
@@ -3228,7 +3249,8 @@
     readingAudioProgress: "\u0427\u0442\u0435\u043D\u0438\u0435 \u0430\u0443\u0434\u0438\u043E",
     decodingAudio: "\u0414\u0435\u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0430\u0443\u0434\u0438\u043E",
     transcodingAudio: "\u0422\u0440\u0430\u043D\u0441\u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0430\u0443\u0434\u0438\u043E \u0447\u0435\u0440\u0435\u0437 FFmpeg",
-    encodedPlaybackOnly: "\u042D\u0442\u043E\u0442 \u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439 \u0430\u0443\u0434\u0438\u043E\u0444\u043E\u0440\u043C\u0430\u0442 \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F \u0434\u0435\u043A\u043E\u0434\u0435\u0440\u043E\u043C VS Code Webview. \u0423\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0435 FFmpeg \u043D\u0430 \u043C\u0430\u0448\u0438\u043D\u0435 extension host, \u0447\u0442\u043E\u0431\u044B \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C fallback-\u0434\u0435\u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435.",
+    encodedPlaybackOnly: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0434\u0435\u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0430\u0443\u0434\u0438\u043E.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "\u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u043E\u0432 PCM",
     pcmUsedDefaultParams: "\u0417\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u043E \u0441 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u0430\u043C\u0438 PCM \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E.",
     pcmFillParams: "\u0417\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B PCM \u0438 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \u0427\u0438\u0442\u0430\u0442\u044C.",
@@ -3404,7 +3426,8 @@
     readingAudioProgress: "Ses okunuyor",
     decodingAudio: "Ses cozuluyor",
     transcodingAudio: "Ses FFmpeg ile d\xF6n\xFC\u015Ft\xFCr\xFCl\xFCyor",
-    encodedPlaybackOnly: "Bu kodlanm\u0131\u015F ses bi\xE7imi VS Code Webview decoder taraf\u0131ndan desteklenmiyor. Fallback decoding i\xE7in extension host makinesine FFmpeg kurun.",
+    encodedPlaybackOnly: "Ses kodu \xE7\xF6z\xFClemedi.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "PCM parametreleri bekleniyor",
     pcmUsedDefaultParams: "Varsay\u0131lan PCM parametreleriyle y\xFCklendi.",
     pcmFillParams: "PCM parametrelerini girin, sonra Oku'ya t\u0131klay\u0131n.",
@@ -3580,7 +3603,8 @@
     readingAudioProgress: "\u0110ang \u0111\u1ECDc \xE2m thanh",
     decodingAudio: "\u0110ang gi\u1EA3i m\xE3 \xE2m thanh",
     transcodingAudio: "\u0110ang chuy\u1EC3n m\xE3 \xE2m thanh b\u1EB1ng FFmpeg",
-    encodedPlaybackOnly: "\u0110\u1ECBnh d\u1EA1ng \xE2m thanh m\xE3 h\xF3a n\xE0y kh\xF4ng \u0111\u01B0\u1EE3c b\u1ED9 gi\u1EA3i m\xE3 VS Code Webview h\u1ED7 tr\u1EE3. C\xE0i FFmpeg tr\xEAn m\xE1y extension host \u0111\u1EC3 b\u1EADt gi\u1EA3i m\xE3 d\u1EF1 ph\xF2ng.",
+    encodedPlaybackOnly: "Kh\xF4ng th\u1EC3 gi\u1EA3i m\xE3 \xE2m thanh.",
+    emptyWavNoAudio: "WAV file contains no audio data.",
     waitingPcmParams: "\u0110ang ch\u1EDD tham s\u1ED1 PCM",
     pcmUsedDefaultParams: "\u0110\xE3 t\u1EA3i b\u1EB1ng tham s\u1ED1 PCM m\u1EB7c \u0111\u1ECBnh.",
     pcmFillParams: "\u0110i\u1EC1n tham s\u1ED1 PCM r\u1ED3i nh\u1EA5p \u0110\u1ECDc.",
@@ -3756,7 +3780,8 @@
     readingAudioProgress: "\u6B63\u5728\u8BFB\u53D6\u97F3\u9891",
     decodingAudio: "\u6B63\u5728\u89E3\u7801\u97F3\u9891",
     transcodingAudio: "\u6B63\u5728\u4F7F\u7528 FFmpeg \u8F6C\u7801\u97F3\u9891",
-    encodedPlaybackOnly: "VS Code Webview \u89E3\u7801\u5668\u4E0D\u652F\u6301\u6B64\u7F16\u7801\u683C\u5F0F\u3002\u8BF7\u5728\u8FD0\u884C\u6269\u5C55\u5BBF\u4E3B\u7684\u673A\u5668\u4E0A\u5B89\u88C5 FFmpeg\uFF0C\u4EE5\u542F\u7528\u515C\u5E95\u89E3\u7801\u3002",
+    encodedPlaybackOnly: "\u97F3\u9891\u89E3\u7801\u5931\u8D25\u3002",
+    emptyWavNoAudio: "WAV \u6587\u4EF6\u4E0D\u5305\u542B\u97F3\u9891\u6570\u636E\u3002",
     waitingPcmParams: "\u7B49\u5F85 PCM \u53C2\u6570",
     pcmUsedDefaultParams: "\u5DF2\u4F7F\u7528\u9ED8\u8BA4 PCM \u53C2\u6570\u8BFB\u53D6\u3002",
     pcmFillParams: "\u8BF7\u586B\u5199 PCM \u53C2\u6570\uFF0C\u7136\u540E\u70B9\u51FB\u201C\u8BFB\u53D6\u201D\u3002",
@@ -3932,7 +3957,8 @@
     readingAudioProgress: "\u8B80\u53D6\u97F3\u8A0A\u4E2D",
     decodingAudio: "\u89E3\u78BC\u97F3\u8A0A\u4E2D",
     transcodingAudio: "\u6B63\u5728\u4F7F\u7528 FFmpeg \u8F49\u78BC\u97F3\u8A0A",
-    encodedPlaybackOnly: "VS Code Webview \u89E3\u78BC\u5668\u4E0D\u652F\u63F4\u6B64\u7DE8\u78BC\u683C\u5F0F\u3002\u8ACB\u5728\u57F7\u884C\u64F4\u5145\u529F\u80FD\u5BBF\u4E3B\u7684\u6A5F\u5668\u4E0A\u5B89\u88DD FFmpeg\uFF0C\u4EE5\u555F\u7528\u5099\u63F4\u89E3\u78BC\u3002",
+    encodedPlaybackOnly: "\u97F3\u8A0A\u89E3\u78BC\u5931\u6557\u3002",
+    emptyWavNoAudio: "WAV \u6A94\u6848\u4E0D\u5305\u542B\u97F3\u8A0A\u8CC7\u6599\u3002",
     waitingPcmParams: "\u7B49\u5F85 PCM \u53C3\u6578",
     pcmUsedDefaultParams: "\u5DF2\u4F7F\u7528\u9810\u8A2D PCM \u53C3\u6578\u8F09\u5165\u3002",
     pcmFillParams: "\u8ACB\u586B\u5BEB PCM \u53C3\u6578\uFF0C\u7136\u5F8C\u9EDE\u64CA\u8B80\u53D6\u3002",
@@ -4165,7 +4191,7 @@
       <header class="topbar">
         <div class="identity">
           <strong class="brand">AudioLens</strong>
-          <span id="fileMeta" class="muted" data-i18n="waitingAudioFile">Waiting for audio file</span>
+          <span id="fileMeta" class="muted fileMeta" tabindex="0" data-i18n="waitingAudioFile">Waiting for audio file</span>
           <button id="pcmReveal" class="secondary pcmReveal" data-i18n="pcmReadAs" hidden>Read as PCM</button>
         </div>
         <div id="status" class="status" data-i18n="initializing" hidden>Initializing</div>
@@ -4217,48 +4243,50 @@
           <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
-        <button id="headerInfo" class="iconButton secondaryIcon headerInfoButton" data-i18n-title="headerInfo" data-i18n-aria="headerInfo" data-i18n-tooltip="headerInfo" title="Header info" aria-label="Header info" data-tooltip="Header info" hidden>
-          <svg class="headerInfoIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M6.75 3.5h7.5L19 8.25v12.25H6.75z" />
-            <path d="M14.25 3.5v4.75H19" />
-            <path d="M9.25 12.25h6.5M9.25 15.25h6.5M9.25 18.25h4.25" />
-          </svg>
-        </button>
-        <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">\u2193</button>
-        <details id="helpMenu" class="helpMenu">
-          <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
-          <div class="helpPopover">
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpPlaybackGroup">Playback & selection</div>
-              <div class="helpRow"><span><kbd>Space</kbd></span><span data-i18n="helpPlayPause">Play / pause</span></div>
-              <div class="helpRow"><span><kbd>Esc</kbd></span><span data-i18n="helpClearSelection">Close menu, clear selection, or reset playback cursor</span></div>
-              <div class="helpNote" data-i18n="helpSelectionPlayback">Drag waveform or spectrogram to select a segment. Playing with a selection active only plays that range.</div>
-            </section>
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpViewGroup">View navigation</div>
-              <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <kbd>F</kbd></span><span data-i18n="helpResetTimeZoom">Reset time zoom</span></div>
-              <div class="helpRow"><span><kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimeZoom">Time zoom:</span></div>
-              <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimePan">Time pan:</span></div>
-              <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAmplitudeZoom">Amplitude zoom:</span></div>
-            </section>
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpMouseGroup">Mouse & trackpad</div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="resetView">Reset view</span></div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpPinch">Pinch</span></span><span data-i18n="helpTrackpadZoom">Pinch on trackpad to zoom time</span></div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpHorizontalSwipe">Horizontal swipe</span></span><span data-i18n="helpTrackpadPan">Horizontal trackpad swipe pans time</span></div>
-            </section>
-            <section class="helpSection">
-              <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain</div>
-              <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click the gain slider to reset to 0 dB</span></div>
-            </section>
+        <div class="topbarTools">
+          <button id="headerInfo" class="iconButton secondaryIcon headerInfoButton" data-i18n-title="headerInfo" data-i18n-aria="headerInfo" data-i18n-tooltip="headerInfo" title="Header info" aria-label="Header info" data-tooltip="Header info" hidden>
+            <svg class="headerInfoIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M6.75 3.5h7.5L19 8.25v12.25H6.75z" />
+              <path d="M14.25 3.5v4.75H19" />
+              <path d="M9.25 12.25h6.5M9.25 15.25h6.5M9.25 18.25h4.25" />
+            </svg>
+          </button>
+          <button id="downloadAudio" class="iconButton secondaryIcon downloadButton" data-i18n-title="downloadAudio" data-i18n-aria="downloadAudio" data-i18n-tooltip="downloadAudio" title="Download audio" aria-label="Download audio" data-tooltip="Download audio">\u2193</button>
+          <details id="helpMenu" class="helpMenu">
+            <summary class="iconButton secondaryIcon" data-i18n-title="help" data-i18n-aria="help" data-i18n-tooltip="help" title="Help" aria-label="Help" data-tooltip="Help">?</summary>
+            <div class="helpPopover">
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpPlaybackGroup">Playback & selection</div>
+                <div class="helpRow"><span><kbd>Space</kbd></span><span data-i18n="helpPlayPause">Play / pause</span></div>
+                <div class="helpRow"><span><kbd>Esc</kbd></span><span data-i18n="helpClearSelection">Close menu, clear selection, or reset playback cursor</span></div>
+                <div class="helpNote" data-i18n="helpSelectionPlayback">Drag waveform or spectrogram to select a segment. Playing with a selection active only plays that range.</div>
+              </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpViewGroup">View navigation</div>
+                <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <kbd>F</kbd></span><span data-i18n="helpResetTimeZoom">Reset time zoom</span></div>
+                <div class="helpRow"><span><kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimeZoom">Time zoom:</span></div>
+                <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpTimePan">Time pan:</span></div>
+                <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAmplitudeZoom">Amplitude zoom:</span></div>
+              </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpMouseGroup">Mouse & trackpad</div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="resetView">Reset view</span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpPinch">Pinch</span></span><span data-i18n="helpTrackpadZoom">Pinch on trackpad to zoom time</span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpHorizontalSwipe">Horizontal swipe</span></span><span data-i18n="helpTrackpadPan">Horizontal trackpad swipe pans time</span></div>
+              </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain</div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click the gain slider to reset to 0 dB</span></div>
+              </section>
+            </div>
+          </details>
+          <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
+            <span class="gainTitle" data-i18n="playbackGainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">Gain</span>
+            <span id="gainLabel" class="gainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">0 dB</span>
+            <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" />
           </div>
-        </details>
-        <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
-          <span class="gainTitle" data-i18n="playbackGainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">Gain</span>
-          <span id="gainLabel" class="gainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">0 dB</span>
-          <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" />
+          <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">\u2699</span></button>
         </div>
-        <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">\u2699</span></button>
       </header>
 
       <section id="wavPcmPanel" class="wavPcmPanel" role="dialog" data-i18n-aria="wavPcmRead" aria-label="Read WAV as PCM" hidden>
@@ -6018,6 +6046,11 @@
     playbackAudioContext;
     playbackGainNode;
     playbackSourceNode;
+    playbackMediaSourceNode;
+    playbackBufferSourceNode;
+    bufferPlaybackPaused = true;
+    bufferPlaybackOffset = 0;
+    bufferPlaybackStartedAt = 0;
     playbackSplitterNode;
     playbackMergerNode;
     playbackChannelGains = [];
@@ -6190,6 +6223,10 @@
       this.updateClock();
     }
     clearAudioElement() {
+      this.stopBufferSource();
+      this.bufferPlaybackPaused = true;
+      this.bufferPlaybackOffset = 0;
+      this.bufferPlaybackStartedAt = 0;
       this.elements.audio.pause();
       if (this.objectUrl) {
         URL.revokeObjectURL(this.objectUrl);
@@ -6201,7 +6238,9 @@
     async load(metadata) {
       this.currentFileName = metadata.fileName;
       this.currentSourceLabel = metadata.sourceKind === "ark" && metadata.sourceOffset !== void 0 ? ` \xB7 ${this.messages.arkOffsetLabel} ${metadata.sourceOffset}` : "";
-      this.elements.fileMeta.textContent = `${metadata.fileName} \xB7 ${formatBytes(metadata.size)}${this.currentSourceLabel}`;
+      const fileMetaText = `${metadata.fileName} \xB7 ${formatBytes(metadata.size)}${this.currentSourceLabel}`;
+      this.elements.fileMeta.textContent = fileMetaText;
+      this.elements.fileMeta.title = fileMetaText;
       if (!metadata.trusted) {
         this.setStatus(this.messages.workspaceNotTrusted);
         return;
@@ -6216,6 +6255,11 @@
       }
       this.setStatus(this.messages.readingAudio);
       this.audioBytes = await this.readAll(metadata.size);
+      if (isEmptyWaveFile(this.audioBytes)) {
+        this.clearDecodedAudio();
+        this.setStatus(`${this.messages.encodedPlaybackOnly} ${this.messages.emptyWavNoAudio}`, "error");
+        return;
+      }
       this.setStatus(metadata.kind === "pcm" ? this.messages.waitingPcmParams : this.messages.decodingAudio);
       this.elements.pcmReveal.hidden = metadata.kind === "pcm" || metadata.extension !== "wav" || metadata.sourceKind === "ark";
       this.elements.headerInfo.hidden = !this.audioHasHeaderInfo(metadata);
@@ -6269,6 +6313,9 @@
       const facts = readAudioFileFacts(this.audioBytes, fileName);
       this.elements.pcmPanel.hidden = true;
       this.elements.wavPcmPanel.hidden = true;
+      if (fileName.toLowerCase().endsWith(".wav") && await this.tryLoadWavePcmDirectly(fileName)) {
+        return;
+      }
       const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
       try {
         this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, this.audioBytes, ENCODED_DECODE_TIMEOUT_MS);
@@ -6335,7 +6382,7 @@
     }
     loadWavePcmBytes(bytes, audioContext) {
       const parsed = parseWavePcmFormat(bytes);
-      if (!parsed) {
+      if (!parsed || parsed.bytes.byteLength === 0) {
         return false;
       }
       const decoded = decodePcm(parsed.bytes, parsed.format);
@@ -6406,10 +6453,10 @@
         this.syncPlaybackState({ redraw: this.playbackFrameId === void 0 });
       });
       this.elements.seek.addEventListener("input", () => {
-        if (!Number.isNaN(this.elements.audio.duration)) {
+        const duration = this.audioBuffer?.duration ?? this.elements.audio.duration;
+        if (!Number.isNaN(duration)) {
           this.selectionPlaybackEnd = void 0;
-          this.playheadTime = Number(this.elements.seek.value) / 1e3 * this.elements.audio.duration;
-          this.elements.audio.currentTime = this.playheadTime;
+          this.setPlaybackPosition(Number(this.elements.seek.value) / 1e3 * duration);
           this.updateClock();
           this.redrawVisuals();
         }
@@ -6561,13 +6608,16 @@
       });
     }
     async togglePlayback() {
+      if (this.audioBuffer) {
+        await this.toggleBufferPlayback();
+        return;
+      }
       if (!this.elements.audio.src) {
         this.reportPlaybackError(this.messages.audioNotReady);
         return;
       }
       try {
         if (this.elements.audio.paused) {
-          this.preparePlaybackStart();
           this.updateGainNode();
           if (this.playbackAudioContext?.state === "suspended") {
             await this.playbackAudioContext.resume();
@@ -6582,24 +6632,107 @@
         this.reportPlaybackError(message);
       }
     }
-    preparePlaybackStart() {
+    async toggleBufferPlayback() {
+      if (!this.audioBuffer) {
+        this.reportPlaybackError(this.messages.audioNotReady);
+        return;
+      }
+      try {
+        if (this.bufferPlaybackPaused) {
+          this.prepareBufferPlaybackStart();
+          await this.startBufferPlayback();
+        } else {
+          this.selectionPlaybackEnd = void 0;
+          this.pauseBufferPlayback();
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.reportPlaybackError(message);
+      }
+    }
+    prepareBufferPlaybackStart() {
       if (!this.audioBuffer) {
         return;
       }
       if (this.selection) {
-        this.elements.audio.currentTime = this.selection.start;
         this.playheadTime = this.selection.start;
         this.selectionPlaybackEnd = this.selection.end;
+        this.bufferPlaybackOffset = this.selection.start;
         this.redrawVisuals();
         return;
       }
-      if (this.playheadTime === void 0) {
-        this.elements.audio.currentTime = 0;
-        this.playheadTime = 0;
-        this.redrawVisuals();
+      const nextTime = this.playheadTime === void 0 ? 0 : clamp2(this.playheadTime, 0, this.audioBuffer.duration);
+      this.playheadTime = nextTime;
+      this.bufferPlaybackOffset = nextTime;
+      this.redrawVisuals();
+    }
+    async startBufferPlayback() {
+      if (!this.audioBuffer) {
         return;
       }
-      this.elements.audio.currentTime = clamp2(this.playheadTime, 0, this.audioBuffer.duration);
+      if (!this.playbackAudioContext) {
+        this.playbackAudioContext = new AudioContext();
+      }
+      if (this.playbackAudioContext.state === "suspended") {
+        await this.playbackAudioContext.resume();
+      }
+      this.stopBufferSource();
+      const source = this.playbackAudioContext.createBufferSource();
+      source.buffer = this.audioBuffer;
+      source.onended = () => {
+        if (this.playbackBufferSourceNode === source) {
+          this.finishBufferPlayback();
+        }
+      };
+      this.playbackBufferSourceNode = source;
+      this.playbackSourceNode = source;
+      this.bufferPlaybackStartedAt = this.playbackAudioContext.currentTime;
+      this.bufferPlaybackPaused = false;
+      this.updateGainNode();
+      source.start(0, this.bufferPlaybackOffset);
+      this.elements.play.textContent = "\u23F8";
+      this.startPlaybackTicker();
+    }
+    pauseBufferPlayback() {
+      const currentTime = this.currentPlaybackTime();
+      this.stopBufferSource();
+      this.bufferPlaybackPaused = true;
+      this.bufferPlaybackOffset = currentTime;
+      this.playheadTime = currentTime;
+      this.elements.play.textContent = "\u25B6";
+      this.stopPlaybackTicker();
+      this.syncPlaybackState({ redraw: true });
+    }
+    finishBufferPlayback() {
+      if (!this.audioBuffer) {
+        return;
+      }
+      const endTime = this.selectionPlaybackEnd ?? this.audioBuffer.duration;
+      this.playbackBufferSourceNode = void 0;
+      this.playbackSourceNode = void 0;
+      this.bufferPlaybackPaused = true;
+      this.selectionPlaybackEnd = void 0;
+      this.bufferPlaybackOffset = clamp2(endTime, 0, this.audioBuffer.duration);
+      this.playheadTime = this.bufferPlaybackOffset;
+      this.elements.play.textContent = "\u25B6";
+      this.stopPlaybackTicker();
+      this.syncPlaybackState({ redraw: true });
+    }
+    stopBufferSource() {
+      const source = this.playbackBufferSourceNode;
+      if (!source) {
+        return;
+      }
+      source.onended = null;
+      this.playbackBufferSourceNode = void 0;
+      if (this.playbackSourceNode === source) {
+        this.playbackSourceNode = void 0;
+      }
+      try {
+        source.stop();
+      } catch {
+      }
+      source.disconnect();
     }
     startPlaybackTicker() {
       if (this.playbackFrameId !== void 0) {
@@ -6607,7 +6740,7 @@
       }
       const tick = () => {
         this.syncPlaybackState({ redraw: true });
-        if (!this.elements.audio.paused) {
+        if (!this.isPlaybackPaused()) {
           this.playbackFrameId = requestAnimationFrame(tick);
         } else {
           this.playbackFrameId = void 0;
@@ -6624,18 +6757,27 @@
     }
     syncPlaybackState(options) {
       const audio = this.elements.audio;
-      if (this.selectionPlaybackEnd !== void 0 && audio.currentTime >= this.selectionPlaybackEnd) {
+      const currentTime = this.currentPlaybackTime();
+      const duration = this.audioBuffer?.duration ?? audio.duration;
+      if (this.selectionPlaybackEnd !== void 0 && currentTime >= this.selectionPlaybackEnd) {
         const end = this.selectionPlaybackEnd;
         this.selectionPlaybackEnd = void 0;
-        audio.pause();
-        audio.currentTime = end;
+        if (this.audioBuffer) {
+          this.stopBufferSource();
+          this.bufferPlaybackPaused = true;
+          this.bufferPlaybackOffset = end;
+          this.elements.play.textContent = "\u25B6";
+        } else {
+          audio.pause();
+          audio.currentTime = end;
+        }
         this.playheadTime = end;
       } else {
-        this.playheadTime = audio.currentTime;
+        this.playheadTime = currentTime;
       }
       this.updateClock();
-      if (!Number.isNaN(audio.duration) && audio.duration > 0) {
-        this.elements.seek.value = String(audio.currentTime / audio.duration * 1e3);
+      if (!Number.isNaN(duration) && duration > 0) {
+        this.elements.seek.value = String(this.currentPlaybackTime() / duration * 1e3);
       }
       this.followPlayheadDuringPlayback();
       if (options.redraw) {
@@ -6643,7 +6785,7 @@
       }
     }
     followPlayheadDuringPlayback() {
-      if (!this.audioBuffer || this.playheadTime === void 0 || this.elements.audio.paused) {
+      if (!this.audioBuffer || this.playheadTime === void 0 || this.isPlaybackPaused()) {
         return;
       }
       const range = this.visibleRange();
@@ -6714,9 +6856,14 @@
         this.redrawVisuals();
         return;
       }
-      this.elements.audio.pause();
-      this.elements.audio.currentTime = 0;
+      if (this.audioBuffer) {
+        this.pauseBufferPlayback();
+      } else {
+        this.elements.audio.pause();
+        this.elements.audio.currentTime = 0;
+      }
       this.playheadTime = void 0;
+      this.bufferPlaybackOffset = 0;
       this.dragPlayheadTime = void 0;
       this.selectionPlaybackEnd = void 0;
       this.elements.seek.value = "0";
@@ -7372,13 +7519,18 @@
       }
       if (this.objectUrl) {
         URL.revokeObjectURL(this.objectUrl);
+        this.objectUrl = void 0;
       }
-      this.objectUrl = URL.createObjectURL(new Blob([encodeWav(this.audioBuffer)], { type: "audio/wav" }));
-      this.elements.audio.src = this.objectUrl;
-      this.elements.audio.load();
+      this.stopBufferSource();
+      this.bufferPlaybackPaused = true;
+      this.bufferPlaybackOffset = 0;
+      this.elements.audio.removeAttribute("src");
       this.elements.seek.value = "0";
       this.updateClock();
-      this.elements.fileMeta.textContent = `${fileName} \xB7 ${this.audioBuffer.numberOfChannels}ch \xB7 ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
+      const fileMetaText = `${fileName} \xB7 ${this.audioBuffer.numberOfChannels}ch \xB7 ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
+      this.elements.fileMeta.textContent = fileMetaText;
+      this.elements.fileMeta.title = fileMetaText;
+      this.setStatus(this.messages.audioLoaded);
     }
     async applyPcmFormat(format, statusElement = this.elements.pcmStatus) {
       if (!this.audioBytes) {
@@ -8317,9 +8469,41 @@
       });
     }
     updateClock() {
-      const current = formatTime(this.elements.audio.currentTime || 0);
-      const duration = formatTime(Number.isFinite(this.elements.audio.duration) ? this.elements.audio.duration : 0);
+      const rawDuration = this.audioBuffer?.duration ?? this.elements.audio.duration;
+      const current = formatTime(this.currentPlaybackTime());
+      const duration = formatTime(Number.isFinite(rawDuration) ? rawDuration : 0);
       this.elements.clock.textContent = `${current} / ${duration}`;
+    }
+    currentPlaybackTime() {
+      if (this.audioBuffer) {
+        if (!this.bufferPlaybackPaused && this.playbackAudioContext) {
+          return clamp2(
+            this.bufferPlaybackOffset + this.playbackAudioContext.currentTime - this.bufferPlaybackStartedAt,
+            0,
+            this.audioBuffer.duration
+          );
+        }
+        return clamp2(this.playheadTime ?? this.bufferPlaybackOffset, 0, this.audioBuffer.duration);
+      }
+      return this.elements.audio.currentTime || 0;
+    }
+    isPlaybackPaused() {
+      return this.audioBuffer ? this.bufferPlaybackPaused : this.elements.audio.paused;
+    }
+    setPlaybackPosition(time) {
+      if (this.audioBuffer) {
+        const nextTime = clamp2(time, 0, this.audioBuffer.duration);
+        const wasPlaying = !this.bufferPlaybackPaused;
+        this.stopBufferSource();
+        this.bufferPlaybackPaused = !wasPlaying;
+        this.bufferPlaybackOffset = nextTime;
+        this.playheadTime = nextTime;
+        if (wasPlaying) {
+          void this.startBufferPlayback();
+        }
+        return;
+      }
+      this.elements.audio.currentTime = time;
     }
     setStatus(message, tone = "info") {
       this.elements.status.textContent = message;
@@ -8337,8 +8521,13 @@
     updateGainNode() {
       if (!this.playbackAudioContext) {
         this.playbackAudioContext = new AudioContext();
-        this.playbackSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
+      }
+      if (!this.playbackGainNode) {
         this.playbackGainNode = this.playbackAudioContext.createGain();
+      }
+      if (!this.audioBuffer && !this.playbackMediaSourceNode) {
+        this.playbackMediaSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
+        this.playbackSourceNode = this.playbackMediaSourceNode;
       }
       this.rebuildPlaybackChannelGraph();
       if (this.playbackGainNode) {
@@ -8544,7 +8733,7 @@
       this.updateSelectionAnalysis();
       this.playheadTime = clamp2(time, 0, this.audioBuffer.duration);
       this.dragPlayheadTime = void 0;
-      this.elements.audio.currentTime = this.playheadTime;
+      this.setPlaybackPosition(this.playheadTime);
       this.updateClock();
       this.redrawVisuals();
     }
@@ -8555,7 +8744,7 @@
       const time = this.timeFromCanvasX(canvas, clientX);
       this.dragPlayheadTime = clamp2(time, 0, this.audioBuffer.duration);
       this.drawTimeline();
-      if (this.elements.audio.paused) {
+      if (this.isPlaybackPaused()) {
         this.drawTrackVisuals();
       }
     }
@@ -8573,8 +8762,8 @@
       this.hideSelectionContextMenu();
       this.playheadTime = selection.start;
       this.dragPlayheadTime = void 0;
-      this.selectionPlaybackEnd = this.elements.audio.paused ? void 0 : selection.end;
-      this.elements.audio.currentTime = selection.start;
+      this.selectionPlaybackEnd = this.isPlaybackPaused() ? void 0 : selection.end;
+      this.setPlaybackPosition(selection.start);
       this.updateClock();
       this.updateSelectionAnalysis();
       this.redrawVisuals();
@@ -9064,42 +9253,6 @@
       }
     }
   }
-  function encodeWav(audioBuffer, startFrame = 0, endFrame = audioBuffer.length) {
-    const channels = audioBuffer.numberOfChannels;
-    const sampleRate = audioBuffer.sampleRate;
-    const start = clamp2(Math.floor(startFrame), 0, audioBuffer.length);
-    const end = clamp2(Math.ceil(endFrame), start, audioBuffer.length);
-    const frames = end - start;
-    const bytesPerSample = 2;
-    const blockAlign = channels * bytesPerSample;
-    const dataSize = frames * blockAlign;
-    const buffer = new ArrayBuffer(44 + dataSize);
-    const view = new DataView(buffer);
-    writeAscii(view, 0, "RIFF");
-    view.setUint32(4, 36 + dataSize, true);
-    writeAscii(view, 8, "WAVE");
-    writeAscii(view, 12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, channels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * blockAlign, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, 16, true);
-    writeAscii(view, 36, "data");
-    view.setUint32(40, dataSize, true);
-    const channelData = Array.from({ length: channels }, (_, channel) => audioBuffer.getChannelData(channel));
-    let offset = 44;
-    for (let frame = 0; frame < frames; frame += 1) {
-      const sourceFrame = start + frame;
-      for (let channel = 0; channel < channels; channel += 1) {
-        const value = clamp2(channelData[channel][sourceFrame] ?? 0, -1, 1);
-        view.setInt16(offset, value < 0 ? value * 32768 : value * 32767, true);
-        offset += bytesPerSample;
-      }
-    }
-    return buffer;
-  }
   async function encodeWavAsync(audioBuffer, startFrame = 0, endFrame = audioBuffer.length) {
     const channels = audioBuffer.numberOfChannels;
     const sampleRate = audioBuffer.sampleRate;
@@ -9365,16 +9518,17 @@
       const chunkId = asciiAt(bytes, offset, 4);
       const chunkSize = readUint32Le(bytes, offset + 4);
       const payloadOffset = offset + 8;
+      if (chunkId === "data") {
+        dataOffset = payloadOffset;
+        dataSize = resolveWaveDataSize(chunkSize, bytes.byteLength - payloadOffset);
+        break;
+      }
       if (payloadOffset + chunkSize > bytes.byteLength) {
         return void 0;
       }
       if (chunkId === "fmt ") {
         fmtOffset = payloadOffset;
         fmtSize = chunkSize;
-      } else if (chunkId === "data") {
-        dataOffset = payloadOffset;
-        dataSize = chunkSize;
-        break;
       }
       offset = payloadOffset + chunkSize + chunkSize % 2;
     }
@@ -9408,6 +9562,26 @@
         startOffsetBytes: 0
       }
     };
+  }
+  function isEmptyWaveFile(bytes) {
+    if (bytes.byteLength < 44 || asciiAt(bytes, 0, 4) !== "RIFF" || asciiAt(bytes, 8, 4) !== "WAVE") {
+      return false;
+    }
+    let offset = 12;
+    while (offset + 8 <= bytes.byteLength) {
+      const chunkId = asciiAt(bytes, offset, 4);
+      const chunkSize = readUint32Le(bytes, offset + 4);
+      const payloadOffset = offset + 8;
+      if (chunkId === "data") {
+        return resolveWaveDataSize(chunkSize, bytes.byteLength - payloadOffset) === 0;
+      }
+      const nextOffset = payloadOffset + chunkSize + chunkSize % 2;
+      if (nextOffset <= offset || nextOffset > bytes.byteLength) {
+        return false;
+      }
+      offset = nextOffset;
+    }
+    return false;
   }
   function waveAudioFormatToPcmSampleFormat(audioFormat, bitsPerSample) {
     if (audioFormat === 1) {
@@ -9616,17 +9790,34 @@
       background: var(--vscode-sideBar-background);
     }
     .topbar {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-auto-rows: auto;
+      align-items: center;
     }
     .identity {
+      grid-column: 1;
+      grid-row: 1;
       min-width: 0;
       display: flex;
       align-items: baseline;
       gap: 10px;
-      flex: 1;
+      flex: 1 1 auto;
+    }
+    .topbarTools {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      flex: 0 0 auto;
+      min-width: max-content;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .gainControl {
       position: relative;
+      flex: 0 0 auto;
       display: grid;
       grid-template-columns: 6ch 80px;
       grid-template-rows: 14px 22px;
@@ -9695,8 +9886,29 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    #fileMeta {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      cursor: text;
+      user-select: text;
+      scrollbar-width: none;
+    }
+    #fileMeta:hover,
+    #fileMeta:focus,
+    #fileMeta:active {
+      overflow-x: auto;
+      text-overflow: clip;
+    }
+    #fileMeta::-webkit-scrollbar {
+      display: none;
+    }
     .status {
+      grid-column: 1 / -1;
       color: var(--vscode-notificationsInfoIcon-foreground);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
     .status.isWarning {

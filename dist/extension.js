@@ -46,6 +46,46 @@ var vscode = __toESM(require("vscode"));
 // src/shared/protocol.ts
 var DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024;
 
+// src/ffmpegWav.ts
+var RIFF_HEADER_SIZE = 12;
+var CHUNK_HEADER_SIZE = 8;
+var UNKNOWN_WAV_SIZE = 4294967295;
+function normalizePipedWavSizes(bytes) {
+  if (bytes.byteLength < RIFF_HEADER_SIZE || asciiAt(bytes, 0) !== "RIFF" || asciiAt(bytes, 8) !== "WAVE" || bytes.byteLength - 8 > UNKNOWN_WAV_SIZE) {
+    return;
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  view.setUint32(4, bytes.byteLength - 8, true);
+  let offset = RIFF_HEADER_SIZE;
+  while (offset + CHUNK_HEADER_SIZE <= bytes.byteLength) {
+    const chunkId = asciiAt(bytes, offset);
+    const chunkSize = view.getUint32(offset + 4, true);
+    const payloadOffset = offset + CHUNK_HEADER_SIZE;
+    if (chunkId === "data") {
+      const remainingBytes = bytes.byteLength - payloadOffset;
+      const normalizedSize = resolveWaveDataSize(chunkSize, remainingBytes);
+      if (normalizedSize !== chunkSize) {
+        view.setUint32(offset + 4, normalizedSize, true);
+      }
+      return;
+    }
+    const nextOffset = payloadOffset + chunkSize + chunkSize % 2;
+    if (nextOffset <= offset || nextOffset > bytes.byteLength) {
+      return;
+    }
+    offset = nextOffset;
+  }
+}
+function resolveWaveDataSize(chunkSize, remainingBytes) {
+  if (chunkSize === 0 && remainingBytes > 0 || chunkSize === UNKNOWN_WAV_SIZE || chunkSize > remainingBytes) {
+    return remainingBytes;
+  }
+  return chunkSize;
+}
+function asciiAt(bytes, offset) {
+  return String.fromCharCode(bytes[offset] ?? 0, bytes[offset + 1] ?? 0, bytes[offset + 2] ?? 0, bytes[offset + 3] ?? 0);
+}
+
 // src/util.ts
 var import_node_crypto = require("node:crypto");
 function getNonce() {
@@ -959,7 +999,9 @@ async function runFfmpegToWav(inputPath, maxOutputBytes) {
       settled = true;
       clearTimeout(timeout);
       if (code === 0) {
-        resolve2(new Uint8Array(Buffer.concat(stdout)));
+        const output = Buffer.concat(stdout);
+        normalizePipedWavSizes(output);
+        resolve2(new Uint8Array(output));
         return;
       }
       const detail = Buffer.concat(stderr).toString("utf8").trim();
@@ -1417,7 +1459,7 @@ async function resolveAudioPath(value, sourceUri) {
   for (const candidate of candidates) {
     try {
       const stat = await vscode2.workspace.fs.stat(candidate);
-      if (stat.type === vscode2.FileType.File) {
+      if ((stat.type & vscode2.FileType.File) !== 0) {
         return candidate;
       }
     } catch {
