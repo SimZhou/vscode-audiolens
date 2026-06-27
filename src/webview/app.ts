@@ -159,6 +159,8 @@ const TRACK_WAVE_DEFAULT_FR = 0.38;
 const TRACK_SPEC_DEFAULT_FR = 0.62;
 const TRACK_WAVE_MIN_PX = 90;
 const TRACK_SPEC_MIN_PX = 160;
+// trackRow 使用 border-box，需要为上下边框各预留 1px。
+const TRACK_BOTH_MIN_H = TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX + 2;
 const SELECTION_SPECTRUM_DELAY_MS = 80;
 const BAND_LIMITS = [
   { labelKey: "frequencyBand0To250", min: 0, max: 250 },
@@ -3232,7 +3234,7 @@ export class AudioLensApp {
         return;
       }
       // both 模式下 trackBody 内波形/频谱各有 minmax 下限，需保留两者最小高度之和；单视图模式用通用下限。
-      const minH = view.mode === "both" ? TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX : TRACK_ROW_MIN_H;
+      const minH = view.mode === "both" ? TRACK_BOTH_MIN_H : TRACK_ROW_MIN_H;
       const next = Math.max(minH, startHeight + event.clientY - startY);
       if (next === view.rowHeight) {
         return;
@@ -3414,6 +3416,10 @@ export class AudioLensApp {
 
   private applyTrackMode(view: TrackView): void {
     view.row.dataset.mode = view.mode;
+    if (view.mode === "both" && view.rowHeight < TRACK_BOTH_MIN_H) {
+      view.rowHeight = TRACK_BOTH_MIN_H;
+      this.applyTrackLayout(view);
+    }
   }
 
   private applyDefaultTrackModeToCurrentTracks(): void {

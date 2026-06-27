@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0
+
+Resizable track layout update.
+
+- Added per-track vertical resizing and an adjustable split between waveform and spectrogram in combined view.
+- Persisted the track height and waveform/spectrogram ratio as defaults for newly opened audio, with double-click reset support.
+- Kept resize hit targets centered on visible boundaries without drawing an overlay bar over the audio visualization.
+- When switching from a compact single view back to combined view, automatically restore the minimum height required to show both waveform and spectrogram.
+
 ## 1.4.4
 
 Audio path manifest parsing update.

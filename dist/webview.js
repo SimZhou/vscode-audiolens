@@ -4789,6 +4789,7 @@
   var TRACK_SPEC_DEFAULT_FR = 0.62;
   var TRACK_WAVE_MIN_PX = 90;
   var TRACK_SPEC_MIN_PX = 160;
+  var TRACK_BOTH_MIN_H = TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX + 2;
   var SELECTION_SPECTRUM_DELAY_MS = 80;
   var BAND_LIMITS = [
     { labelKey: "frequencyBand0To250", min: 0, max: 250 },
@@ -7714,7 +7715,7 @@
         if (!handle.hasPointerCapture(event.pointerId)) {
           return;
         }
-        const minH = view.mode === "both" ? TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX : TRACK_ROW_MIN_H;
+        const minH = view.mode === "both" ? TRACK_BOTH_MIN_H : TRACK_ROW_MIN_H;
         const next = Math.max(minH, startHeight + event.clientY - startY);
         if (next === view.rowHeight) {
           return;
@@ -7878,6 +7879,10 @@
     }
     applyTrackMode(view) {
       view.row.dataset.mode = view.mode;
+      if (view.mode === "both" && view.rowHeight < TRACK_BOTH_MIN_H) {
+        view.rowHeight = TRACK_BOTH_MIN_H;
+        this.applyTrackLayout(view);
+      }
     }
     applyDefaultTrackModeToCurrentTracks() {
       for (const view of this.trackViews) {
@@ -10015,7 +10020,7 @@
       min-height: 132px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
-      overflow: hidden;
+      overflow: visible;
       background: var(--vscode-editor-background);
     }
     .trackRow:first-child {
@@ -10038,8 +10043,10 @@
       align-items: stretch;
       gap: 6px;
       padding: 8px;
+      overflow: hidden;
       border: 0;
       border-right: 1px solid var(--vscode-panel-border);
+      border-radius: 5px 0 0 5px;
       color: var(--vscode-descriptionForeground);
       background: var(--vscode-editor-background);
     }
@@ -10108,6 +10115,8 @@
       min-width: 0;
       min-height: 0;
       gap: 0;
+      overflow: hidden;
+      border-radius: 0 5px 5px 0;
     }
     .trackRow[data-mode="waveform"] .trackBody,
     .trackRow[data-mode="spectrogram"] .trackBody {
@@ -10135,20 +10144,14 @@
       z-index: 6;
       cursor: ns-resize;
       background: transparent;
-      transition: background 120ms ease;
     }
     .trackRowHandle {
       bottom: 0;
+      transform: translateY(50%);
     }
     .trackSplitHandle {
       top: 0;
       transform: translateY(-50%);
-    }
-    .trackRowHandle:hover,
-    .trackSplitHandle:hover,
-    .trackRowHandle:active,
-    .trackSplitHandle:active {
-      background: var(--vscode-focusBorder);
     }
     .trackRow[data-mode="waveform"] .trackSplitHandle,
     .trackRow[data-mode="spectrogram"] .trackSplitHandle {

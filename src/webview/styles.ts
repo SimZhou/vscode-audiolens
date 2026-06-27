@@ -445,7 +445,7 @@ export function injectStyles(): void {
       min-height: 132px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
-      overflow: hidden;
+      overflow: visible;
       background: var(--vscode-editor-background);
     }
     .trackRow:first-child {
@@ -468,8 +468,10 @@ export function injectStyles(): void {
       align-items: stretch;
       gap: 6px;
       padding: 8px;
+      overflow: hidden;
       border: 0;
       border-right: 1px solid var(--vscode-panel-border);
+      border-radius: 5px 0 0 5px;
       color: var(--vscode-descriptionForeground);
       background: var(--vscode-editor-background);
     }
@@ -538,6 +540,8 @@ export function injectStyles(): void {
       min-width: 0;
       min-height: 0;
       gap: 0;
+      overflow: hidden;
+      border-radius: 0 5px 5px 0;
     }
     .trackRow[data-mode="waveform"] .trackBody,
     .trackRow[data-mode="spectrogram"] .trackBody {
@@ -565,20 +569,14 @@ export function injectStyles(): void {
       z-index: 6;
       cursor: ns-resize;
       background: transparent;
-      transition: background 120ms ease;
     }
     .trackRowHandle {
       bottom: 0;
+      transform: translateY(50%);
     }
     .trackSplitHandle {
       top: 0;
       transform: translateY(-50%);
-    }
-    .trackRowHandle:hover,
-    .trackSplitHandle:hover,
-    .trackRowHandle:active,
-    .trackSplitHandle:active {
-      background: var(--vscode-focusBorder);
     }
     .trackRow[data-mode="waveform"] .trackSplitHandle,
     .trackRow[data-mode="spectrogram"] .trackSplitHandle {

@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens — Audio inspection for VS Code",
   "description": "Audio viewer for speech and ML workflows with waveforms, spectrograms, raw PCM, Kaldi wav ark, and Remote SSH support.",
-  "version": "1.4.4",
+  "version": "1.5.0",
   "publisher": "simzhou",
   "license": "Apache-2.0",
   "icon": "logo/icon.png",
@@ -284,7 +284,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.4.4.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.5.0.vsix",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {

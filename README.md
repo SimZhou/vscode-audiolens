@@ -72,7 +72,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 | Area | Features |
 | --- | --- |
 | Playback | Keyboard-ready `Space` play/pause, seek, selection playback, playback gain, per-channel mute and solo. |
-| Visualization | Waveform, spectrogram, combined view, shared timeline, configurable track heights, zoom, pan, and reset. |
+| Visualization | Waveform, spectrogram, combined view, shared timeline, draggable per-track height and waveform/spectrogram split, zoom, pan, and reset. |
 | Spectrogram analysis | Frequency, reassignment, and pitch (EAC) algorithms; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, and auto brightness. |
 | File inspection | Structured header inspector for WAV/RIFF, FLAC, Ogg, MP4/M4A, AAC/ADTS, and MP3/MPEG frames. |
 | Dataset navigation | Hover/status-bar/command entry points for audio paths in ordinary text files without generating thousands of inline links. |
@@ -97,7 +97,7 @@ code --install-extension simzhou.audiolens
 **Offline VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.4.4.vsix
+code --install-extension dist/audiolens-1.5.0.vsix
 ```
 
 ## Feature Demos
@@ -167,6 +167,8 @@ Multi-channel files are shown as separate channel tracks. Each track has a compa
 - `Mute` disables playback for that channel.
 - `Solo` plays that channel and silences the other channels.
 - The track view selector switches a channel between waveform, spectrogram, and combined view.
+- Drag the bottom edge of a track to change its height. In combined view, drag the boundary between waveform and spectrogram to change their ratio.
+- Double-click either draggable boundary to restore the saved default layout. The latest layout is reused when opening other audio files.
 - Selecting a track makes it the active channel for selection analysis.
 
 The waveform color is consistent across channels so the selected channel does not visually distort track comparison. Adjacent tracks are drawn as a compact stack with shared borders, while the selected track keeps a rounded focus outline for quick orientation.
