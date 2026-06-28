@@ -97,7 +97,7 @@ code --install-extension simzhou.audiolens
 **オフライン VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.5.1.vsix
+code --install-extension dist/audiolens-1.5.2.vsix
 ```
 
 ## デモ
@@ -184,6 +184,8 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 - 開始オフセットのバイト数
 
 現在の PCM パラメータは既定値として保存でき、次回以降の PCM ファイルに再利用できます。Raw PCM には信頼できるメタデータが含まれないため、AudioLens はファイル名やディレクトリ名からパラメータを推定しません。
+
+読み込み成功後または既定値の保存後、PCM ファイルパラメータパネルはコンパクトな概要へ折りたたまれ、**パラメータを編集** 操作から再編集できます。これにより波形とスペクトログラムの縦方向スペースを広く保てます。
 
 WAV ファイルも上部バーから PCM として読み直せます。この操作は現在のファイルに対する一時的な処理で、raw payload、非標準ヘッダー、オフセットに敏感なテストファイルの確認に役立ちます。
 

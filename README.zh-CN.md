@@ -97,7 +97,7 @@ code --install-extension simzhou.audiolens
 **离线 VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.5.1.vsix
+code --install-extension dist/audiolens-1.5.2.vsix
 ```
 
 ## 功能演示
@@ -184,6 +184,8 @@ AudioLens 会优先使用 Webview 的浏览器解码能力处理常见音频格�
 - 起始偏移字节数
 
 当前 PCM 参数可以保存为默认值，后续打开 PCM 文件时继续使用。AudioLens 不会从文件名或目录名猜测 PCM 参数，因为原始 PCM 本身不包含可靠元数据。
+
+读取成功或保存默认参数后，PCM 文件参数面板会折叠为紧凑摘要，并保留“修改参数”入口，为波形图和频谱图释放更多纵向空间。
 
 WAV 文件也可以从顶部菜单按 PCM 方式重新读取。这个操作只针对当前文件生效，适合检查原始音频数据、非标准 header 或对偏移敏感的测试文件。
 

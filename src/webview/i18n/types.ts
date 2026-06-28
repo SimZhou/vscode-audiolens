@@ -96,6 +96,7 @@ export interface LocaleMessages {
   resetView: string;
   pcmReadAs: string;
   pcmParams: string;
+  editPcmParams: string;
   wavPcmRead: string;
   currentFileOnly: string;
   sampleRate: string;

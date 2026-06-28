@@ -1050,7 +1050,8 @@
     arkOffsetLabel: "ARK-Offset",
     settings: "Einstellungen",
     pcmReadAs: "Als PCM lesen",
-    pcmParams: "PCM-Parameter",
+    pcmParams: "PCM-Dateiparameter",
+    editPcmParams: "Parameter bearbeiten",
     wavPcmRead: "WAV als PCM lesen",
     currentFileOnly: "Nur aktuelle Datei",
     sampleRate: "Abtastrate",
@@ -1229,7 +1230,8 @@
     refreshSpectrogram: "Refresh spectrogram",
     resetView: "Reset view",
     pcmReadAs: "Read as PCM",
-    pcmParams: "PCM parameters",
+    pcmParams: "PCM file parameters",
+    editPcmParams: "Edit parameters",
     wavPcmRead: "Read WAV as PCM",
     currentFileOnly: "Current file only",
     sampleRate: "Sample rate",
@@ -1404,7 +1406,8 @@
     arkOffsetLabel: "Offset ARK",
     settings: "Ajustes",
     pcmReadAs: "Leer como PCM",
-    pcmParams: "Par\xE1metros PCM",
+    pcmParams: "Par\xE1metros de archivo PCM",
+    editPcmParams: "Editar par\xE1metros",
     wavPcmRead: "Leer WAV como PCM",
     currentFileOnly: "Solo archivo actual",
     sampleRate: "Frecuencia de muestreo",
@@ -1581,7 +1584,8 @@
     arkOffsetLabel: "Offset ARK",
     settings: "R\xE9glages",
     pcmReadAs: "Lire en PCM",
-    pcmParams: "Param\xE8tres PCM",
+    pcmParams: "Param\xE8tres du fichier PCM",
+    editPcmParams: "Modifier les param\xE8tres",
     wavPcmRead: "Lire le WAV en PCM",
     currentFileOnly: "Fichier courant seulement",
     sampleRate: "Fr\xE9quence d'\xE9chantillonnage",
@@ -1758,7 +1762,8 @@
     arkOffsetLabel: "Offset ARK",
     settings: "Pengaturan",
     pcmReadAs: "Baca sebagai PCM",
-    pcmParams: "Parameter PCM",
+    pcmParams: "Parameter file PCM",
+    editPcmParams: "Edit parameter",
     wavPcmRead: "Baca WAV sebagai PCM",
     currentFileOnly: "Hanya file saat ini",
     sampleRate: "Sample rate",
@@ -1935,7 +1940,8 @@
     arkOffsetLabel: "Offset ARK",
     settings: "Impostazioni",
     pcmReadAs: "Leggi come PCM",
-    pcmParams: "Parametri PCM",
+    pcmParams: "Parametri file PCM",
+    editPcmParams: "Modifica parametri",
     wavPcmRead: "Leggi WAV come PCM",
     currentFileOnly: "Solo file corrente",
     sampleRate: "Frequenza di campionamento",
@@ -2114,7 +2120,8 @@
     refreshSpectrogram: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u3092\u66F4\u65B0",
     resetView: "\u8868\u793A\u3092\u30EA\u30BB\u30C3\u30C8",
     pcmReadAs: "PCM \u3068\u3057\u3066\u8AAD\u307F\u8FBC\u3080",
-    pcmParams: "PCM \u30D1\u30E9\u30E1\u30FC\u30BF",
+    pcmParams: "PCM \u30D5\u30A1\u30A4\u30EB\u30D1\u30E9\u30E1\u30FC\u30BF",
+    editPcmParams: "\u30D1\u30E9\u30E1\u30FC\u30BF\u3092\u7DE8\u96C6",
     wavPcmRead: "WAV \u3092 PCM \u3068\u3057\u3066\u8AAD\u307F\u8FBC\u3080",
     currentFileOnly: "\u73FE\u5728\u306E\u30D5\u30A1\u30A4\u30EB\u306E\u307F",
     sampleRate: "\u30B5\u30F3\u30D7\u30EB\u30EC\u30FC\u30C8",
@@ -2289,7 +2296,8 @@
     arkOffsetLabel: "ARK \uC624\uD504\uC14B",
     settings: "\uC124\uC815",
     pcmReadAs: "PCM\uC73C\uB85C \uC77D\uAE30",
-    pcmParams: "PCM \uB9E4\uAC1C\uBCC0\uC218",
+    pcmParams: "PCM \uD30C\uC77C \uB9E4\uAC1C\uBCC0\uC218",
+    editPcmParams: "\uB9E4\uAC1C\uBCC0\uC218 \uC218\uC815",
     wavPcmRead: "WAV\uB97C PCM\uC73C\uB85C \uC77D\uAE30",
     currentFileOnly: "\uD604\uC7AC \uD30C\uC77C\uB9CC",
     sampleRate: "\uC0D8\uD50C\uB808\uC774\uD2B8",
@@ -2466,7 +2474,8 @@
     arkOffsetLabel: "ARK-offset",
     settings: "Instellingen",
     pcmReadAs: "Als PCM lezen",
-    pcmParams: "PCM-parameters",
+    pcmParams: "PCM-bestandsparameters",
+    editPcmParams: "Parameters bewerken",
     wavPcmRead: "WAV als PCM lezen",
     currentFileOnly: "Alleen huidig bestand",
     sampleRate: "Samplefrequentie",
@@ -2643,7 +2652,8 @@
     arkOffsetLabel: "ARK-offset",
     settings: "Innstillinger",
     pcmReadAs: "Les som PCM",
-    pcmParams: "PCM-parametere",
+    pcmParams: "PCM-filparametere",
+    editPcmParams: "Rediger parametere",
     wavPcmRead: "Les WAV som PCM",
     currentFileOnly: "Bare gjeldende fil",
     sampleRate: "Samplingsrate",
@@ -2820,7 +2830,8 @@
     arkOffsetLabel: "Offset ARK",
     settings: "Ustawienia",
     pcmReadAs: "Czytaj jako PCM",
-    pcmParams: "Parametry PCM",
+    pcmParams: "Parametry pliku PCM",
+    editPcmParams: "Edytuj parametry",
     wavPcmRead: "Czytaj WAV jako PCM",
     currentFileOnly: "Tylko bie\u017C\u0105cy plik",
     sampleRate: "Cz\u0119stotliwo\u015B\u0107 pr\xF3bkowania",
@@ -2997,7 +3008,8 @@
     arkOffsetLabel: "Offset ARK",
     settings: "Ajustes",
     pcmReadAs: "Ler como PCM",
-    pcmParams: "Par\xE2metros PCM",
+    pcmParams: "Par\xE2metros do arquivo PCM",
+    editPcmParams: "Editar par\xE2metros",
     wavPcmRead: "Ler WAV como PCM",
     currentFileOnly: "Somente arquivo atual",
     sampleRate: "Taxa de amostragem",
@@ -3174,7 +3186,8 @@
     arkOffsetLabel: "\u0421\u043C\u0435\u0449\u0435\u043D\u0438\u0435 ARK",
     settings: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     pcmReadAs: "\u0427\u0438\u0442\u0430\u0442\u044C \u043A\u0430\u043A PCM",
-    pcmParams: "\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B PCM",
+    pcmParams: "\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B PCM-\u0444\u0430\u0439\u043B\u0430",
+    editPcmParams: "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B",
     wavPcmRead: "\u0427\u0438\u0442\u0430\u0442\u044C WAV \u043A\u0430\u043A PCM",
     currentFileOnly: "\u0422\u043E\u043B\u044C\u043A\u043E \u0442\u0435\u043A\u0443\u0449\u0438\u0439 \u0444\u0430\u0439\u043B",
     sampleRate: "\u0427\u0430\u0441\u0442\u043E\u0442\u0430 \u0434\u0438\u0441\u043A\u0440\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
@@ -3351,7 +3364,8 @@
     arkOffsetLabel: "ARK offseti",
     settings: "Ayarlar",
     pcmReadAs: "PCM olarak oku",
-    pcmParams: "PCM parametreleri",
+    pcmParams: "PCM dosya parametreleri",
+    editPcmParams: "Parametreleri d\xFCzenle",
     wavPcmRead: "WAV'i PCM olarak oku",
     currentFileOnly: "Yaln\u0131zca ge\xE7erli dosya",
     sampleRate: "\xD6rnekleme h\u0131z\u0131",
@@ -3528,7 +3542,8 @@
     arkOffsetLabel: "Offset ARK",
     settings: "C\xE0i \u0111\u1EB7t",
     pcmReadAs: "\u0110\u1ECDc nh\u01B0 PCM",
-    pcmParams: "Tham s\u1ED1 PCM",
+    pcmParams: "Tham s\u1ED1 t\u1EC7p PCM",
+    editPcmParams: "S\u1EEDa tham s\u1ED1",
     wavPcmRead: "\u0110\u1ECDc WAV nh\u01B0 PCM",
     currentFileOnly: "Ch\u1EC9 t\u1EC7p hi\u1EC7n t\u1EA1i",
     sampleRate: "T\u1EA7n s\u1ED1 l\u1EA5y m\u1EABu",
@@ -3707,7 +3722,8 @@
     refreshSpectrogram: "\u5237\u65B0\u9891\u8C31\u56FE",
     resetView: "\u91CD\u7F6E\u89C6\u56FE",
     pcmReadAs: "\u6309 PCM \u8BFB\u53D6",
-    pcmParams: "PCM \u53C2\u6570",
+    pcmParams: "PCM \u6587\u4EF6\u53C2\u6570",
+    editPcmParams: "\u4FEE\u6539\u53C2\u6570",
     wavPcmRead: "WAV \u6309 PCM \u8BFB\u53D6",
     currentFileOnly: "\u4EC5\u5BF9\u5F53\u524D\u6587\u4EF6\u751F\u6548",
     sampleRate: "\u91C7\u6837\u7387",
@@ -3882,7 +3898,8 @@
     arkOffsetLabel: "ARK \u504F\u79FB",
     settings: "\u8A2D\u5B9A",
     pcmReadAs: "\u6309 PCM \u8B80\u53D6",
-    pcmParams: "PCM \u53C3\u6578",
+    pcmParams: "PCM \u6A94\u6848\u53C3\u6578",
+    editPcmParams: "\u4FEE\u6539\u53C3\u6578",
     wavPcmRead: "WAV \u6309 PCM \u8B80\u53D6",
     currentFileOnly: "\u50C5\u5C0D\u76EE\u524D\u6A94\u6848\u751F\u6548",
     sampleRate: "\u53D6\u6A23\u7387",
@@ -4197,50 +4214,55 @@
         <div id="status" class="status" data-i18n="initializing" hidden>Initializing</div>
         <section id="pcmPanel" class="pcmPanel topPcmPanel" hidden>
           <div class="paneTitle" data-i18n="pcmParams">PCM parameters</div>
-          <label>
-            <span data-i18n="sampleRate">Sample rate</span>
-            <input id="pcmSampleRate" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="16000" />
-          </label>
-          <label>
-            <span data-i18n="channels">Channels</span>
-            <input id="pcmChannels" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="1" />
-          </label>
-          <label>
-            <span data-i18n="startOffsetBytes">Offset (B)</span>
-            <input id="pcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
-          </label>
-          <label>
-            <span data-i18n="bitDepth">Encoding</span>
-            <select id="pcmEncoding">
-              <option value="signed-8">Signed 8-bit PCM</option>
-              <option value="signed-16" selected>Signed 16-bit PCM</option>
-              <option value="signed-24">Signed 24-bit PCM</option>
-              <option value="signed-32">Signed 32-bit PCM</option>
-              <option value="unsigned-8">Unsigned 8-bit PCM</option>
-              <option value="float-32">32-bit float</option>
-              <option value="float-64">64-bit float</option>
-              <option value="u-law" disabled>U-law (soon)</option>
-              <option value="a-law" disabled>A-law (soon)</option>
-              <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
-              <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
-              <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
-              <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
-              <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
-              <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
-              <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
-              <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
-            </select>
-          </label>
-          <label>
-            <span data-i18n="endianness">Endian</span>
-            <select id="pcmEndianness">
-              <option value="none">None</option>
-              <option value="little">LE</option>
-              <option value="big">BE</option>
-            </select>
-          </label>
-          <button id="pcmApply" class="secondary" data-i18n="read">Read</button>
-          <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
+          <div class="pcmFields">
+            <label>
+              <span data-i18n="sampleRate">Sample rate</span>
+              <input id="pcmSampleRate" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="16000" />
+            </label>
+            <label>
+              <span data-i18n="channels">Channels</span>
+              <input id="pcmChannels" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="1" />
+            </label>
+            <label>
+              <span data-i18n="startOffsetBytes">Offset (B)</span>
+              <input id="pcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
+            </label>
+            <label>
+              <span data-i18n="bitDepth">Encoding</span>
+              <select id="pcmEncoding">
+                <option value="signed-8">Signed 8-bit PCM</option>
+                <option value="signed-16" selected>Signed 16-bit PCM</option>
+                <option value="signed-24">Signed 24-bit PCM</option>
+                <option value="signed-32">Signed 32-bit PCM</option>
+                <option value="unsigned-8">Unsigned 8-bit PCM</option>
+                <option value="float-32">32-bit float</option>
+                <option value="float-64">64-bit float</option>
+                <option value="u-law" disabled>U-law (soon)</option>
+                <option value="a-law" disabled>A-law (soon)</option>
+                <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
+                <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
+                <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
+                <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
+                <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
+                <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
+                <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
+                <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="endianness">Endian</span>
+              <select id="pcmEndianness">
+                <option value="none">None</option>
+                <option value="little">LE</option>
+                <option value="big">BE</option>
+              </select>
+            </label>
+          </div>
+          <div class="pcmActions">
+            <button id="pcmApply" class="secondary" data-i18n="read">Read</button>
+            <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
+          </div>
+          <button id="pcmEdit" class="secondary pcmEdit" data-i18n="editPcmParams" hidden>Edit parameters</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
         <div class="topbarTools">
@@ -4710,6 +4732,7 @@
       fftSize: query("#fftSize", HTMLSelectElement),
       channel: query("#channel", HTMLSelectElement),
       pcmPanel: query("#pcmPanel", HTMLElement),
+      pcmEdit: query("#pcmEdit", HTMLButtonElement),
       pcmReveal: query("#pcmReveal", HTMLButtonElement),
       headerInfo: query("#headerInfo", HTMLButtonElement),
       headerInfoPanel: query("#headerInfoPanel", HTMLElement),
@@ -6398,6 +6421,7 @@
       this.elements.pcmReveal.hidden = true;
       this.elements.wavPcmPanel.hidden = true;
       this.clearDecodedAudio();
+      this.setPcmPanelCollapsed(false);
       if (this.defaultPcmFormat) {
         this.writePcmControls(this.defaultPcmFormat);
         this.setPcmStatus(this.elements.pcmStatus, this.messages.pcmUsedDefaultParams);
@@ -6489,6 +6513,9 @@
       });
       this.elements.pcmPanel.addEventListener("keydown", (event) => {
         this.handlePcmPanelEnter(event, () => this.applyPcmFormat(this.readPcmControls()));
+      });
+      this.elements.pcmEdit.addEventListener("click", () => {
+        this.setPcmPanelCollapsed(false);
       });
       this.elements.wavPcmPanel.addEventListener("keydown", (event) => {
         this.handlePcmPanelEnter(event, () => this.applyWavPcmFormat());
@@ -7539,6 +7566,9 @@
       const error = validatePcmFormat(this.audioBytes, format);
       if (error) {
         this.setPcmStatus(statusElement, error);
+        if (statusElement === this.elements.pcmStatus) {
+          this.setPcmPanelCollapsed(false);
+        }
         this.setStatus(error);
         return false;
       }
@@ -7567,6 +7597,9 @@
         this.scheduleAnalyze(0);
       }
       this.setPcmStatus(statusElement, this.formatPcmStatus({ kind: "current", format }), { kind: "current", format });
+      if (statusElement === this.elements.pcmStatus) {
+        this.setPcmPanelCollapsed(true);
+      }
       this.setStatus(this.messages.ready);
       return true;
     }
@@ -7641,6 +7674,7 @@
       this.defaultPcmFormat = format;
       this.vscode.postMessage({ type: "updatePreferences", preferences: this.collectPreferences() });
       this.setPcmStatus(this.elements.pcmStatus, this.formatPcmStatus({ kind: "savedDefault", format }), { kind: "savedDefault", format });
+      this.setPcmPanelCollapsed(true);
     }
     setPcmStatus(element, message, state) {
       if (state) {
@@ -7655,6 +7689,13 @@
         element.textContent = message;
       }
       element.dataset.tooltip = message;
+    }
+    setPcmPanelCollapsed(collapsed) {
+      if (collapsed && !this.pcmStatusStates.get(this.elements.pcmStatus)) {
+        collapsed = false;
+      }
+      this.elements.pcmPanel.dataset.collapsed = String(collapsed);
+      this.elements.pcmEdit.hidden = !collapsed;
     }
     refreshPcmStatusTexts() {
       for (const element of [this.elements.pcmStatus, this.elements.wavPcmStatus]) {
@@ -7851,7 +7892,6 @@
       const redraw = () => {
         frameId = void 0;
         this.redrawVisuals();
-        this.scheduleAnalyze();
       };
       handle.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) {
@@ -7899,7 +7939,6 @@
       const redraw = () => {
         frameId = void 0;
         this.redrawVisuals();
-        this.scheduleAnalyze();
       };
       handle.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) {
@@ -8241,6 +8280,7 @@
     }
     analyzeChannel(view) {
       const { startSample, endSample } = this.visibleRange();
+      resizeCanvas(view.spectrogram);
       const spectrogramRect = this.getPlotRect(view.spectrogram);
       const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
       const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
@@ -8299,6 +8339,7 @@
       this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} \xB7 ${formatWindowFunction(this.settings.windowFunction, this.messages)} \xB7 ${this.settings.fftSize} \xB7 ${this.messages.pad} ${this.settings.zeroPaddingFactor} \xB7 ${this.settings.frequencyScale} \xB7 ${this.messages.hop} ${hopSize}`;
     }
     createSpectrogramCacheKey(channel, canvas, outputBins, targetFrames) {
+      resizeCanvas(canvas);
       const rect = this.getPlotRect(canvas);
       const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
       const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));
@@ -9791,7 +9832,7 @@
     }
     .topbar {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
       grid-auto-rows: auto;
       align-items: center;
     }
@@ -9805,7 +9846,7 @@
       flex: 1 1 auto;
     }
     .topbarTools {
-      grid-column: 2;
+      grid-column: 3;
       grid-row: 1;
       justify-self: end;
       flex: 0 0 auto;
@@ -9904,7 +9945,10 @@
       display: none;
     }
     .status {
-      grid-column: 1 / -1;
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      max-width: min(32vw, 360px);
       color: var(--vscode-notificationsInfoIcon-foreground);
       min-width: 0;
       overflow: hidden;
@@ -10405,14 +10449,42 @@
       stroke-linejoin: round;
     }
     .topPcmPanel {
-      flex: 1 1 620px;
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr) max-content;
+      grid-template-areas:
+        "title fields actions"
+        ". status .";
+      align-items: center;
+      column-gap: 8px;
+      row-gap: 5px;
       min-width: min(560px, 100%);
+      width: 100%;
       max-width: 100%;
       overflow: visible;
     }
     .topPcmPanel .paneTitle {
+      grid-area: title;
       align-self: center;
+      justify-self: start;
       white-space: nowrap;
+    }
+    .topPcmPanel .pcmFields {
+      grid-area: fields;
+      min-width: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: center;
+      gap: 8px;
+    }
+    .topPcmPanel .pcmActions {
+      grid-area: actions;
+      display: flex;
+      align-items: end;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: max-content;
     }
     .topPcmPanel label {
       display: grid;
@@ -10462,21 +10534,33 @@
     .topPcmPanel #pcmEndianness {
       width: 78px;
     }
+    .topPcmPanel #pcmEdit {
+      grid-area: edit;
+      display: none;
+    }
     .topPcmPanel #pcmStatus {
+      grid-area: status;
       position: relative;
-      align-self: center;
-      flex: 1 1 140px;
+      align-self: stretch;
       min-width: 0;
-      max-width: 260px;
+      max-width: 100%;
       white-space: nowrap;
-      overflow: visible;
+      overflow-x: auto;
+      overflow-y: visible;
       line-height: 1.3;
+      text-align: center;
+      scrollbar-width: none;
+    }
+    .topPcmPanel #pcmStatus::-webkit-scrollbar {
+      display: none;
     }
     .topPcmPanel #pcmStatusText {
       display: block;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      width: max-content;
+      max-width: none;
+      margin: 0 auto;
+      overflow: visible;
+      text-overflow: clip;
       white-space: nowrap;
     }
     .topPcmPanel #pcmStatus::after {
@@ -10506,6 +10590,33 @@
     .topPcmPanel #pcmStatus:hover::after {
       opacity: 1;
       transform: translateY(0);
+    }
+    .topPcmPanel[data-collapsed="true"] {
+      grid-template-areas: "title status edit";
+      align-items: center;
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+    .topPcmPanel[data-collapsed="true"] .pcmFields {
+      display: none;
+    }
+    .topPcmPanel[data-collapsed="true"] .pcmActions {
+      display: none;
+    }
+    .topPcmPanel[data-collapsed="true"] #pcmEdit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+    .topPcmPanel[data-collapsed="true"] #pcmStatus {
+      align-self: center;
+      justify-self: center;
+      width: min(720px, 100%);
+      max-width: 100%;
+    }
+    .topPcmPanel[data-collapsed="true"] #pcmStatusText {
+      margin: 0 auto;
     }
     .wavPcmPanel {
       position: fixed;

@@ -97,7 +97,7 @@ code --install-extension simzhou.audiolens
 **Offline VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.5.1.vsix
+code --install-extension dist/audiolens-1.5.2.vsix
 ```
 
 ## Feature Demos
@@ -184,6 +184,8 @@ For `.pcm` and `.raw` files, AudioLens asks for PCM parameters before decoding:
 - start offset in bytes
 
 The current PCM parameters can be saved as defaults for later PCM files. AudioLens does not guess PCM parameters from the file name, because raw PCM does not contain reliable metadata.
+
+After a successful read or saved default update, the PCM file parameter panel collapses to a compact summary with an **Edit parameters** action, keeping more vertical space for the waveform and spectrogram.
 
 WAV files can also be reopened as PCM from the top bar. This is a one-time operation for the current file and is useful when inspecting raw audio data, non-standard headers, or offset-sensitive test files.
 

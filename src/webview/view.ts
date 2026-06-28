@@ -21,6 +21,7 @@ export interface ViewElements {
   fftSize: HTMLSelectElement;
   channel: HTMLSelectElement;
   pcmPanel: HTMLElement;
+  pcmEdit: HTMLButtonElement;
   pcmReveal: HTMLButtonElement;
   headerInfo: HTMLButtonElement;
   headerInfoPanel: HTMLElement;
@@ -98,50 +99,55 @@ export function renderShell(root: HTMLDivElement): ViewElements {
         <div id="status" class="status" data-i18n="initializing" hidden>Initializing</div>
         <section id="pcmPanel" class="pcmPanel topPcmPanel" hidden>
           <div class="paneTitle" data-i18n="pcmParams">PCM parameters</div>
-          <label>
-            <span data-i18n="sampleRate">Sample rate</span>
-            <input id="pcmSampleRate" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="16000" />
-          </label>
-          <label>
-            <span data-i18n="channels">Channels</span>
-            <input id="pcmChannels" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="1" />
-          </label>
-          <label>
-            <span data-i18n="startOffsetBytes">Offset (B)</span>
-            <input id="pcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
-          </label>
-          <label>
-            <span data-i18n="bitDepth">Encoding</span>
-            <select id="pcmEncoding">
-              <option value="signed-8">Signed 8-bit PCM</option>
-              <option value="signed-16" selected>Signed 16-bit PCM</option>
-              <option value="signed-24">Signed 24-bit PCM</option>
-              <option value="signed-32">Signed 32-bit PCM</option>
-              <option value="unsigned-8">Unsigned 8-bit PCM</option>
-              <option value="float-32">32-bit float</option>
-              <option value="float-64">64-bit float</option>
-              <option value="u-law" disabled>U-law (soon)</option>
-              <option value="a-law" disabled>A-law (soon)</option>
-              <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
-              <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
-              <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
-              <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
-              <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
-              <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
-              <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
-              <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
-            </select>
-          </label>
-          <label>
-            <span data-i18n="endianness">Endian</span>
-            <select id="pcmEndianness">
-              <option value="none">None</option>
-              <option value="little">LE</option>
-              <option value="big">BE</option>
-            </select>
-          </label>
-          <button id="pcmApply" class="secondary" data-i18n="read">Read</button>
-          <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
+          <div class="pcmFields">
+            <label>
+              <span data-i18n="sampleRate">Sample rate</span>
+              <input id="pcmSampleRate" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="16000" />
+            </label>
+            <label>
+              <span data-i18n="channels">Channels</span>
+              <input id="pcmChannels" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="1" />
+            </label>
+            <label>
+              <span data-i18n="startOffsetBytes">Offset (B)</span>
+              <input id="pcmStartOffset" class="numericText" type="text" inputmode="numeric" pattern="[0-9]*" value="0" />
+            </label>
+            <label>
+              <span data-i18n="bitDepth">Encoding</span>
+              <select id="pcmEncoding">
+                <option value="signed-8">Signed 8-bit PCM</option>
+                <option value="signed-16" selected>Signed 16-bit PCM</option>
+                <option value="signed-24">Signed 24-bit PCM</option>
+                <option value="signed-32">Signed 32-bit PCM</option>
+                <option value="unsigned-8">Unsigned 8-bit PCM</option>
+                <option value="float-32">32-bit float</option>
+                <option value="float-64">64-bit float</option>
+                <option value="u-law" disabled>U-law (soon)</option>
+                <option value="a-law" disabled>A-law (soon)</option>
+                <option value="gsm-6.10" disabled>GSM 6.10 (soon)</option>
+                <option value="dwvw-12" disabled>12-bit DWVW (soon)</option>
+                <option value="dwvw-16" disabled>16-bit DWVW (soon)</option>
+                <option value="dwvw-24" disabled>24-bit DWVW (soon)</option>
+                <option value="vox-adpcm" disabled>VOX ADPCM (soon)</option>
+                <option value="nms-adpcm-16" disabled>16kbs NMS ADPCM (soon)</option>
+                <option value="nms-adpcm-24" disabled>24kbs NMS ADPCM (soon)</option>
+                <option value="nms-adpcm-32" disabled>32kbs NMS ADPCM (soon)</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="endianness">Endian</span>
+              <select id="pcmEndianness">
+                <option value="none">None</option>
+                <option value="little">LE</option>
+                <option value="big">BE</option>
+              </select>
+            </label>
+          </div>
+          <div class="pcmActions">
+            <button id="pcmApply" class="secondary" data-i18n="read">Read</button>
+            <button id="pcmSaveDefault" class="secondary" data-i18n="saveDefault">Save default</button>
+          </div>
+          <button id="pcmEdit" class="secondary pcmEdit" data-i18n="editPcmParams" hidden>Edit parameters</button>
           <span id="pcmStatus" class="muted"><span id="pcmStatusText"></span></span>
         </section>
         <div class="topbarTools">
@@ -612,6 +618,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     fftSize: query("#fftSize", HTMLSelectElement),
     channel: query("#channel", HTMLSelectElement),
     pcmPanel: query("#pcmPanel", HTMLElement),
+    pcmEdit: query("#pcmEdit", HTMLButtonElement),
     pcmReveal: query("#pcmReveal", HTMLButtonElement),
     headerInfo: query("#headerInfo", HTMLButtonElement),
     headerInfoPanel: query("#headerInfoPanel", HTMLElement),

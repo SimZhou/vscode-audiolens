@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.2
+
+PCM layout and track resizing polish.
+
+- Added a collapsible PCM file parameter panel that keeps the active or saved PCM format visible while freeing vertical space after reading or saving defaults.
+- Aligned PCM panel controls and collapsed summaries so the title, parameter summary, and right-side actions stay stable between expanded and collapsed states.
+- Added localized “Edit parameters” and “PCM file parameters” labels across all bundled Webview languages.
+- Avoided restarting spectrogram analysis continuously while dragging track height or waveform/spectrogram split handles; analysis now refreshes after the drag completes.
+- Kept spectrogram canvas sizing synchronized before cache-key calculation so small track-height changes redraw at the current size.
+
 ## 1.5.1
 
 Remote WAV decode and playback compatibility update.

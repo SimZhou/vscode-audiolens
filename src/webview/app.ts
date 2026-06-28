@@ -1789,6 +1789,7 @@ export class AudioLensApp {
     this.elements.pcmReveal.hidden = true;
     this.elements.wavPcmPanel.hidden = true;
     this.clearDecodedAudio();
+    this.setPcmPanelCollapsed(false);
     if (this.defaultPcmFormat) {
       this.writePcmControls(this.defaultPcmFormat);
       this.setPcmStatus(this.elements.pcmStatus, this.messages.pcmUsedDefaultParams);
@@ -1881,6 +1882,9 @@ export class AudioLensApp {
     });
     this.elements.pcmPanel.addEventListener("keydown", (event) => {
       this.handlePcmPanelEnter(event, () => this.applyPcmFormat(this.readPcmControls()));
+    });
+    this.elements.pcmEdit.addEventListener("click", () => {
+      this.setPcmPanelCollapsed(false);
     });
     this.elements.wavPcmPanel.addEventListener("keydown", (event) => {
       this.handlePcmPanelEnter(event, () => this.applyWavPcmFormat());
@@ -3009,6 +3013,9 @@ export class AudioLensApp {
     const error = validatePcmFormat(this.audioBytes, format);
     if (error) {
       this.setPcmStatus(statusElement, error);
+      if (statusElement === this.elements.pcmStatus) {
+        this.setPcmPanelCollapsed(false);
+      }
       this.setStatus(error);
       return false;
     }
@@ -3037,6 +3044,9 @@ export class AudioLensApp {
       this.scheduleAnalyze(0);
     }
     this.setPcmStatus(statusElement, this.formatPcmStatus({ kind: "current", format }), { kind: "current", format });
+    if (statusElement === this.elements.pcmStatus) {
+      this.setPcmPanelCollapsed(true);
+    }
     this.setStatus(this.messages.ready);
     return true;
   }
@@ -3119,6 +3129,7 @@ export class AudioLensApp {
     this.defaultPcmFormat = format;
     this.vscode.postMessage({ type: "updatePreferences", preferences: this.collectPreferences() });
     this.setPcmStatus(this.elements.pcmStatus, this.formatPcmStatus({ kind: "savedDefault", format }), { kind: "savedDefault", format });
+    this.setPcmPanelCollapsed(true);
   }
 
   private setPcmStatus(element: HTMLElement, message: string, state?: PcmStatusState): void {
@@ -3134,6 +3145,14 @@ export class AudioLensApp {
       element.textContent = message;
     }
     element.dataset.tooltip = message;
+  }
+
+  private setPcmPanelCollapsed(collapsed: boolean): void {
+    if (collapsed && !this.pcmStatusStates.get(this.elements.pcmStatus)) {
+      collapsed = false;
+    }
+    this.elements.pcmPanel.dataset.collapsed = String(collapsed);
+    this.elements.pcmEdit.hidden = !collapsed;
   }
 
   private refreshPcmStatusTexts(): void {
@@ -3349,7 +3368,6 @@ export class AudioLensApp {
     const redraw = (): void => {
       frameId = undefined;
       this.redrawVisuals();
-      this.scheduleAnalyze();
     };
 
     handle.addEventListener("pointerdown", (event) => {
@@ -3403,7 +3421,6 @@ export class AudioLensApp {
     const redraw = (): void => {
       frameId = undefined;
       this.redrawVisuals();
-      this.scheduleAnalyze();
     };
 
     handle.addEventListener("pointerdown", (event) => {
@@ -3780,6 +3797,7 @@ export class AudioLensApp {
 
   private analyzeChannel(view: TrackView): void {
     const { startSample, endSample } = this.visibleRange();
+    resizeCanvas(view.spectrogram);
     const spectrogramRect = this.getPlotRect(view.spectrogram);
     const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
     const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
@@ -3840,6 +3858,7 @@ export class AudioLensApp {
   }
 
   private createSpectrogramCacheKey(channel: number, canvas: HTMLCanvasElement, outputBins?: number, targetFrames?: number): string {
+    resizeCanvas(canvas);
     const rect = this.getPlotRect(canvas);
     const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
     const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));

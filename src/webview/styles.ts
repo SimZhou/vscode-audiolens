@@ -42,7 +42,7 @@ export function injectStyles(): void {
     }
     .topbar {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
       grid-auto-rows: auto;
       align-items: center;
     }
@@ -56,7 +56,7 @@ export function injectStyles(): void {
       flex: 1 1 auto;
     }
     .topbarTools {
-      grid-column: 2;
+      grid-column: 3;
       grid-row: 1;
       justify-self: end;
       flex: 0 0 auto;
@@ -155,7 +155,10 @@ export function injectStyles(): void {
       display: none;
     }
     .status {
-      grid-column: 1 / -1;
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      max-width: min(32vw, 360px);
       color: var(--vscode-notificationsInfoIcon-foreground);
       min-width: 0;
       overflow: hidden;
@@ -656,14 +659,42 @@ export function injectStyles(): void {
       stroke-linejoin: round;
     }
     .topPcmPanel {
-      flex: 1 1 620px;
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr) max-content;
+      grid-template-areas:
+        "title fields actions"
+        ". status .";
+      align-items: center;
+      column-gap: 8px;
+      row-gap: 5px;
       min-width: min(560px, 100%);
+      width: 100%;
       max-width: 100%;
       overflow: visible;
     }
     .topPcmPanel .paneTitle {
+      grid-area: title;
       align-self: center;
+      justify-self: start;
       white-space: nowrap;
+    }
+    .topPcmPanel .pcmFields {
+      grid-area: fields;
+      min-width: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: center;
+      gap: 8px;
+    }
+    .topPcmPanel .pcmActions {
+      grid-area: actions;
+      display: flex;
+      align-items: end;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: max-content;
     }
     .topPcmPanel label {
       display: grid;
@@ -713,21 +744,33 @@ export function injectStyles(): void {
     .topPcmPanel #pcmEndianness {
       width: 78px;
     }
+    .topPcmPanel #pcmEdit {
+      grid-area: edit;
+      display: none;
+    }
     .topPcmPanel #pcmStatus {
+      grid-area: status;
       position: relative;
-      align-self: center;
-      flex: 1 1 140px;
+      align-self: stretch;
       min-width: 0;
-      max-width: 260px;
+      max-width: 100%;
       white-space: nowrap;
-      overflow: visible;
+      overflow-x: auto;
+      overflow-y: visible;
       line-height: 1.3;
+      text-align: center;
+      scrollbar-width: none;
+    }
+    .topPcmPanel #pcmStatus::-webkit-scrollbar {
+      display: none;
     }
     .topPcmPanel #pcmStatusText {
       display: block;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      width: max-content;
+      max-width: none;
+      margin: 0 auto;
+      overflow: visible;
+      text-overflow: clip;
       white-space: nowrap;
     }
     .topPcmPanel #pcmStatus::after {
@@ -757,6 +800,33 @@ export function injectStyles(): void {
     .topPcmPanel #pcmStatus:hover::after {
       opacity: 1;
       transform: translateY(0);
+    }
+    .topPcmPanel[data-collapsed="true"] {
+      grid-template-areas: "title status edit";
+      align-items: center;
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+    .topPcmPanel[data-collapsed="true"] .pcmFields {
+      display: none;
+    }
+    .topPcmPanel[data-collapsed="true"] .pcmActions {
+      display: none;
+    }
+    .topPcmPanel[data-collapsed="true"] #pcmEdit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+    .topPcmPanel[data-collapsed="true"] #pcmStatus {
+      align-self: center;
+      justify-self: center;
+      width: min(720px, 100%);
+      max-width: 100%;
+    }
+    .topPcmPanel[data-collapsed="true"] #pcmStatusText {
+      margin: 0 auto;
     }
     .wavPcmPanel {
       position: fixed;
