@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.3
+
+Download dialog default path update.
+
+- Pre-filled the audio download and selection-WAV save dialogs with the audio source file's directory, falling back to the workspace folder and then the home directory. Remote SSH sessions no longer default to the remote root directory.
+
 ## 1.5.2
 
 PCM layout and track resizing polish.

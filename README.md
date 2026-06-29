@@ -280,7 +280,7 @@ New interface strings fall back to English until a locale has a complete transla
 
 AudioLens is declared as a workspace extension. In a Remote SSH window, the extension host runs in the remote workspace, reads audio files from the remote file system, and streams the data to the local Webview for playback and visualization.
 
-Use the top-bar download button when you want to save the current remote audio file. VS Code may open the save dialog on the remote side first; choose the local location option in that dialog when saving to your machine.
+Use the top-bar download button when you want to save the current remote audio file. The save dialog defaults to the audio file's own folder, so you no longer land on the remote root; switch to a local location in the dialog when saving to your machine.
 
 ## Privacy
 

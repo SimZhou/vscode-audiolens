@@ -344,7 +344,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
           await this.downloadAudio(document);
           break;
         case "requestSelectionWavSave":
-          await this.requestSelectionWavSave(webview, message.requestId, message.fileName, message.saveLabel, message.title);
+          await this.requestSelectionWavSave(webview, message.requestId, message.fileName, document, message.saveLabel, message.title);
           break;
         case "writeSelectionWavChunk":
           await this.writeSelectionWavChunk(webview, message);
@@ -379,7 +379,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     this.assertTransferAllowed(document);
     const fileName = document.displayName;
     const destination = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(fileName),
+      defaultUri: resolveDefaultDownloadUri(document, fileName),
       saveLabel: "Download Audio",
       title: "Download Audio"
     });
@@ -390,13 +390,13 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
     await vscode.workspace.fs.writeFile(destination, bytes);
     vscode.window.showInformationMessage(`AudioLens saved ${fileName}.`);
   }
-  async requestSelectionWavSave(webview, requestId, fileName, saveLabel, title) {
+  async requestSelectionWavSave(webview, requestId, fileName, document, saveLabel, title) {
     if (!vscode.workspace.isTrusted) {
       throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
     }
     const safeFileName = sanitizeSuggestedFileName(fileName) || "audiolens_selection.wav";
     const destination = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(safeFileName),
+      defaultUri: resolveDefaultDownloadUri(document, safeFileName),
       filters: { "WAV audio": ["wav"] },
       saveLabel: saveLabel || "Download Selection",
       title: title || "Download Selection as WAV"
@@ -904,6 +904,25 @@ function resolveInputPath(filePath) {
     return vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, filePath));
   }
   return vscode.Uri.file(filePath);
+}
+function resolveDefaultDownloadUri(document, fileName) {
+  const safeName = sanitizeSuggestedFileName(fileName) || fileName;
+  const sourceUri = document.sourceUri;
+  if (sourceUri.scheme === "file") {
+    const dir = path.dirname(sourceUri.fsPath);
+    if (path.isAbsolute(dir)) {
+      return vscode.Uri.file(path.join(dir, safeName));
+    }
+  }
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(sourceUri) ?? vscode.workspace.workspaceFolders?.[0];
+  if (workspaceFolder?.uri.scheme === "file") {
+    return vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, safeName));
+  }
+  const home = os.homedir();
+  if (home) {
+    return vscode.Uri.file(path.join(home, safeName));
+  }
+  return vscode.Uri.file(safeName);
 }
 async function readArkWavEntrySize(uri, offset) {
   const messages = resolveExtensionMessages();
