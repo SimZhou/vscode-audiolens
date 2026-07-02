@@ -148,3 +148,60 @@ export function computeWaveformPeaks(samples: Float32Array, startSample: number,
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
+
+export function computeAxisIntervals(
+  heightCssPx: number,
+  options: { min?: number; max?: number; even?: boolean } = {}
+): number {
+  const min = options.min ?? 2;
+  const max = options.max ?? 8;
+  const raw = Math.round((Number.isFinite(heightCssPx) ? heightCssPx : 0) / 44);
+  let n = Math.min(max, Math.max(min, raw));
+  if (options.even && n % 2 !== 0) {
+    n = Math.max(min, n - 1);
+  }
+  return n;
+}
+
+export function formatAxisFrequency(hz: number): string {
+  const v = Math.max(0, Number.isFinite(hz) ? hz : 0);
+  if (v >= 1000) {
+    const k = v / 1000;
+    const rounded = k >= 100 ? Math.round(k) : Math.round(k * 10) / 10;
+    return `${rounded}k`;
+  }
+  return `${Math.round(v)}`;
+}
+
+const MIN_RANGE_SPAN = 1e-6;
+
+export function zoomRange(
+  range: { min: number; max: number },
+  anchor: number,
+  factor: number,
+  lower: number,
+  upper: number
+): { min: number; max: number } {
+  const outerSpan = Math.max(MIN_RANGE_SPAN, upper - lower);
+  const curSpan = Math.max(MIN_RANGE_SPAN, range.max - range.min);
+  const newSpan = Math.min(outerSpan, Math.max(MIN_RANGE_SPAN, curSpan * factor));
+  const a = Math.min(range.max, Math.max(range.min, anchor));
+  const ratio = (a - range.min) / curSpan;
+  let lo = a - ratio * newSpan;
+  let hi = lo + newSpan;
+  if (lo < lower) { lo = lower; hi = lower + newSpan; }
+  if (hi > upper) { hi = upper; lo = upper - newSpan; }
+  return { min: Math.max(lower, lo), max: Math.min(upper, hi) };
+}
+
+export function panRange(
+  range: { min: number; max: number },
+  delta: number,
+  lower: number,
+  upper: number
+): { min: number; max: number } {
+  const span = Math.max(MIN_RANGE_SPAN, range.max - range.min);
+  const maxLo = Math.max(lower, upper - span);
+  const lo = Math.min(maxLo, Math.max(lower, range.min + delta));
+  return { min: lo, max: lo + span };
+}
