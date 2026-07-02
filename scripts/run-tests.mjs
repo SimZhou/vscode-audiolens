@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 
 import { build } from "esbuild";
 
-const testEntrypoints = ["src/webview/playbackAlgorithms.test.ts"];
+const testEntrypoints = ["src/webview/playbackAlgorithms.test.ts", "src/webview/i18n.test.ts"];
 const outdir = await mkdtemp(join(tmpdir(), "audiolens-tests-"));
 
 try {

@@ -264,11 +264,11 @@ export function renderShell(root: HTMLDivElement): ViewElements {
       <section class="player">
         <button id="play" class="iconButton" data-i18n-title="playPause" data-i18n-aria="playPause" title="Play / pause" aria-label="Play / pause">▶</button>
         <span id="clock" class="clock">0:00.000 / 0:00.000</span>
-        <label class="playbackModeControl" title="Playback mode for decoded audio">
-          <span>Mode</span>
-          <select id="playbackAlgorithm" aria-label="Playback mode">
-            <option value="downmix">Downmix</option>
-            <option value="bypass">Bypass</option>
+        <label class="playbackModeControl" data-i18n-title="playbackModeTitle" title="Playback mode for decoded audio">
+          <span data-i18n="playbackMode">Mode</span>
+          <select id="playbackAlgorithm" data-i18n-aria="playbackModeTitle" aria-label="Playback mode">
+            <option value="downmix" data-i18n="playbackDownmix">Downmix</option>
+            <option value="bypass" data-i18n="playbackBypass">Bypass</option>
           </select>
         </label>
         <input id="seek" class="seek" type="range" min="0" max="1000" value="0" data-i18n-aria="playbackPosition" aria-label="Playback position" />

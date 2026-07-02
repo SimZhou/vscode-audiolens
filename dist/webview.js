@@ -981,6 +981,11 @@
     initializing: "Initialisierung",
     spectrogramSettings: "Spectrogram-Einstellungen",
     playPause: "Wiedergabe / Pause",
+    playbackMode: "Modus",
+    playbackModeTitle: "Wiedergabemodus f\xFCr decodiertes Audio",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass unterst\xFCtzt nur Mono-/Stereo-Audio. Diese Datei wird per Downmix wiedergegeben.",
     playbackPosition: "Wiedergabeposition",
     closeSettings: "Einstellungen schliessen",
     spectrogramDisplay: "Spectrogram-Anzeige",
@@ -1188,6 +1193,11 @@
     arkOffsetLabel: "ARK offset",
     settings: "Settings",
     playPause: "Play / pause",
+    playbackMode: "Mode",
+    playbackModeTitle: "Playback mode for decoded audio",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass only supports mono/stereo audio. Using downmix for this file.",
     playbackPosition: "Playback position",
     closeSettings: "Close settings",
     spectrogramDisplay: "Spectrogram display",
@@ -1337,6 +1347,11 @@
     initializing: "Inicializando",
     spectrogramSettings: "Ajustes del espectrograma",
     playPause: "Reproducir / pausar",
+    playbackMode: "Modo",
+    playbackModeTitle: "Modo de reproducci\xF3n para audio decodificado",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass solo admite audio mono/est\xE9reo. Este archivo se reproducir\xE1 con downmix.",
     playbackPosition: "Posici\xF3n de reproducci\xF3n",
     closeSettings: "Cerrar ajustes",
     spectrogramDisplay: "Vista del espectrograma",
@@ -1515,6 +1530,11 @@
     initializing: "Initialisation",
     spectrogramSettings: "R\xE9glages du spectrogramme",
     playPause: "Lire / pause",
+    playbackMode: "Mode",
+    playbackModeTitle: "Mode de lecture de l'audio d\xE9cod\xE9",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Le bypass ne prend en charge que l'audio mono/st\xE9r\xE9o. Ce fichier sera lu en downmix.",
     playbackPosition: "Position de lecture",
     closeSettings: "Fermer les r\xE9glages",
     spectrogramDisplay: "Affichage du spectrogramme",
@@ -1693,6 +1713,11 @@
     initializing: "Menginisialisasi",
     spectrogramSettings: "Pengaturan spectrogram",
     playPause: "Putar / jeda",
+    playbackMode: "Mode",
+    playbackModeTitle: "Mode pemutaran untuk audio yang didekode",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass hanya mendukung audio mono/stereo. File ini diputar dengan downmix.",
     playbackPosition: "Posisi putar",
     closeSettings: "Tutup pengaturan",
     spectrogramDisplay: "Tampilan spectrogram",
@@ -1871,6 +1896,11 @@
     initializing: "Inizializzazione",
     spectrogramSettings: "Impostazioni spettrogramma",
     playPause: "Riproduci / pausa",
+    playbackMode: "Modalit\xE0",
+    playbackModeTitle: "Modalit\xE0 di riproduzione per l'audio decodificato",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass supporta solo audio mono/stereo. Questo file verr\xE0 riprodotto con downmix.",
     playbackPosition: "Posizione di riproduzione",
     closeSettings: "Chiudi impostazioni",
     spectrogramDisplay: "Visualizzazione spettrogramma",
@@ -2078,6 +2108,11 @@
     arkOffsetLabel: "ARK \u30AA\u30D5\u30BB\u30C3\u30C8",
     settings: "\u8A2D\u5B9A",
     playPause: "\u518D\u751F / \u4E00\u6642\u505C\u6B62",
+    playbackMode: "\u30E2\u30FC\u30C9",
+    playbackModeTitle: "\u30C7\u30B3\u30FC\u30C9\u6E08\u307F\u97F3\u58F0\u306E\u518D\u751F\u30E2\u30FC\u30C9",
+    playbackDownmix: "\u30C0\u30A6\u30F3\u30DF\u30C3\u30AF\u30B9",
+    playbackBypass: "\u30D0\u30A4\u30D1\u30B9",
+    playbackBypassFallback: "\u30D0\u30A4\u30D1\u30B9\u306F\u30E2\u30CE\u30E9\u30EB/\u30B9\u30C6\u30EC\u30AA\u97F3\u58F0\u306E\u307F\u5BFE\u5FDC\u3067\u3059\u3002\u3053\u306E\u30D5\u30A1\u30A4\u30EB\u306F\u30C0\u30A6\u30F3\u30DF\u30C3\u30AF\u30B9\u3067\u518D\u751F\u3057\u307E\u3059\u3002",
     playbackPosition: "\u518D\u751F\u4F4D\u7F6E",
     closeSettings: "\u8A2D\u5B9A\u3092\u9589\u3058\u308B",
     spectrogramDisplay: "\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u8868\u793A",
@@ -2227,6 +2262,11 @@
     initializing: "\uCD08\uAE30\uD654 \uC911",
     spectrogramSettings: "Spectrogram \uC124\uC815",
     playPause: "\uC7AC\uC0DD / \uC77C\uC2DC\uC815\uC9C0",
+    playbackMode: "\uBAA8\uB4DC",
+    playbackModeTitle: "\uB514\uCF54\uB529\uB41C \uC624\uB514\uC624 \uC7AC\uC0DD \uBAA8\uB4DC",
+    playbackDownmix: "\uB2E4\uC6B4\uBBF9\uC2A4",
+    playbackBypass: "\uBC14\uC774\uD328\uC2A4",
+    playbackBypassFallback: "\uBC14\uC774\uD328\uC2A4\uB294 \uBAA8\uB178/\uC2A4\uD14C\uB808\uC624 \uC624\uB514\uC624\uB9CC \uC9C0\uC6D0\uD569\uB2C8\uB2E4. \uC774 \uD30C\uC77C\uC740 \uB2E4\uC6B4\uBBF9\uC2A4\uB85C \uC7AC\uC0DD\uB429\uB2C8\uB2E4.",
     playbackPosition: "\uC7AC\uC0DD \uC704\uCE58",
     closeSettings: "\uC124\uC815 \uB2EB\uAE30",
     spectrogramDisplay: "Spectrogram \uD45C\uC2DC",
@@ -2405,6 +2445,11 @@
     initializing: "Initialiseren",
     spectrogramSettings: "Spectrograminstellingen",
     playPause: "Afspelen / pauze",
+    playbackMode: "Modus",
+    playbackModeTitle: "Afspeelmodus voor gedecodeerde audio",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass ondersteunt alleen mono-/stereo-audio. Dit bestand wordt met downmix afgespeeld.",
     playbackPosition: "Afspeelpositie",
     closeSettings: "Instellingen sluiten",
     spectrogramDisplay: "Spectrogramweergave",
@@ -2583,6 +2628,11 @@
     initializing: "Initialiserer",
     spectrogramSettings: "Spectrogram-innstillinger",
     playPause: "Spill av / pause",
+    playbackMode: "Modus",
+    playbackModeTitle: "Avspillingsmodus for dekodet lyd",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass st\xF8tter bare mono-/stereolyd. Denne filen spilles av med downmix.",
     playbackPosition: "Avspillingsposisjon",
     closeSettings: "Lukk innstillinger",
     spectrogramDisplay: "Spectrogram-visning",
@@ -2761,6 +2811,11 @@
     initializing: "Inicjalizacja",
     spectrogramSettings: "Ustawienia spektrogramu",
     playPause: "Odtw\xF3rz / pauza",
+    playbackMode: "Tryb",
+    playbackModeTitle: "Tryb odtwarzania zdekodowanego audio",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass obs\u0142uguje tylko audio mono/stereo. Ten plik zostanie odtworzony z downmixem.",
     playbackPosition: "Pozycja odtwarzania",
     closeSettings: "Zamknij ustawienia",
     spectrogramDisplay: "Widok spektrogramu",
@@ -2939,6 +2994,11 @@
     initializing: "Inicializando",
     spectrogramSettings: "Config. do espectrograma",
     playPause: "Reproduzir / pausar",
+    playbackMode: "Modo",
+    playbackModeTitle: "Modo de reprodu\xE7\xE3o para \xE1udio decodificado",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass s\xF3 oferece suporte a \xE1udio mono/est\xE9reo. Este arquivo ser\xE1 reproduzido com downmix.",
     playbackPosition: "Posi\xE7\xE3o de reprodu\xE7\xE3o",
     closeSettings: "Fechar ajustes",
     spectrogramDisplay: "Exibi\xE7\xE3o do espectrograma",
@@ -3117,6 +3177,11 @@
     initializing: "\u0418\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u044F",
     spectrogramSettings: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B",
     playPause: "\u041F\u0443\u0441\u043A / \u043F\u0430\u0443\u0437\u0430",
+    playbackMode: "\u0420\u0435\u0436\u0438\u043C",
+    playbackModeTitle: "\u0420\u0435\u0436\u0438\u043C \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0438\u044F \u0434\u0435\u043A\u043E\u0434\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0433\u043E \u0430\u0443\u0434\u0438\u043E",
+    playbackDownmix: "\u0414\u0430\u0443\u043D\u043C\u0438\u043A\u0441",
+    playbackBypass: "\u041E\u0431\u0445\u043E\u0434",
+    playbackBypassFallback: "\u041E\u0431\u0445\u043E\u0434 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u043C\u043E\u043D\u043E/\u0441\u0442\u0435\u0440\u0435\u043E. \u042D\u0442\u043E\u0442 \u0444\u0430\u0439\u043B \u0431\u0443\u0434\u0435\u0442 \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u044C\u0441\u044F \u0441 \u0434\u0430\u0443\u043D\u043C\u0438\u043A\u0441\u043E\u043C.",
     playbackPosition: "\u041F\u043E\u0437\u0438\u0446\u0438\u044F \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0438\u044F",
     closeSettings: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     spectrogramDisplay: "\u041E\u0442\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u044B",
@@ -3295,6 +3360,11 @@
     initializing: "Baslatiliyor",
     spectrogramSettings: "Spektrogram ayarlari",
     playPause: "Oynat / duraklat",
+    playbackMode: "Mod",
+    playbackModeTitle: "\xC7\xF6z\xFCmlenen ses i\xE7in oynatma modu",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass yaln\u0131zca mono/stereo sesi destekler. Bu dosya downmix ile oynat\u0131lacak.",
     playbackPosition: "Oynatma konumu",
     closeSettings: "Ayarlari kapat",
     spectrogramDisplay: "Spektrogram gorunumu",
@@ -3473,6 +3543,11 @@
     initializing: "\u0110ang kh\u1EDFi t\u1EA1o",
     spectrogramSettings: "C\xE0i \u0111\u1EB7t spectrogram",
     playPause: "Ph\xE1t / t\u1EA1m d\u1EEBng",
+    playbackMode: "Ch\u1EBF \u0111\u1ED9",
+    playbackModeTitle: "Ch\u1EBF \u0111\u1ED9 ph\xE1t cho \xE2m thanh \u0111\xE3 gi\u1EA3i m\xE3",
+    playbackDownmix: "Downmix",
+    playbackBypass: "Bypass",
+    playbackBypassFallback: "Bypass ch\u1EC9 h\u1ED7 tr\u1EE3 \xE2m thanh mono/stereo. T\u1EC7p n\xE0y s\u1EBD \u0111\u01B0\u1EE3c ph\xE1t b\u1EB1ng downmix.",
     playbackPosition: "V\u1ECB tr\xED ph\xE1t",
     closeSettings: "\u0110\xF3ng c\xE0i \u0111\u1EB7t",
     spectrogramDisplay: "Hi\u1EC3n th\u1ECB spectrogram",
@@ -3680,6 +3755,11 @@
     arkOffsetLabel: "ARK \u504F\u79FB",
     settings: "\u8BBE\u7F6E",
     playPause: "\u64AD\u653E / \u6682\u505C",
+    playbackMode: "\u6A21\u5F0F",
+    playbackModeTitle: "\u89E3\u7801\u97F3\u9891\u7684\u64AD\u653E\u6A21\u5F0F",
+    playbackDownmix: "\u6DF7\u97F3",
+    playbackBypass: "\u76F4\u901A",
+    playbackBypassFallback: "\u76F4\u901A\u4EC5\u652F\u6301\u5355\u58F0\u9053/\u53CC\u58F0\u9053\u97F3\u9891\uFF1B\u6B64\u6587\u4EF6\u5C06\u6309\u6DF7\u97F3\u64AD\u653E\u3002",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
     closeSettings: "\u5173\u95ED\u8BBE\u7F6E",
     spectrogramDisplay: "\u9891\u8C31\u56FE\u663E\u793A",
@@ -3829,6 +3909,11 @@
     initializing: "\u521D\u59CB\u5316\u4E2D",
     spectrogramSettings: "\u983B\u8B5C\u5716\u8A2D\u5B9A",
     playPause: "\u64AD\u653E / \u66AB\u505C",
+    playbackMode: "\u6A21\u5F0F",
+    playbackModeTitle: "\u89E3\u78BC\u97F3\u8A0A\u7684\u64AD\u653E\u6A21\u5F0F",
+    playbackDownmix: "\u6DF7\u97F3",
+    playbackBypass: "\u76F4\u901A",
+    playbackBypassFallback: "\u76F4\u901A\u50C5\u652F\u63F4\u55AE\u8072\u9053/\u96D9\u8072\u9053\u97F3\u8A0A\uFF1B\u6B64\u6A94\u6848\u5C07\u4EE5\u6DF7\u97F3\u64AD\u653E\u3002",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
     closeSettings: "\u95DC\u9589\u8A2D\u5B9A",
     spectrogramDisplay: "\u983B\u8B5C\u5716\u986F\u793A",
@@ -4422,11 +4507,11 @@
       <section class="player">
         <button id="play" class="iconButton" data-i18n-title="playPause" data-i18n-aria="playPause" title="Play / pause" aria-label="Play / pause">\u25B6</button>
         <span id="clock" class="clock">0:00.000 / 0:00.000</span>
-        <label class="playbackModeControl" title="Playback mode for decoded audio">
-          <span>Mode</span>
-          <select id="playbackAlgorithm" aria-label="Playback mode">
-            <option value="downmix">Downmix</option>
-            <option value="bypass">Bypass</option>
+        <label class="playbackModeControl" data-i18n-title="playbackModeTitle" title="Playback mode for decoded audio">
+          <span data-i18n="playbackMode">Mode</span>
+          <select id="playbackAlgorithm" data-i18n-aria="playbackModeTitle" aria-label="Playback mode">
+            <option value="downmix" data-i18n="playbackDownmix">Downmix</option>
+            <option value="bypass" data-i18n="playbackBypass">Bypass</option>
           </select>
         </label>
         <input id="seek" class="seek" type="range" min="0" max="1000" value="0" data-i18n-aria="playbackPosition" aria-label="Playback position" />
@@ -6381,6 +6466,7 @@
         this.scheduleAnalyze(0);
       }
       this.setStatus(this.messages.ready);
+      this.updatePlaybackRoutingStatus();
     }
     async loadEncoded(fileName) {
       if (!this.audioBytes) {
@@ -6504,6 +6590,7 @@
       this.elements.audio.addEventListener("loadedmetadata", () => {
         this.updateClock();
         this.setStatus(this.messages.audioLoaded);
+        this.updatePlaybackRoutingStatus();
       });
       this.elements.playbackGain.addEventListener("input", () => {
         this.settings.playbackGain = Number(this.elements.playbackGain.value);
@@ -7666,6 +7753,7 @@
         this.setPcmPanelCollapsed(true);
       }
       this.setStatus(this.messages.ready);
+      this.updatePlaybackRoutingStatus();
       return true;
     }
     showWavPcmPanel() {
@@ -8663,6 +8751,7 @@
       }
       const channels = this.audioBuffer.numberOfChannels;
       const plan = this.currentPlaybackRoutingPlan(channels);
+      this.updatePlaybackRoutingStatus(plan);
       this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
       this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(plan.outputChannels);
       this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext.createGain());
@@ -8681,9 +8770,20 @@
         return;
       }
       const plan = this.currentPlaybackRoutingPlan(this.audioBuffer.numberOfChannels);
+      this.updatePlaybackRoutingStatus(plan);
       this.playbackChannelGains.forEach((gain, channel) => {
         gain.gain.value = plan.channelGains[channel] ?? 0;
       });
+    }
+    updatePlaybackRoutingStatus(plan = this.audioBuffer ? this.currentPlaybackRoutingPlan(this.audioBuffer.numberOfChannels) : void 0) {
+      const fallbackMessage = this.messages.playbackBypassFallback;
+      if (plan && this.settings.playbackAlgorithm === "bypass" && plan.effectiveAlgorithm !== "bypass") {
+        this.setStatus(fallbackMessage, "warning");
+        return;
+      }
+      if (this.elements.status.textContent === fallbackMessage) {
+        this.setStatus(this.messages.ready);
+      }
     }
     currentPlaybackRoutingPlan(channelCount) {
       return createPlaybackRoutingPlan({

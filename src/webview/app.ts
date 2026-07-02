@@ -1692,6 +1692,7 @@ export class AudioLensApp {
       this.scheduleAnalyze(0);
     }
     this.setStatus(this.messages.ready);
+    this.updatePlaybackRoutingStatus();
   }
 
   private async loadEncoded(fileName: string): Promise<void> {
@@ -1824,6 +1825,7 @@ export class AudioLensApp {
     this.elements.audio.addEventListener("loadedmetadata", () => {
       this.updateClock();
       this.setStatus(this.messages.audioLoaded);
+      this.updatePlaybackRoutingStatus();
     });
     this.elements.playbackGain.addEventListener("input", () => {
       this.settings.playbackGain = Number(this.elements.playbackGain.value);
@@ -3064,6 +3066,7 @@ export class AudioLensApp {
       this.setPcmPanelCollapsed(true);
     }
     this.setStatus(this.messages.ready);
+    this.updatePlaybackRoutingStatus();
     return true;
   }
 
@@ -4159,6 +4162,7 @@ export class AudioLensApp {
     }
     const channels = this.audioBuffer.numberOfChannels;
     const plan = this.currentPlaybackRoutingPlan(channels);
+    this.updatePlaybackRoutingStatus(plan);
     this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
     this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(plan.outputChannels);
     this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext!.createGain());
@@ -4178,9 +4182,21 @@ export class AudioLensApp {
       return;
     }
     const plan = this.currentPlaybackRoutingPlan(this.audioBuffer.numberOfChannels);
+    this.updatePlaybackRoutingStatus(plan);
     this.playbackChannelGains.forEach((gain, channel) => {
       gain.gain.value = plan.channelGains[channel] ?? 0;
     });
+  }
+
+  private updatePlaybackRoutingStatus(plan = this.audioBuffer ? this.currentPlaybackRoutingPlan(this.audioBuffer.numberOfChannels) : undefined): void {
+    const fallbackMessage = this.messages.playbackBypassFallback;
+    if (plan && this.settings.playbackAlgorithm === "bypass" && plan.effectiveAlgorithm !== "bypass") {
+      this.setStatus(fallbackMessage, "warning");
+      return;
+    }
+    if (this.elements.status.textContent === fallbackMessage) {
+      this.setStatus(this.messages.ready);
+    }
   }
 
   private currentPlaybackRoutingPlan(channelCount: number) {

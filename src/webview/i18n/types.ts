@@ -53,6 +53,11 @@ export interface LocaleMessages {
   arkOffsetLabel: string;
   settings: string;
   playPause: string;
+  playbackMode: string;
+  playbackModeTitle: string;
+  playbackDownmix: string;
+  playbackBypass: string;
+  playbackBypassFallback: string;
   playbackPosition: string;
   closeSettings: string;
   spectrogramDisplay: string;
