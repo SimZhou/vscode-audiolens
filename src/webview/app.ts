@@ -10,7 +10,9 @@ import {
 import { resolveWaveDataSize } from "../ffmpegWav";
 import {
   createAnalysisCacheKey,
+  computeAxisIntervals,
   computeWaveformPeaks,
+  formatAxisFrequency,
   FrequencyScale,
   getVisibleRange,
   normalizeDbRange,
@@ -153,7 +155,7 @@ const MIN_DRAG_PIXELS = 6;
 const ENCODED_DECODE_TIMEOUT_MS = 8000;
 const SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
 const PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
-const TRACK_AXIS_WIDTH = 96;
+const TRACK_AXIS_WIDTH = 78;
 const AXIS_FONT_SIZE = 13;
 const WAVEFORM_AMPLITUDE_SCALE = 0.45;
 const PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
@@ -4926,7 +4928,8 @@ export class AudioLensApp {
     context.font = axisFont();
     context.textAlign = "right";
     const frequencyRange = this.spectrogramFrequencyRange();
-    const ticks = 5;
+    const heightCss = rect.height / (window.devicePixelRatio || 1);
+    const ticks = computeAxisIntervals(heightCss);
     for (let index = 0; index <= ticks; index += 1) {
       const ratio = index / ticks;
       const frequency = frequencyFromRatio(ratio, this.settings.frequencyScale, frequencyRange.minHz, frequencyRange.maxHz);
@@ -4937,13 +4940,13 @@ export class AudioLensApp {
       context.stroke();
       if (index === ticks) {
         context.textBaseline = "top";
-        context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), rect.top + devicePx(2));
+        context.fillText(formatAxisFrequency(frequency), rect.left - devicePx(6), rect.top + devicePx(2));
       } else if (index === 0) {
         context.textBaseline = "bottom";
-        context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), rect.bottom - devicePx(2));
+        context.fillText(formatAxisFrequency(frequency), rect.left - devicePx(6), rect.bottom - devicePx(2));
       } else {
         context.textBaseline = "middle";
-        context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), y);
+        context.fillText(formatAxisFrequency(frequency), rect.left - devicePx(6), y);
       }
     }
     context.restore();
@@ -5313,10 +5316,6 @@ function formatHz(value: number): string {
   if (value >= 1000) {
     return `${(value / 1000).toFixed(value >= 10000 ? 1 : 2)} kHz`;
   }
-  return `${Math.round(value)} Hz`;
-}
-
-function formatAxisHz(value: number): string {
   return `${Math.round(value)} Hz`;
 }
 
