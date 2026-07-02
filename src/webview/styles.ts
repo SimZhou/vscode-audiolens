@@ -1300,6 +1300,19 @@ export function injectStyles(): void {
     .floatingTooltip[hidden] {
       display: none;
     }
+    .sliderTipValue {
+      display: block;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .sliderTipHint {
+      display: block;
+      margin-top: 3px;
+      text-align: center;
+      font-size: 10.5px;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.85;
+    }
     .analysisTable {
       width: 100%;
       border-collapse: collapse;

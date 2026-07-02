@@ -8194,7 +8194,7 @@
     applyTrackSliderHint(input, label, valueText) {
       const control = input.closest(".trackSliderControl");
       if (control) {
-        control.dataset.tooltip = `${label} ${valueText} \xB7 ${this.messages.doubleClickReset}`;
+        control.dataset.tooltip = `${label} ${valueText}`;
       }
       input.setAttribute("aria-label", label);
       input.setAttribute("aria-valuetext", valueText);
@@ -8214,7 +8214,13 @@
         return;
       }
       const tooltip = this.elements.floatingTooltip;
-      tooltip.textContent = text;
+      const valueLine = document.createElement("span");
+      valueLine.className = "sliderTipValue";
+      valueLine.textContent = text;
+      const hintLine = document.createElement("span");
+      hintLine.className = "sliderTipHint";
+      hintLine.textContent = this.messages.doubleClickReset;
+      tooltip.replaceChildren(valueLine, hintLine);
       tooltip.hidden = false;
       tooltip.style.width = "max-content";
       const margin = 8;
@@ -11280,6 +11286,19 @@
     }
     .floatingTooltip[hidden] {
       display: none;
+    }
+    .sliderTipValue {
+      display: block;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .sliderTipHint {
+      display: block;
+      margin-top: 3px;
+      text-align: center;
+      font-size: 10.5px;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.85;
     }
     .analysisTable {
       width: 100%;

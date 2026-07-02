@@ -3640,7 +3640,7 @@ export class AudioLensApp {
   private applyTrackSliderHint(input: HTMLInputElement, label: string, valueText: string): void {
     const control = input.closest<HTMLElement>(".trackSliderControl");
     if (control) {
-      control.dataset.tooltip = `${label} ${valueText} · ${this.messages.doubleClickReset}`;
+      control.dataset.tooltip = `${label} ${valueText}`;
     }
     input.setAttribute("aria-label", label);
     input.setAttribute("aria-valuetext", valueText);
@@ -3665,7 +3665,14 @@ export class AudioLensApp {
       return;
     }
     const tooltip = this.elements.floatingTooltip;
-    tooltip.textContent = text;
+    // 主值行醒目,操作提示另起一行并弱化,避免喧宾夺主。
+    const valueLine = document.createElement("span");
+    valueLine.className = "sliderTipValue";
+    valueLine.textContent = text;
+    const hintLine = document.createElement("span");
+    hintLine.className = "sliderTipHint";
+    hintLine.textContent = this.messages.doubleClickReset;
+    tooltip.replaceChildren(valueLine, hintLine);
     tooltip.hidden = false;
     tooltip.style.width = "max-content";
     const margin = 8;
