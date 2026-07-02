@@ -97,7 +97,8 @@ code --install-extension simzhou.audiolens
 **离线 VSIX**
 
 ```bash
-code --install-extension dist/audiolens-1.5.2.vsix
+# 从 https://github.com/SimZhou/vscode-audiolens/releases 下载 audiolens-<version>.vsix
+code --install-extension audiolens-<version>.vsix
 ```
 
 ## 功能演示
