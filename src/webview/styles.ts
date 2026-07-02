@@ -578,18 +578,18 @@ export function injectStyles(): void {
       transition: transform 90ms ease, box-shadow 90ms ease;
     }
     .trackSlider:hover::-webkit-slider-thumb {
-      transform: scale(1.15);
+      transform: scale(1.12);
     }
     .trackSlider:active::-webkit-slider-thumb {
-      transform: scale(1.25);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent), 0 1px 3px rgb(0 0 0 / 30%);
+      transform: scale(1.12);
+      border-color: var(--vscode-focusBorder);
     }
     .trackSlider:focus,
     .trackSlider:focus-visible {
       outline: none;
     }
     .trackSlider:focus-visible::-webkit-slider-thumb {
-      box-shadow: 0 0 0 2px var(--vscode-focusBorder);
+      border-color: var(--vscode-focusBorder);
     }
     .trackBody,
     .trackCanvasWrap {

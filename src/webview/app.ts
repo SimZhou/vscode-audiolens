@@ -2215,7 +2215,9 @@ export class AudioLensApp {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
-    if (isEditableTarget(event.target)) {
+    // 音轨侧栏的静音/独奏/视图/增益/声道平衡控件获得焦点后,空格仍应控制播放,
+    // 而不是触发控件默认行为(滚动、重复开关、展开下拉)。Enter/方向键等不在此拦截,保留控件本身操作。
+    if (isEditableTarget(event.target) && !this.isTrackSidebarControl(event.target)) {
       return;
     }
     if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "f") {
@@ -2231,6 +2233,10 @@ export class AudioLensApp {
       event.preventDefault();
       this.handleEscape();
     }
+  }
+
+  private isTrackSidebarControl(target: EventTarget | null): boolean {
+    return target instanceof HTMLElement && target.closest(".trackSidebar") !== null;
   }
 
   private handleEscape(): void {
