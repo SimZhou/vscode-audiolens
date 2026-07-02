@@ -7,7 +7,7 @@ export interface ViewElements {
   play: HTMLButtonElement;
   clock: HTMLSpanElement;
   seek: HTMLInputElement;
-  playbackRoutingMode: HTMLSelectElement;
+  playbackAlgorithm: HTMLSelectElement;
   audio: HTMLAudioElement;
   algorithm: HTMLSelectElement;
   defaultTrackMode: HTMLSelectElement;
@@ -264,11 +264,11 @@ export function renderShell(root: HTMLDivElement): ViewElements {
       <section class="player">
         <button id="play" class="iconButton" data-i18n-title="playPause" data-i18n-aria="playPause" title="Play / pause" aria-label="Play / pause">▶</button>
         <span id="clock" class="clock">0:00.000 / 0:00.000</span>
-        <label class="routingControl" title="Playback routing for decoded audio">
-          <span>Route</span>
-          <select id="playbackRoutingMode" aria-label="Playback routing">
+        <label class="playbackModeControl" title="Playback mode for decoded audio">
+          <span>Mode</span>
+          <select id="playbackAlgorithm" aria-label="Playback mode">
             <option value="downmix">Downmix</option>
-            <option value="stereo">Stereo</option>
+            <option value="bypass">Bypass</option>
           </select>
         </label>
         <input id="seek" class="seek" type="range" min="0" max="1000" value="0" data-i18n-aria="playbackPosition" aria-label="Playback position" />
@@ -612,7 +612,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     play: query("#play", HTMLButtonElement),
     clock: query("#clock", HTMLSpanElement),
     seek: query("#seek", HTMLInputElement),
-    playbackRoutingMode: query("#playbackRoutingMode", HTMLSelectElement),
+    playbackAlgorithm: query("#playbackAlgorithm", HTMLSelectElement),
     audio: query("#audio", HTMLAudioElement),
     algorithm: query("#algorithm", HTMLSelectElement),
     defaultTrackMode: query("#defaultTrackMode", HTMLSelectElement),

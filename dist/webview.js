@@ -4055,18 +4055,21 @@
     return normalizeLocale(vscodeLanguage);
   }
 
-  // src/webview/playbackRouting.ts
+  // src/webview/playbackAlgorithms.ts
+  var PLAYBACK_ALGORITHMS = {
+    downmix: { createPlan: createDownmixPlan },
+    bypass: { createPlan: createBypassPlan }
+  };
   function createPlaybackRoutingPlan(options) {
     const channelCount = Math.max(0, Math.floor(options.channelCount));
     const enabledChannels = Array.from({ length: channelCount }, (_, channel) => options.enabledChannels?.[channel] ?? true);
-    const useStereo = options.mode === "stereo" && channelCount > 0 && channelCount <= 2;
-    if (useStereo) {
-      return createStereoPlan(enabledChannels);
-    }
-    return createDownmixPlan(enabledChannels);
+    return PLAYBACK_ALGORITHMS[options.algorithm].createPlan(enabledChannels);
   }
-  function createStereoPlan(enabledChannels) {
+  function createBypassPlan(enabledChannels) {
     const channelCount = enabledChannels.length;
+    if (channelCount > 2) {
+      return createDownmixPlan(enabledChannels);
+    }
     const connections = channelCount === 1 ? [
       { channel: 0, output: 0 },
       { channel: 0, output: 1 }
@@ -4075,7 +4078,7 @@
       { channel: 1, output: 1 }
     ];
     return {
-      effectiveMode: "stereo",
+      effectiveAlgorithm: "bypass",
       outputChannels: 2,
       connections,
       channelGains: enabledChannels.map((enabled) => enabled ? 1 : 0)
@@ -4089,7 +4092,7 @@
       { channel, output: 1 }
     ]);
     return {
-      effectiveMode: "downmix",
+      effectiveAlgorithm: "downmix",
       outputChannels: 2,
       connections,
       channelGains: enabledChannels.map((enabled) => enabled ? channelGain : 0)
@@ -4419,11 +4422,11 @@
       <section class="player">
         <button id="play" class="iconButton" data-i18n-title="playPause" data-i18n-aria="playPause" title="Play / pause" aria-label="Play / pause">\u25B6</button>
         <span id="clock" class="clock">0:00.000 / 0:00.000</span>
-        <label class="routingControl" title="Playback routing for decoded audio">
-          <span>Route</span>
-          <select id="playbackRoutingMode" aria-label="Playback routing">
+        <label class="playbackModeControl" title="Playback mode for decoded audio">
+          <span>Mode</span>
+          <select id="playbackAlgorithm" aria-label="Playback mode">
             <option value="downmix">Downmix</option>
-            <option value="stereo">Stereo</option>
+            <option value="bypass">Bypass</option>
           </select>
         </label>
         <input id="seek" class="seek" type="range" min="0" max="1000" value="0" data-i18n-aria="playbackPosition" aria-label="Playback position" />
@@ -4766,7 +4769,7 @@
       play: query("#play", HTMLButtonElement),
       clock: query("#clock", HTMLSpanElement),
       seek: query("#seek", HTMLInputElement),
-      playbackRoutingMode: query("#playbackRoutingMode", HTMLSelectElement),
+      playbackAlgorithm: query("#playbackAlgorithm", HTMLSelectElement),
       audio: query("#audio", HTMLAudioElement),
       algorithm: query("#algorithm", HTMLSelectElement),
       defaultTrackMode: query("#defaultTrackMode", HTMLSelectElement),
@@ -6165,7 +6168,7 @@
       frequencyScale: "linear",
       palette: "rose",
       playbackGain: 0,
-      playbackRoutingMode: "downmix",
+      playbackAlgorithm: "downmix",
       defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
       defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
       defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
@@ -6515,8 +6518,8 @@
         this.updateGainNode();
         this.savePreferencesSoon();
       });
-      this.elements.playbackRoutingMode.addEventListener("change", () => {
-        this.settings.playbackRoutingMode = this.elements.playbackRoutingMode.value;
+      this.elements.playbackAlgorithm.addEventListener("change", () => {
+        this.settings.playbackAlgorithm = this.elements.playbackAlgorithm.value;
         this.rebuildPlaybackChannelGraph();
         this.updatePlaybackChannelGains();
         this.savePreferencesSoon();
@@ -7272,7 +7275,7 @@
     syncControls() {
       this.elements.algorithm.value = this.settings.algorithm;
       this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
-      this.elements.playbackRoutingMode.value = this.settings.playbackRoutingMode;
+      this.elements.playbackAlgorithm.value = this.settings.playbackAlgorithm;
       this.elements.windowFunction.value = this.settings.windowFunction;
       this.elements.fftSize.value = String(this.settings.fftSize);
       this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
@@ -7361,8 +7364,9 @@
       if (preferences.defaultTrackMode) {
         this.settings.defaultTrackMode = preferences.defaultTrackMode;
       }
-      if (preferences.playbackRoutingMode === "downmix" || preferences.playbackRoutingMode === "stereo") {
-        this.settings.playbackRoutingMode = preferences.playbackRoutingMode;
+      const playbackAlgorithm = normalizePlaybackAlgorithmPreference(preferences);
+      if (playbackAlgorithm) {
+        this.settings.playbackAlgorithm = playbackAlgorithm;
       }
       if (preferences.windowFunction) {
         this.settings.windowFunction = preferences.windowFunction;
@@ -7440,7 +7444,7 @@
         spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
         autoBrightness: this.settings.autoBrightness,
         playbackGain: this.settings.playbackGain,
-        playbackRoutingMode: this.settings.playbackRoutingMode,
+        playbackAlgorithm: this.settings.playbackAlgorithm,
         defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
         defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
         defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
@@ -8684,7 +8688,7 @@
     currentPlaybackRoutingPlan(channelCount) {
       return createPlaybackRoutingPlan({
         channelCount,
-        mode: this.settings.playbackRoutingMode,
+        algorithm: this.settings.playbackAlgorithm,
         enabledChannels: this.currentPlaybackEnabledChannels(channelCount)
       });
     }
@@ -9859,6 +9863,16 @@
     const percentileIndex = Math.min(rmsValues.length - 1, Math.max(0, Math.floor((rmsValues.length - 1) * 0.1)));
     return amplitudeToDb(rmsValues[percentileIndex] ?? 0);
   }
+  function normalizePlaybackAlgorithmPreference(preferences) {
+    if (preferences.playbackAlgorithm === "downmix" || preferences.playbackAlgorithm === "bypass") {
+      return preferences.playbackAlgorithm;
+    }
+    const legacyValue = preferences.playbackRoutingMode;
+    if (legacyValue === "stereo") {
+      return "bypass";
+    }
+    return legacyValue;
+  }
   function formatProfileMs(value) {
     return value === void 0 ? "n/a" : `${value.toFixed(2)} ms`;
   }
@@ -10043,7 +10057,7 @@
     .player {
       background: var(--vscode-editor-background);
     }
-    .routingControl {
+    .playbackModeControl {
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
@@ -10052,7 +10066,7 @@
       font-size: 12px;
       white-space: nowrap;
     }
-    .routingControl select {
+    .playbackModeControl select {
       height: 26px;
       min-width: 86px;
       border: 1px solid var(--vscode-dropdown-border, var(--vscode-input-border, transparent));

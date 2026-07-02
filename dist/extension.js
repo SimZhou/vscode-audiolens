@@ -518,7 +518,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
       waveformHeight: value.waveformHeight,
       spectrogramHeight: value.spectrogramHeight,
       playbackGain: value.playbackGain,
-      playbackRoutingMode: value.playbackRoutingMode,
+      playbackAlgorithm: normalizePlaybackAlgorithmPreference(value),
       defaultPcmFormat: value.defaultPcmFormat
     };
   }
@@ -1086,6 +1086,16 @@ function parseWebviewMessage(value, maxTransferBytes) {
 }
 function isRecord(value) {
   return typeof value === "object" && value !== null;
+}
+function normalizePlaybackAlgorithmPreference(value) {
+  if (value.playbackAlgorithm === "downmix" || value.playbackAlgorithm === "bypass") {
+    return value.playbackAlgorithm;
+  }
+  const legacyValue = value.playbackRoutingMode;
+  if (legacyValue === "stereo") {
+    return "bypass";
+  }
+  return legacyValue;
 }
 function isSafeRequestId(value) {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;

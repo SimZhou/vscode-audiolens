@@ -8,7 +8,8 @@ import {
   ExtensionMessage,
   WebviewMessage,
   AudioLensConfig,
-  AudioLensPreferences
+  AudioLensPreferences,
+  PlaybackAlgorithm
 } from "./shared/protocol";
 import { normalizePipedWavSizes } from "./ffmpegWav";
 import { formatBytes, getNonce } from "./util";
@@ -522,7 +523,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       waveformHeight: value.waveformHeight,
       spectrogramHeight: value.spectrogramHeight,
       playbackGain: value.playbackGain,
-      playbackRoutingMode: value.playbackRoutingMode,
+      playbackAlgorithm: normalizePlaybackAlgorithmPreference(value),
       defaultPcmFormat: value.defaultPcmFormat
     };
   }
@@ -1139,6 +1140,17 @@ function parseWebviewMessage(value: unknown, maxTransferBytes: number): WebviewM
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function normalizePlaybackAlgorithmPreference(value: AudioLensPreferences): PlaybackAlgorithm | undefined {
+  if (value.playbackAlgorithm === "downmix" || value.playbackAlgorithm === "bypass") {
+    return value.playbackAlgorithm;
+  }
+  const legacyValue = (value as AudioLensPreferences & { playbackRoutingMode?: "downmix" | "stereo" }).playbackRoutingMode;
+  if (legacyValue === "stereo") {
+    return "bypass";
+  }
+  return legacyValue;
 }
 
 function isSafeRequestId(value: unknown): value is number {

@@ -177,7 +177,7 @@ export function injectStyles(): void {
     .player {
       background: var(--vscode-editor-background);
     }
-    .routingControl {
+    .playbackModeControl {
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
@@ -186,7 +186,7 @@ export function injectStyles(): void {
       font-size: 12px;
       white-space: nowrap;
     }
-    .routingControl select {
+    .playbackModeControl select {
       height: 26px;
       min-width: 86px;
       border: 1px solid var(--vscode-dropdown-border, var(--vscode-input-border, transparent));

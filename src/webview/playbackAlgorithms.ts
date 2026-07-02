@@ -1,6 +1,6 @@
-import { PlaybackRoutingMode } from "../shared/protocol";
+import { PlaybackAlgorithm } from "../shared/protocol";
 
-export type { PlaybackRoutingMode };
+export type { PlaybackAlgorithm };
 
 export interface PlaybackRoutingConnection {
   channel: number;
@@ -8,7 +8,7 @@ export interface PlaybackRoutingConnection {
 }
 
 export interface PlaybackRoutingPlan {
-  effectiveMode: PlaybackRoutingMode;
+  effectiveAlgorithm: PlaybackAlgorithm;
   outputChannels: 2;
   connections: PlaybackRoutingConnection[];
   channelGains: number[];
@@ -16,24 +16,31 @@ export interface PlaybackRoutingPlan {
 
 export interface PlaybackRoutingPlanOptions {
   channelCount: number;
-  mode: PlaybackRoutingMode;
+  algorithm: PlaybackAlgorithm;
   enabledChannels?: readonly boolean[];
 }
+
+interface PlaybackAlgorithmDefinition {
+  createPlan(enabledChannels: readonly boolean[]): PlaybackRoutingPlan;
+}
+
+export const PLAYBACK_ALGORITHMS: Record<PlaybackAlgorithm, PlaybackAlgorithmDefinition> = {
+  downmix: { createPlan: createDownmixPlan },
+  bypass: { createPlan: createBypassPlan }
+};
 
 export function createPlaybackRoutingPlan(options: PlaybackRoutingPlanOptions): PlaybackRoutingPlan {
   const channelCount = Math.max(0, Math.floor(options.channelCount));
   const enabledChannels = Array.from({ length: channelCount }, (_, channel) => options.enabledChannels?.[channel] ?? true);
-  const useStereo = options.mode === "stereo" && channelCount > 0 && channelCount <= 2;
-
-  if (useStereo) {
-    return createStereoPlan(enabledChannels);
-  }
-
-  return createDownmixPlan(enabledChannels);
+  return PLAYBACK_ALGORITHMS[options.algorithm].createPlan(enabledChannels);
 }
 
-function createStereoPlan(enabledChannels: readonly boolean[]): PlaybackRoutingPlan {
+function createBypassPlan(enabledChannels: readonly boolean[]): PlaybackRoutingPlan {
   const channelCount = enabledChannels.length;
+  if (channelCount > 2) {
+    return createDownmixPlan(enabledChannels);
+  }
+
   const connections: PlaybackRoutingConnection[] = channelCount === 1
     ? [
         { channel: 0, output: 0 },
@@ -45,7 +52,7 @@ function createStereoPlan(enabledChannels: readonly boolean[]): PlaybackRoutingP
       ];
 
   return {
-    effectiveMode: "stereo",
+    effectiveAlgorithm: "bypass",
     outputChannels: 2,
     connections,
     channelGains: enabledChannels.map((enabled) => (enabled ? 1 : 0))
@@ -61,7 +68,7 @@ function createDownmixPlan(enabledChannels: readonly boolean[]): PlaybackRouting
   ]);
 
   return {
-    effectiveMode: "downmix",
+    effectiveAlgorithm: "downmix",
     outputChannels: 2,
     connections,
     channelGains: enabledChannels.map((enabled) => (enabled ? channelGain : 0))

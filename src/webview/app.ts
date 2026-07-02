@@ -3,7 +3,7 @@ import {
   ExtensionMessage,
   AudioLensConfig,
   AudioLensPreferences,
-  PlaybackRoutingMode,
+  PlaybackAlgorithm,
   SpectrogramAlgorithm,
   WebviewMessage,
   WindowFunction
@@ -23,7 +23,7 @@ import { AudioHeaderInfo, readAudioFileFacts, readAudioHeaderInfo } from "./audi
 import { clamp, formatBytes, formatTime, guessMime, resizeCanvas } from "./dom";
 import { getMessages, resolveLocale } from "./i18n";
 import { LocaleCode, LocaleMessages, LocaleSetting } from "./i18n/types";
-import { createPlaybackRoutingPlan } from "./playbackRouting";
+import { createPlaybackRoutingPlan } from "./playbackAlgorithms";
 import {
   createAudioBufferFromChannels,
   decodePcm,
@@ -62,7 +62,7 @@ interface AnalysisSettings {
   frequencyScale: FrequencyScale;
   palette: SpectrogramPalette;
   playbackGain: number;
-  playbackRoutingMode: PlaybackRoutingMode;
+  playbackAlgorithm: PlaybackAlgorithm;
   defaultTrackRowHeight: number;
   defaultTrackWaveFr: number;
   defaultTrackSpecFr: number;
@@ -1452,7 +1452,7 @@ export class AudioLensApp {
     frequencyScale: "linear",
     palette: "rose",
     playbackGain: 0,
-    playbackRoutingMode: "downmix",
+    playbackAlgorithm: "downmix",
     defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
     defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
     defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
@@ -1838,8 +1838,8 @@ export class AudioLensApp {
       this.updateGainNode();
       this.savePreferencesSoon();
     });
-    this.elements.playbackRoutingMode.addEventListener("change", () => {
-      this.settings.playbackRoutingMode = this.elements.playbackRoutingMode.value as PlaybackRoutingMode;
+    this.elements.playbackAlgorithm.addEventListener("change", () => {
+      this.settings.playbackAlgorithm = this.elements.playbackAlgorithm.value as PlaybackAlgorithm;
       this.rebuildPlaybackChannelGraph();
       this.updatePlaybackChannelGains();
       this.savePreferencesSoon();
@@ -2652,7 +2652,7 @@ export class AudioLensApp {
   private syncControls(): void {
     this.elements.algorithm.value = this.settings.algorithm;
     this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
-    this.elements.playbackRoutingMode.value = this.settings.playbackRoutingMode;
+    this.elements.playbackAlgorithm.value = this.settings.playbackAlgorithm;
     this.elements.windowFunction.value = this.settings.windowFunction;
     this.elements.fftSize.value = String(this.settings.fftSize);
     this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
@@ -2746,8 +2746,9 @@ export class AudioLensApp {
     if (preferences.defaultTrackMode) {
       this.settings.defaultTrackMode = preferences.defaultTrackMode;
     }
-    if (preferences.playbackRoutingMode === "downmix" || preferences.playbackRoutingMode === "stereo") {
-      this.settings.playbackRoutingMode = preferences.playbackRoutingMode;
+    const playbackAlgorithm = normalizePlaybackAlgorithmPreference(preferences);
+    if (playbackAlgorithm) {
+      this.settings.playbackAlgorithm = playbackAlgorithm;
     }
     if (preferences.windowFunction) {
       this.settings.windowFunction = preferences.windowFunction as WindowFunction;
@@ -2827,7 +2828,7 @@ export class AudioLensApp {
       spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
       autoBrightness: this.settings.autoBrightness,
       playbackGain: this.settings.playbackGain,
-      playbackRoutingMode: this.settings.playbackRoutingMode,
+      playbackAlgorithm: this.settings.playbackAlgorithm,
       defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
       defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
       defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
@@ -4185,7 +4186,7 @@ export class AudioLensApp {
   private currentPlaybackRoutingPlan(channelCount: number) {
     return createPlaybackRoutingPlan({
       channelCount,
-      mode: this.settings.playbackRoutingMode,
+      algorithm: this.settings.playbackAlgorithm,
       enabledChannels: this.currentPlaybackEnabledChannels(channelCount)
     });
   }
@@ -5511,6 +5512,17 @@ function computeNoiseFloorDb(samples: Float32Array, startSample: number, endSamp
   rmsValues.sort((a, b) => a - b);
   const percentileIndex = Math.min(rmsValues.length - 1, Math.max(0, Math.floor((rmsValues.length - 1) * 0.1)));
   return amplitudeToDb(rmsValues[percentileIndex] ?? 0);
+}
+
+function normalizePlaybackAlgorithmPreference(preferences: AudioLensPreferences): PlaybackAlgorithm | undefined {
+  if (preferences.playbackAlgorithm === "downmix" || preferences.playbackAlgorithm === "bypass") {
+    return preferences.playbackAlgorithm;
+  }
+  const legacyValue = (preferences as AudioLensPreferences & { playbackRoutingMode?: "downmix" | "stereo" }).playbackRoutingMode;
+  if (legacyValue === "stereo") {
+    return "bypass";
+  }
+  return legacyValue;
 }
 
 function formatProfileMs(value: number | undefined): string {
