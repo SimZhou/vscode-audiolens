@@ -282,6 +282,7 @@
     "clean": "node scripts/clean.mjs",
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
+    "test": "node scripts/run-tests.mjs",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
     "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.5.3.vsix",

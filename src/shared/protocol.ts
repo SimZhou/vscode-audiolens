@@ -12,6 +12,8 @@ export type WindowFunction =
 
 export type SpectrogramAlgorithm = "frequency" | "reassignment" | "pitchEac";
 
+export type PlaybackRoutingMode = "downmix" | "stereo";
+
 export interface AnalysisDefaults {
   windowFunction: WindowFunction;
   fftSize: number;
@@ -48,6 +50,7 @@ export interface AudioLensPreferences {
   defaultTrackWaveFr?: number;
   defaultTrackSpecFr?: number;
   playbackGain?: number;
+  playbackRoutingMode?: PlaybackRoutingMode;
   defaultPcmFormat?: {
     sampleRate: number;
     channels: number;

@@ -61,7 +61,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 | Workflow | What AudioLens gives you |
 | --- | --- |
 | Speech and ML datasets | Inspect audio next to manifests, transcripts, logs, training scripts, and model outputs. |
-| Multi-channel audio | Audacity-style channel tracks, per-channel waveform/spectrogram views, mute, solo, and stereo downmix playback. |
+| Multi-channel audio | Audacity-style channel tracks, per-channel waveform/spectrogram views, mute, solo, and downmix or stereo passthrough playback. |
 | Audio analysis | Drag a region, play only that selection, and read RMS, peak, clipping, dominant frequency, spectral centroid, ZCR, and frequency-band metrics. |
 | Raw data debugging | Open `.pcm` / `.raw` with explicit sample rate, channel count, encoding, byte order, and byte offset. Reopen WAV payloads as PCM for damaged or non-standard files. |
 | Kaldi workflows | Open `wav.ark:offset` entries or manually enter an Ark offset without loading the full archive. |
@@ -71,12 +71,12 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 
 | Area | Features |
 | --- | --- |
-| Playback | Keyboard-ready `Space` play/pause, seek, selection playback, playback gain, per-channel mute and solo. |
+| Playback | Keyboard-ready `Space` play/pause, seek, selection playback, playback gain, downmix/stereo routing, per-channel mute and solo. |
 | Visualization | Waveform, spectrogram, combined view, shared timeline, draggable per-track height and waveform/spectrogram split, zoom, pan, and reset. |
 | Spectrogram analysis | Frequency, reassignment, and pitch (EAC) algorithms; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, and auto brightness. |
 | File inspection | Structured header inspector for WAV/RIFF, FLAC, Ogg, MP4/M4A, AAC/ADTS, and MP3/MPEG frames. |
 | Dataset navigation | Hover/status-bar/command entry points for audio paths in ordinary text files without generating thousands of inline links. |
-| Persistence | Saves default track view, spectrogram settings, playback gain, PCM defaults, and language preference. |
+| Persistence | Saves default track view, spectrogram settings, playback gain, playback routing, PCM defaults, and language preference. |
 
 ## Install
 
@@ -262,6 +262,7 @@ After opening audio, the active spectrogram or waveform is keyboard-ready, so `S
 | Pan visible time range | `Shift` + mouse wheel |
 | Zoom waveform amplitude on macOS | `Option` + mouse wheel |
 | Zoom waveform amplitude on Windows/Linux | `Alt` + mouse wheel |
+| Switch decoded audio routing | Transport `Route` selector (`Downmix` / `Stereo`) |
 | Reset playback gain | Double-click the gain slider |
 
 ## Interface Language

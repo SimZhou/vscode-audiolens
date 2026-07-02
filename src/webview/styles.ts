@@ -177,6 +177,24 @@ export function injectStyles(): void {
     .player {
       background: var(--vscode-editor-background);
     }
+    .routingControl {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--vscode-descriptionForeground);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .routingControl select {
+      height: 26px;
+      min-width: 86px;
+      border: 1px solid var(--vscode-dropdown-border, var(--vscode-input-border, transparent));
+      border-radius: 4px;
+      color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+      background: var(--vscode-dropdown-background, var(--vscode-input-background));
+      font-size: 12px;
+    }
     .iconButton {
       width: 32px;
       height: 32px;

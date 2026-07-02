@@ -3,6 +3,7 @@ import {
   ExtensionMessage,
   AudioLensConfig,
   AudioLensPreferences,
+  PlaybackRoutingMode,
   SpectrogramAlgorithm,
   WebviewMessage,
   WindowFunction
@@ -22,6 +23,7 @@ import { AudioHeaderInfo, readAudioFileFacts, readAudioHeaderInfo } from "./audi
 import { clamp, formatBytes, formatTime, guessMime, resizeCanvas } from "./dom";
 import { getMessages, resolveLocale } from "./i18n";
 import { LocaleCode, LocaleMessages, LocaleSetting } from "./i18n/types";
+import { createPlaybackRoutingPlan } from "./playbackRouting";
 import {
   createAudioBufferFromChannels,
   decodePcm,
@@ -60,6 +62,7 @@ interface AnalysisSettings {
   frequencyScale: FrequencyScale;
   palette: SpectrogramPalette;
   playbackGain: number;
+  playbackRoutingMode: PlaybackRoutingMode;
   defaultTrackRowHeight: number;
   defaultTrackWaveFr: number;
   defaultTrackSpecFr: number;
@@ -1449,6 +1452,7 @@ export class AudioLensApp {
     frequencyScale: "linear",
     palette: "rose",
     playbackGain: 0,
+    playbackRoutingMode: "downmix",
     defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
     defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
     defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
@@ -1832,6 +1836,12 @@ export class AudioLensApp {
       this.elements.playbackGain.value = "0";
       this.elements.gainLabel.textContent = "0 dB";
       this.updateGainNode();
+      this.savePreferencesSoon();
+    });
+    this.elements.playbackRoutingMode.addEventListener("change", () => {
+      this.settings.playbackRoutingMode = this.elements.playbackRoutingMode.value as PlaybackRoutingMode;
+      this.rebuildPlaybackChannelGraph();
+      this.updatePlaybackChannelGains();
       this.savePreferencesSoon();
     });
     this.elements.audio.addEventListener("error", () => {
@@ -2642,6 +2652,7 @@ export class AudioLensApp {
   private syncControls(): void {
     this.elements.algorithm.value = this.settings.algorithm;
     this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
+    this.elements.playbackRoutingMode.value = this.settings.playbackRoutingMode;
     this.elements.windowFunction.value = this.settings.windowFunction;
     this.elements.fftSize.value = String(this.settings.fftSize);
     this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
@@ -2735,6 +2746,9 @@ export class AudioLensApp {
     if (preferences.defaultTrackMode) {
       this.settings.defaultTrackMode = preferences.defaultTrackMode;
     }
+    if (preferences.playbackRoutingMode === "downmix" || preferences.playbackRoutingMode === "stereo") {
+      this.settings.playbackRoutingMode = preferences.playbackRoutingMode;
+    }
     if (preferences.windowFunction) {
       this.settings.windowFunction = preferences.windowFunction as WindowFunction;
     }
@@ -2813,6 +2827,7 @@ export class AudioLensApp {
       spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
       autoBrightness: this.settings.autoBrightness,
       playbackGain: this.settings.playbackGain,
+      playbackRoutingMode: this.settings.playbackRoutingMode,
       defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
       defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
       defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
@@ -4142,29 +4157,44 @@ export class AudioLensApp {
       return;
     }
     const channels = this.audioBuffer.numberOfChannels;
+    const plan = this.currentPlaybackRoutingPlan(channels);
     this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
-    this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(2);
+    this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(plan.outputChannels);
     this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext!.createGain());
     this.playbackSourceNode.connect(this.playbackSplitterNode);
     this.playbackChannelGains.forEach((gain, channel) => {
       this.playbackSplitterNode?.connect(gain, channel);
-      gain.connect(this.playbackMergerNode!, 0, 0);
-      gain.connect(this.playbackMergerNode!, 0, 1);
     });
+    for (const connection of plan.connections) {
+      this.playbackChannelGains[connection.channel]?.connect(this.playbackMergerNode, 0, connection.output);
+    }
     this.playbackMergerNode.connect(this.playbackGainNode);
     this.playbackGainNode.connect(this.playbackAudioContext.destination);
   }
 
   private updatePlaybackChannelGains(): void {
-    const hasSolo = this.trackViews.some((view) => view.solo);
-    const enabledChannels = this.trackViews.length > 0
-      ? this.trackViews.filter((view) => (hasSolo ? view.solo : !view.muted)).length
-      : this.playbackChannelGains.length;
-    const channelGain = enabledChannels > 0 ? 1 / enabledChannels : 0;
+    if (!this.audioBuffer) {
+      return;
+    }
+    const plan = this.currentPlaybackRoutingPlan(this.audioBuffer.numberOfChannels);
     this.playbackChannelGains.forEach((gain, channel) => {
+      gain.gain.value = plan.channelGains[channel] ?? 0;
+    });
+  }
+
+  private currentPlaybackRoutingPlan(channelCount: number) {
+    return createPlaybackRoutingPlan({
+      channelCount,
+      mode: this.settings.playbackRoutingMode,
+      enabledChannels: this.currentPlaybackEnabledChannels(channelCount)
+    });
+  }
+
+  private currentPlaybackEnabledChannels(channelCount: number): boolean[] {
+    const hasSolo = this.trackViews.some((view) => view.solo);
+    return Array.from({ length: channelCount }, (_, channel) => {
       const view = this.trackViews.find((item) => item.channel === channel);
-      const enabled = view ? (hasSolo ? view.solo : !view.muted) : true;
-      gain.gain.value = enabled ? channelGain : 0;
+      return view ? (hasSolo ? view.solo : !view.muted) : true;
     });
   }
 

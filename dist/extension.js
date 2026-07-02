@@ -518,6 +518,7 @@ var AudioLensEditorProvider = class _AudioLensEditorProvider {
       waveformHeight: value.waveformHeight,
       spectrogramHeight: value.spectrogramHeight,
       playbackGain: value.playbackGain,
+      playbackRoutingMode: value.playbackRoutingMode,
       defaultPcmFormat: value.defaultPcmFormat
     };
   }

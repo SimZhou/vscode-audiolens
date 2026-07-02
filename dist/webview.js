@@ -4055,6 +4055,47 @@
     return normalizeLocale(vscodeLanguage);
   }
 
+  // src/webview/playbackRouting.ts
+  function createPlaybackRoutingPlan(options) {
+    const channelCount = Math.max(0, Math.floor(options.channelCount));
+    const enabledChannels = Array.from({ length: channelCount }, (_, channel) => options.enabledChannels?.[channel] ?? true);
+    const useStereo = options.mode === "stereo" && channelCount > 0 && channelCount <= 2;
+    if (useStereo) {
+      return createStereoPlan(enabledChannels);
+    }
+    return createDownmixPlan(enabledChannels);
+  }
+  function createStereoPlan(enabledChannels) {
+    const channelCount = enabledChannels.length;
+    const connections = channelCount === 1 ? [
+      { channel: 0, output: 0 },
+      { channel: 0, output: 1 }
+    ] : [
+      { channel: 0, output: 0 },
+      { channel: 1, output: 1 }
+    ];
+    return {
+      effectiveMode: "stereo",
+      outputChannels: 2,
+      connections,
+      channelGains: enabledChannels.map((enabled) => enabled ? 1 : 0)
+    };
+  }
+  function createDownmixPlan(enabledChannels) {
+    const enabledCount = enabledChannels.filter(Boolean).length;
+    const channelGain = enabledCount > 0 ? 1 / enabledCount : 0;
+    const connections = enabledChannels.flatMap((_, channel) => [
+      { channel, output: 0 },
+      { channel, output: 1 }
+    ]);
+    return {
+      effectiveMode: "downmix",
+      outputChannels: 2,
+      connections,
+      channelGains: enabledChannels.map((enabled) => enabled ? channelGain : 0)
+    };
+  }
+
   // src/webview/pcm.ts
   function pcmEncodingToFormat(encoding) {
     switch (encoding) {
@@ -4378,6 +4419,13 @@
       <section class="player">
         <button id="play" class="iconButton" data-i18n-title="playPause" data-i18n-aria="playPause" title="Play / pause" aria-label="Play / pause">\u25B6</button>
         <span id="clock" class="clock">0:00.000 / 0:00.000</span>
+        <label class="routingControl" title="Playback routing for decoded audio">
+          <span>Route</span>
+          <select id="playbackRoutingMode" aria-label="Playback routing">
+            <option value="downmix">Downmix</option>
+            <option value="stereo">Stereo</option>
+          </select>
+        </label>
         <input id="seek" class="seek" type="range" min="0" max="1000" value="0" data-i18n-aria="playbackPosition" aria-label="Playback position" />
         <audio id="audio" preload="auto"></audio>
       </section>
@@ -4718,6 +4766,7 @@
       play: query("#play", HTMLButtonElement),
       clock: query("#clock", HTMLSpanElement),
       seek: query("#seek", HTMLInputElement),
+      playbackRoutingMode: query("#playbackRoutingMode", HTMLSelectElement),
       audio: query("#audio", HTMLAudioElement),
       algorithm: query("#algorithm", HTMLSelectElement),
       defaultTrackMode: query("#defaultTrackMode", HTMLSelectElement),
@@ -6116,6 +6165,7 @@
       frequencyScale: "linear",
       palette: "rose",
       playbackGain: 0,
+      playbackRoutingMode: "downmix",
       defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
       defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
       defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
@@ -6463,6 +6513,12 @@
         this.elements.playbackGain.value = "0";
         this.elements.gainLabel.textContent = "0 dB";
         this.updateGainNode();
+        this.savePreferencesSoon();
+      });
+      this.elements.playbackRoutingMode.addEventListener("change", () => {
+        this.settings.playbackRoutingMode = this.elements.playbackRoutingMode.value;
+        this.rebuildPlaybackChannelGraph();
+        this.updatePlaybackChannelGains();
         this.savePreferencesSoon();
       });
       this.elements.audio.addEventListener("error", () => {
@@ -7216,6 +7272,7 @@
     syncControls() {
       this.elements.algorithm.value = this.settings.algorithm;
       this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
+      this.elements.playbackRoutingMode.value = this.settings.playbackRoutingMode;
       this.elements.windowFunction.value = this.settings.windowFunction;
       this.elements.fftSize.value = String(this.settings.fftSize);
       this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
@@ -7304,6 +7361,9 @@
       if (preferences.defaultTrackMode) {
         this.settings.defaultTrackMode = preferences.defaultTrackMode;
       }
+      if (preferences.playbackRoutingMode === "downmix" || preferences.playbackRoutingMode === "stereo") {
+        this.settings.playbackRoutingMode = preferences.playbackRoutingMode;
+      }
       if (preferences.windowFunction) {
         this.settings.windowFunction = preferences.windowFunction;
       }
@@ -7380,6 +7440,7 @@
         spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
         autoBrightness: this.settings.autoBrightness,
         playbackGain: this.settings.playbackGain,
+        playbackRoutingMode: this.settings.playbackRoutingMode,
         defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
         defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
         defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
@@ -8597,26 +8658,41 @@
         return;
       }
       const channels = this.audioBuffer.numberOfChannels;
+      const plan = this.currentPlaybackRoutingPlan(channels);
       this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
-      this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(2);
+      this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(plan.outputChannels);
       this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext.createGain());
       this.playbackSourceNode.connect(this.playbackSplitterNode);
       this.playbackChannelGains.forEach((gain, channel) => {
         this.playbackSplitterNode?.connect(gain, channel);
-        gain.connect(this.playbackMergerNode, 0, 0);
-        gain.connect(this.playbackMergerNode, 0, 1);
       });
+      for (const connection of plan.connections) {
+        this.playbackChannelGains[connection.channel]?.connect(this.playbackMergerNode, 0, connection.output);
+      }
       this.playbackMergerNode.connect(this.playbackGainNode);
       this.playbackGainNode.connect(this.playbackAudioContext.destination);
     }
     updatePlaybackChannelGains() {
-      const hasSolo = this.trackViews.some((view) => view.solo);
-      const enabledChannels = this.trackViews.length > 0 ? this.trackViews.filter((view) => hasSolo ? view.solo : !view.muted).length : this.playbackChannelGains.length;
-      const channelGain = enabledChannels > 0 ? 1 / enabledChannels : 0;
+      if (!this.audioBuffer) {
+        return;
+      }
+      const plan = this.currentPlaybackRoutingPlan(this.audioBuffer.numberOfChannels);
       this.playbackChannelGains.forEach((gain, channel) => {
+        gain.gain.value = plan.channelGains[channel] ?? 0;
+      });
+    }
+    currentPlaybackRoutingPlan(channelCount) {
+      return createPlaybackRoutingPlan({
+        channelCount,
+        mode: this.settings.playbackRoutingMode,
+        enabledChannels: this.currentPlaybackEnabledChannels(channelCount)
+      });
+    }
+    currentPlaybackEnabledChannels(channelCount) {
+      const hasSolo = this.trackViews.some((view) => view.solo);
+      return Array.from({ length: channelCount }, (_, channel) => {
         const view = this.trackViews.find((item) => item.channel === channel);
-        const enabled = view ? hasSolo ? view.solo : !view.muted : true;
-        gain.gain.value = enabled ? channelGain : 0;
+        return view ? hasSolo ? view.solo : !view.muted : true;
       });
     }
     getWaveformPeaks(channel, startSample, endSample, width) {
@@ -9966,6 +10042,24 @@
     }
     .player {
       background: var(--vscode-editor-background);
+    }
+    .routingControl {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--vscode-descriptionForeground);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .routingControl select {
+      height: 26px;
+      min-width: 86px;
+      border: 1px solid var(--vscode-dropdown-border, var(--vscode-input-border, transparent));
+      border-radius: 4px;
+      color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+      background: var(--vscode-dropdown-background, var(--vscode-input-background));
+      font-size: 12px;
     }
     .iconButton {
       width: 32px;
