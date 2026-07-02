@@ -2748,9 +2748,8 @@ export class AudioLensApp {
     if (preferences.defaultTrackMode) {
       this.settings.defaultTrackMode = preferences.defaultTrackMode;
     }
-    const playbackAlgorithm = normalizePlaybackAlgorithmPreference(preferences);
-    if (playbackAlgorithm) {
-      this.settings.playbackAlgorithm = playbackAlgorithm;
+    if (preferences.playbackAlgorithm) {
+      this.settings.playbackAlgorithm = preferences.playbackAlgorithm;
     }
     if (preferences.windowFunction) {
       this.settings.windowFunction = preferences.windowFunction as WindowFunction;
@@ -5528,17 +5527,6 @@ function computeNoiseFloorDb(samples: Float32Array, startSample: number, endSamp
   rmsValues.sort((a, b) => a - b);
   const percentileIndex = Math.min(rmsValues.length - 1, Math.max(0, Math.floor((rmsValues.length - 1) * 0.1)));
   return amplitudeToDb(rmsValues[percentileIndex] ?? 0);
-}
-
-function normalizePlaybackAlgorithmPreference(preferences: AudioLensPreferences): PlaybackAlgorithm | undefined {
-  if (preferences.playbackAlgorithm === "downmix" || preferences.playbackAlgorithm === "bypass") {
-    return preferences.playbackAlgorithm;
-  }
-  const legacyValue = (preferences as AudioLensPreferences & { playbackRoutingMode?: "downmix" | "stereo" }).playbackRoutingMode;
-  if (legacyValue === "stereo") {
-    return "bypass";
-  }
-  return legacyValue;
 }
 
 function formatProfileMs(value: number | undefined): string {

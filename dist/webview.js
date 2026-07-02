@@ -3755,11 +3755,11 @@
     arkOffsetLabel: "ARK \u504F\u79FB",
     settings: "\u8BBE\u7F6E",
     playPause: "\u64AD\u653E / \u6682\u505C",
-    playbackMode: "\u6A21\u5F0F",
+    playbackMode: "\u64AD\u653E\u6A21\u5F0F",
     playbackModeTitle: "\u89E3\u7801\u97F3\u9891\u7684\u64AD\u653E\u6A21\u5F0F",
-    playbackDownmix: "\u6DF7\u97F3",
+    playbackDownmix: "\u4E0B\u6DF7",
     playbackBypass: "\u76F4\u901A",
-    playbackBypassFallback: "\u76F4\u901A\u4EC5\u652F\u6301\u5355\u58F0\u9053/\u53CC\u58F0\u9053\u97F3\u9891\uFF1B\u6B64\u6587\u4EF6\u5C06\u6309\u6DF7\u97F3\u64AD\u653E\u3002",
+    playbackBypassFallback: "\u76F4\u901A\u4EC5\u652F\u6301\u5355\u58F0\u9053/\u53CC\u58F0\u9053\u97F3\u9891\uFF1B\u6B64\u6587\u4EF6\u5C06\u6309\u4E0B\u6DF7\u64AD\u653E\u3002",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
     closeSettings: "\u5173\u95ED\u8BBE\u7F6E",
     spectrogramDisplay: "\u9891\u8C31\u56FE\u663E\u793A",
@@ -3909,11 +3909,11 @@
     initializing: "\u521D\u59CB\u5316\u4E2D",
     spectrogramSettings: "\u983B\u8B5C\u5716\u8A2D\u5B9A",
     playPause: "\u64AD\u653E / \u66AB\u505C",
-    playbackMode: "\u6A21\u5F0F",
+    playbackMode: "\u64AD\u653E\u6A21\u5F0F",
     playbackModeTitle: "\u89E3\u78BC\u97F3\u8A0A\u7684\u64AD\u653E\u6A21\u5F0F",
-    playbackDownmix: "\u6DF7\u97F3",
+    playbackDownmix: "\u4E0B\u6DF7",
     playbackBypass: "\u76F4\u901A",
-    playbackBypassFallback: "\u76F4\u901A\u50C5\u652F\u63F4\u55AE\u8072\u9053/\u96D9\u8072\u9053\u97F3\u8A0A\uFF1B\u6B64\u6A94\u6848\u5C07\u4EE5\u6DF7\u97F3\u64AD\u653E\u3002",
+    playbackBypassFallback: "\u76F4\u901A\u50C5\u652F\u63F4\u55AE\u8072\u9053/\u96D9\u8072\u9053\u97F3\u8A0A\uFF1B\u6B64\u6A94\u6848\u5C07\u4EE5\u4E0B\u6DF7\u64AD\u653E\u3002",
     playbackPosition: "\u64AD\u653E\u4F4D\u7F6E",
     closeSettings: "\u95DC\u9589\u8A2D\u5B9A",
     spectrogramDisplay: "\u983B\u8B5C\u5716\u986F\u793A",
@@ -7451,9 +7451,8 @@
       if (preferences.defaultTrackMode) {
         this.settings.defaultTrackMode = preferences.defaultTrackMode;
       }
-      const playbackAlgorithm = normalizePlaybackAlgorithmPreference(preferences);
-      if (playbackAlgorithm) {
-        this.settings.playbackAlgorithm = playbackAlgorithm;
+      if (preferences.playbackAlgorithm) {
+        this.settings.playbackAlgorithm = preferences.playbackAlgorithm;
       }
       if (preferences.windowFunction) {
         this.settings.windowFunction = preferences.windowFunction;
@@ -9962,16 +9961,6 @@
     rmsValues.sort((a, b) => a - b);
     const percentileIndex = Math.min(rmsValues.length - 1, Math.max(0, Math.floor((rmsValues.length - 1) * 0.1)));
     return amplitudeToDb(rmsValues[percentileIndex] ?? 0);
-  }
-  function normalizePlaybackAlgorithmPreference(preferences) {
-    if (preferences.playbackAlgorithm === "downmix" || preferences.playbackAlgorithm === "bypass") {
-      return preferences.playbackAlgorithm;
-    }
-    const legacyValue = preferences.playbackRoutingMode;
-    if (legacyValue === "stereo") {
-      return "bypass";
-    }
-    return legacyValue;
   }
   function formatProfileMs(value) {
     return value === void 0 ? "n/a" : `${value.toFixed(2)} ms`;
