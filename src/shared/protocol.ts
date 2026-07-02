@@ -47,7 +47,6 @@ export interface AudioLensPreferences {
   defaultTrackRowHeight?: number;
   defaultTrackWaveFr?: number;
   defaultTrackSpecFr?: number;
-  playbackGain?: number;
   defaultPcmFormat?: {
     sampleRate: number;
     channels: number;

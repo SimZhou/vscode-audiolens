@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "播放與選區",
   helpViewGroup: "視圖導覽",
   helpMouseGroup: "滑鼠與觸控板",
-  helpGainGroup: "播放增益",
+  helpGainGroup: "增益與聲道平衡",
   helpPlayPause: "播放 / 暫停",
   helpClearSelection: "關閉選單、清除選區或重設播放游標",
   helpResetTimeZoom: "重設時間縮放",
   helpTrackpadZoom: "觸控板雙指捏合可縮放時間",
   helpTrackpadPan: "觸控板橫向滑動可平移時間",
-  helpGainReset: "雙擊增益滑桿可重設為 0 dB",
+  helpGainReset: "雙擊通道的增益或聲道平衡滑桿可重設",
   helpSelectionPlayback: "在波形圖或頻譜圖上拖曳可框選片段；有選區時播放只會試聽該範圍。",
   refreshSpectrogram: "重新整理頻譜圖",
   resetView: "重設視圖",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens 初始化失敗",
-  playbackGainLabel: "增益",
-  playbackGain: "播放增益 (雙擊重設為 0)"
+  trackGain: "增益",
+  trackPan: "聲道平衡",
+  panLeft: "左",
+  panRight: "右",
+  panCenter: "中",
+  doubleClickReset: "雙擊重設"
 } satisfies Partial<LocaleMessages>;

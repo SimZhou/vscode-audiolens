@@ -61,7 +61,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 | Workflow | What AudioLens gives you |
 | --- | --- |
 | Speech and ML datasets | Inspect audio next to manifests, transcripts, logs, training scripts, and model outputs. |
-| Multi-channel audio | Audacity-style channel tracks, per-channel waveform/spectrogram views, mute, solo, and stereo downmix playback. |
+| Multi-channel audio | Audacity-style channel tracks, per-channel waveform/spectrogram views, mute, solo, and per-channel gain/pan playback (downmix by default, full stereo when panned hard left/right). |
 | Audio analysis | Drag a region, play only that selection, and read RMS, peak, clipping, dominant frequency, spectral centroid, ZCR, and frequency-band metrics. |
 | Raw data debugging | Open `.pcm` / `.raw` with explicit sample rate, channel count, encoding, byte order, and byte offset. Reopen WAV payloads as PCM for damaged or non-standard files. |
 | Kaldi workflows | Open `wav.ark:offset` entries or manually enter an Ark offset without loading the full archive. |

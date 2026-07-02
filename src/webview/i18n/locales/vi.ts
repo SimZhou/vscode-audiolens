@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Phát và vùng chọn",
   helpViewGroup: "Điều hướng chế độ xem",
   helpMouseGroup: "Chuột và trackpad",
-  helpGainGroup: "Gain",
+  helpGainGroup: "Gain & pan",
   helpPlayPause: "Phát / tạm dừng",
   helpClearSelection: "Đóng menu, xóa vùng chọn hoặc đặt lại con trỏ phát",
   helpResetTimeZoom: "Đặt lại thu phóng thời gian",
   helpTrackpadZoom: "Chụm trên trackpad để thu phóng thời gian",
   helpTrackpadPan: "Vuốt ngang trên trackpad để dịch chuyển thời gian",
-  helpGainReset: "Nhấp đúp thanh gain để đặt lại về 0 dB",
+  helpGainReset: "Nhấp đúp thanh trượt gain hoặc pan của kênh để đặt lại",
   helpSelectionPlayback: "Kéo trên dạng sóng hoặc spectrogram để chọn đoạn. Khi có vùng chọn, chỉ vùng đó được phát.",
   refreshSpectrogram: "Làm mới spectrogram",
   resetView: "Đặt lại chế độ xem",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "Khởi tạo AudioLens thất bại",
-  playbackGainLabel: "Gain",
-  playbackGain: "Gain phát lại (nhấp đúp để đặt lại)"
+  trackGain: "Gain",
+  trackPan: "Pan",
+  panLeft: "T",
+  panRight: "P",
+  panCenter: "G",
+  doubleClickReset: "Nhấp đúp để đặt lại"
 } satisfies Partial<LocaleMessages>;

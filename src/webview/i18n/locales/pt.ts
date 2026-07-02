@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Reprodução e seleção",
   helpViewGroup: "Navegação da vista",
   helpMouseGroup: "Mouse e trackpad",
-  helpGainGroup: "Ganho",
+  helpGainGroup: "Ganho e pan",
   helpPlayPause: "Reproduzir / pausar",
   helpClearSelection: "Fechar menu, limpar seleção ou redefinir cursor",
   helpResetTimeZoom: "Redefinir zoom temporal",
   helpTrackpadZoom: "Pinçar no trackpad para ampliar o tempo",
   helpTrackpadPan: "Deslize horizontal do trackpad move o tempo",
-  helpGainReset: "Duplo clique no controle de ganho para voltar a 0 dB",
+  helpGainReset: "Duplo clique em um controle de ganho ou pan para redefini-lo",
   helpSelectionPlayback: "Arraste a forma de onda ou o espectrograma para selecionar um segmento. Com seleção ativa, só esse intervalo é reproduzido.",
   refreshSpectrogram: "Atualizar espectrograma",
   resetView: "Redefinir vista",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "Falha ao inicializar AudioLens",
-  playbackGainLabel: "Ganho",
-  playbackGain: "Ganho de reprodução (duplo clique para redefinir)"
+  trackGain: "Ganho",
+  trackPan: "Pan",
+  panLeft: "E",
+  panRight: "D",
+  panCenter: "C",
+  doubleClickReset: "Duplo clique para redefinir"
 } satisfies Partial<LocaleMessages>;

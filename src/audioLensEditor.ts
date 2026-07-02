@@ -521,7 +521,6 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       amplitudeZoom: value.amplitudeZoom,
       waveformHeight: value.waveformHeight,
       spectrogramHeight: value.spectrogramHeight,
-      playbackGain: value.playbackGain,
       defaultPcmFormat: value.defaultPcmFormat
     };
   }

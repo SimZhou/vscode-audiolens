@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Lecture et sélection",
   helpViewGroup: "Navigation",
   helpMouseGroup: "Souris et pavé tactile",
-  helpGainGroup: "Gain",
+  helpGainGroup: "Gain et panoramique",
   helpPlayPause: "Lire / pause",
   helpClearSelection: "Fermer le menu, effacer la sélection ou réinitialiser le curseur",
   helpResetTimeZoom: "Réinitialiser le zoom temporel",
   helpTrackpadZoom: "Pincer le pavé tactile pour zoomer le temps",
   helpTrackpadPan: "Balayage horizontal du pavé tactile pour déplacer le temps",
-  helpGainReset: "Double-cliquer le curseur de gain pour revenir à 0 dB",
+  helpGainReset: "Double-cliquer un curseur de gain ou de panoramique pour le réinitialiser",
   helpSelectionPlayback: "Faites glisser la forme d'onde ou le spectrogramme pour sélectionner un segment. Avec une sélection active, seule cette plage est lue.",
   refreshSpectrogram: "Actualiser le spectrogramme",
   resetView: "Réinitialiser la vue",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "Échec d'initialisation d'AudioLens",
-  playbackGainLabel: "Gain",
-  playbackGain: "Gain de lecture (double-clic pour réinitialiser)"
+  trackGain: "Gain",
+  trackPan: "Panoramique",
+  panLeft: "G",
+  panRight: "D",
+  panCenter: "C",
+  doubleClickReset: "Double-clic pour réinitialiser"
 } satisfies Partial<LocaleMessages>;

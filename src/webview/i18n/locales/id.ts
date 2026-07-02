@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Pemutaran & pilihan",
   helpViewGroup: "Navigasi tampilan",
   helpMouseGroup: "Mouse & trackpad",
-  helpGainGroup: "Gain",
+  helpGainGroup: "Gain & pan",
   helpPlayPause: "Putar / jeda",
   helpClearSelection: "Tutup menu, hapus pilihan, atau reset kursor putar",
   helpResetTimeZoom: "Reset zoom waktu",
   helpTrackpadZoom: "Cubit trackpad untuk zoom waktu",
   helpTrackpadPan: "Geser horizontal trackpad untuk menggeser waktu",
-  helpGainReset: "Klik ganda slider gain untuk reset ke 0 dB",
+  helpGainReset: "Klik ganda slider gain atau pan untuk mengatur ulang",
   helpSelectionPlayback: "Seret waveform atau spectrogram untuk memilih segmen. Saat pilihan aktif, hanya rentang itu yang diputar.",
   refreshSpectrogram: "Segarkan spectrogram",
   resetView: "Reset tampilan",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "Inisialisasi AudioLens gagal",
-  playbackGainLabel: "Gain",
-  playbackGain: "Gain pemutaran (klik ganda untuk reset)"
+  trackGain: "Gain",
+  trackPan: "Pan",
+  panLeft: "L",
+  panRight: "R",
+  panCenter: "C",
+  doubleClickReset: "Klik ganda untuk mengatur ulang"
 } satisfies Partial<LocaleMessages>;

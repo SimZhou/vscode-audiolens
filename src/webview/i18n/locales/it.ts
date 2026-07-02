@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Riproduzione e selezione",
   helpViewGroup: "Navigazione vista",
   helpMouseGroup: "Mouse e trackpad",
-  helpGainGroup: "Guadagno",
+  helpGainGroup: "Guadagno e pan",
   helpPlayPause: "Riproduci / pausa",
   helpClearSelection: "Chiudi menu, cancella selezione o reimposta cursore",
   helpResetTimeZoom: "Reimposta zoom tempo",
   helpTrackpadZoom: "Pizzica sul trackpad per zoomare il tempo",
   helpTrackpadPan: "Scorrimento orizzontale del trackpad per spostare il tempo",
-  helpGainReset: "Doppio clic sul cursore guadagno per tornare a 0 dB",
+  helpGainReset: "Doppio clic su un cursore guadagno o pan per reimpostarlo",
   helpSelectionPlayback: "Trascina forma d'onda o spettrogramma per selezionare un segmento. Con una selezione attiva, viene riprodotto solo quel range.",
   refreshSpectrogram: "Aggiorna spettrogramma",
   resetView: "Reimposta vista",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "Inizializzazione di AudioLens non riuscita",
-  playbackGainLabel: "Guadagno",
-  playbackGain: "Guadagno di riproduzione (doppio clic per reimpostare)"
+  trackGain: "Guadagno",
+  trackPan: "Pan",
+  panLeft: "S",
+  panRight: "D",
+  panCenter: "C",
+  doubleClickReset: "Doppio clic per reimpostare"
 } satisfies Partial<LocaleMessages>;

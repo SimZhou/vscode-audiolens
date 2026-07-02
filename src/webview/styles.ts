@@ -66,68 +66,6 @@ export function injectStyles(): void {
       align-items: center;
       gap: 8px;
     }
-    .gainControl {
-      position: relative;
-      flex: 0 0 auto;
-      display: grid;
-      grid-template-columns: 6ch 80px;
-      grid-template-rows: 14px 22px;
-      align-items: center;
-      column-gap: 8px;
-      row-gap: 2px;
-      margin-right: 8px;
-    }
-    .gainControl::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      z-index: 40;
-      top: calc(100% + 8px);
-      right: 0;
-      width: max-content;
-      max-width: min(280px, calc(100vw - 24px));
-      padding: 6px 8px;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 4px;
-      color: var(--vscode-foreground);
-      background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-      box-shadow: 0 8px 22px rgb(0 0 0 / 24%);
-      font-size: 12px;
-      line-height: 1.35;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-2px);
-      transition: opacity 90ms ease, transform 90ms ease;
-    }
-    .gainControl:hover::after,
-    .gainControl:has(:focus-visible)::after {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .gainTitle {
-      grid-column: 1 / -1;
-      color: var(--vscode-descriptionForeground);
-      font-size: 12px;
-      line-height: 1;
-      text-align: center;
-      white-space: nowrap;
-    }
-    .gainLabel {
-      font-variant-numeric: tabular-nums;
-      flex: 0 0 6ch;
-      width: 6ch;
-      text-align: right;
-      font-size: 12px;
-      color: var(--vscode-descriptionForeground);
-    }
-    .gainSlider {
-      width: 80px;
-      margin: 0;
-    }
-    .gainSlider:focus,
-    .gainSlider:focus-visible {
-      outline: none;
-    }
     .brand {
       letter-spacing: 0;
     }
@@ -568,6 +506,90 @@ export function injectStyles(): void {
       border: 1px solid var(--vscode-input-border, transparent);
       border-radius: 4px;
       text-align-last: center;
+    }
+    .trackSliderControl {
+      display: grid;
+      grid-template-columns: 11px minmax(0, 1fr) 11px;
+      align-items: center;
+      column-gap: 2px;
+      min-height: 16px;
+    }
+    .trackGainControl {
+      margin-top: 2px;
+    }
+    .trackSliderEnd {
+      font-size: 10px;
+      line-height: 1;
+      color: var(--vscode-descriptionForeground);
+      text-align: center;
+      user-select: none;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .trackSliderTrack {
+      position: relative;
+      display: block;
+      height: 16px;
+      min-width: 0;
+    }
+    .trackSliderTicks {
+      --track-tick: color-mix(in srgb, var(--vscode-descriptionForeground) 50%, transparent);
+      --track-tick-strong: color-mix(in srgb, var(--vscode-descriptionForeground) 80%, transparent);
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      right: 6px;
+      pointer-events: none;
+      background:
+        linear-gradient(var(--track-tick-strong), var(--track-tick-strong)) no-repeat left center / 1px 8px,
+        linear-gradient(var(--track-tick), var(--track-tick)) no-repeat 25% center / 1px 5px,
+        linear-gradient(var(--track-tick-strong), var(--track-tick-strong)) no-repeat center center / 1px 10px,
+        linear-gradient(var(--track-tick), var(--track-tick)) no-repeat 75% center / 1px 5px,
+        linear-gradient(var(--track-tick-strong), var(--track-tick-strong)) no-repeat right center / 1px 8px,
+        linear-gradient(var(--track-tick), var(--track-tick)) no-repeat center center / 100% 1px;
+    }
+    .trackSlider {
+      -webkit-appearance: none;
+      appearance: none;
+      position: relative;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .trackSlider::-webkit-slider-runnable-track {
+      height: 16px;
+      background: transparent;
+    }
+    .trackSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      margin-top: 2px;
+      border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--vscode-button-background) 70%, var(--vscode-foreground));
+      background: var(--vscode-button-background);
+      box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+      transition: transform 90ms ease, box-shadow 90ms ease;
+    }
+    .trackSlider:hover::-webkit-slider-thumb {
+      transform: scale(1.12);
+    }
+    .trackSlider:active::-webkit-slider-thumb {
+      transform: scale(1.12);
+      border-color: var(--vscode-focusBorder);
+    }
+    .trackSlider:focus,
+    .trackSlider:focus-visible {
+      outline: none;
+    }
+    .trackSlider:focus-visible::-webkit-slider-thumb {
+      border-color: var(--vscode-focusBorder);
     }
     .trackBody,
     .trackCanvasWrap {
@@ -1277,6 +1299,19 @@ export function injectStyles(): void {
     }
     .floatingTooltip[hidden] {
       display: none;
+    }
+    .sliderTipValue {
+      display: block;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .sliderTipHint {
+      display: block;
+      margin-top: 3px;
+      text-align: center;
+      font-size: 10.5px;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.85;
     }
     .analysisTable {
       width: 100%;

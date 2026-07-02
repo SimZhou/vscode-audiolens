@@ -105,13 +105,13 @@ export const messages = {
   helpPlaybackGroup: "播放与选区",
   helpViewGroup: "视图导航",
   helpMouseGroup: "鼠标与触控板",
-  helpGainGroup: "播放增益",
+  helpGainGroup: "增益与声道平衡",
   helpPlayPause: "播放 / 暂停",
   helpClearSelection: "关闭菜单、清除选区或重置播放游标",
   helpResetTimeZoom: "重置时间缩放",
   helpTrackpadZoom: "触控板双指捏合可缩放时间",
   helpTrackpadPan: "触控板横向滑动可平移时间",
-  helpGainReset: "双击增益滑块可重置为 0 dB",
+  helpGainReset: "双击通道的增益或声道平衡滑块可重置",
   helpSelectionPlayback: "在波形图或语谱图上拖拽可框选片段；有选区时播放只试听该范围。",
   selectionAnalysis: "选区分析",
   selectionAnalysisHelp: "选区分析：\n对当前框选的时间范围进行快速统计，帮助判断录音电平、动态范围、削波风险、噪声底和频率分布。\n\n分析对象：\n当前结果只针对激活通道，不会把多个通道混合计算。\n\n如何切换：\n点击某一条音轨后，该音轨会成为当前激活通道；之后的 RMS、Peak、Dominant 和频率分析都会使用这个通道的数据。",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens 初始化失败",
-  playbackGainLabel: "播放增益",
-  playbackGain: "播放增益 (双击重置为 0)"
+  trackGain: "增益",
+  trackPan: "声道平衡",
+  panLeft: "左",
+  panRight: "右",
+  panCenter: "中",
+  doubleClickReset: "双击重置"
 } satisfies LocaleMessages;

@@ -14,8 +14,6 @@ export interface ViewElements {
   settingsToggle: HTMLButtonElement;
   downloadAudio: HTMLButtonElement;
   helpMenu: HTMLElement;
-  gainLabel: HTMLSpanElement;
-  playbackGain: HTMLInputElement;
   settingsPanel: HTMLElement;
   windowFunction: HTMLSelectElement;
   fftSize: HTMLSelectElement;
@@ -182,16 +180,11 @@ export function renderShell(root: HTMLDivElement): ViewElements {
                 <div class="helpRow"><span><span class="helpGesture" data-i18n="helpHorizontalSwipe">Horizontal swipe</span></span><span data-i18n="helpTrackpadPan">Horizontal trackpad swipe pans time</span></div>
               </section>
               <section class="helpSection">
-                <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain</div>
-                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click the gain slider to reset to 0 dB</span></div>
+                <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain & pan</div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click a channel's gain or pan slider to reset it</span></div>
               </section>
             </div>
           </details>
-          <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
-            <span class="gainTitle" data-i18n="playbackGainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">Gain</span>
-            <span id="gainLabel" class="gainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">0 dB</span>
-            <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" />
-          </div>
           <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">⚙</span></button>
         </div>
       </header>
@@ -611,8 +604,6 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     settingsToggle: query("#settingsToggle", HTMLButtonElement),
     downloadAudio: query("#downloadAudio", HTMLButtonElement),
     helpMenu: query("#helpMenu", HTMLElement),
-    gainLabel: query("#gainLabel", HTMLSpanElement),
-    playbackGain: query("#playbackGain", HTMLInputElement),
     settingsPanel: query("#settingsPanel", HTMLElement),
     windowFunction: query("#windowFunction", HTMLSelectElement),
     fftSize: query("#fftSize", HTMLSelectElement),

@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Odtwarzanie i zaznaczenie",
   helpViewGroup: "Nawigacja widoku",
   helpMouseGroup: "Mysz i trackpad",
-  helpGainGroup: "Wzmocnienie",
+  helpGainGroup: "Wzmocnienie i panorama",
   helpPlayPause: "Odtwórz / pauza",
   helpClearSelection: "Zamknij menu, wyczyść zaznaczenie lub zresetuj kursor",
   helpResetTimeZoom: "Zresetuj powiększenie czasu",
   helpTrackpadZoom: "Gest szczypania na trackpadzie powiększa czas",
   helpTrackpadPan: "Poziome przesunięcie trackpada przesuwa czas",
-  helpGainReset: "Dwuklik suwaka wzmocnienia resetuje do 0 dB",
+  helpGainReset: "Dwuklik suwaka wzmocnienia lub panoramy resetuje go",
   helpSelectionPlayback: "Przeciągnij po przebiegu lub spektrogramie, aby zaznaczyć segment. Przy aktywnym zaznaczeniu odtwarzany jest tylko ten zakres.",
   refreshSpectrogram: "Odśwież spektrogram",
   resetView: "Resetuj widok",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "Inicjalizacja AudioLens nie powiodła się",
-  playbackGainLabel: "Wzmocnienie",
-  playbackGain: "Wzmocnienie odtwarzania (dwuklik resetuje)"
+  trackGain: "Wzmocnienie",
+  trackPan: "Panorama",
+  panLeft: "L",
+  panRight: "P",
+  panCenter: "C",
+  doubleClickReset: "Dwuklik resetuje"
 } satisfies Partial<LocaleMessages>;

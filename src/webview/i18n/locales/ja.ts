@@ -105,13 +105,13 @@ export const messages = {
   helpPlaybackGroup: "再生と選択範囲",
   helpViewGroup: "表示操作",
   helpMouseGroup: "マウスとトラックパッド",
-  helpGainGroup: "ゲイン",
+  helpGainGroup: "ゲインとパン",
   helpPlayPause: "再生 / 一時停止",
   helpClearSelection: "メニューを閉じる、選択範囲を解除、または再生カーソルをリセット",
   helpResetTimeZoom: "時間ズームをリセット",
   helpTrackpadZoom: "トラックパッドのピンチで時間をズーム",
   helpTrackpadPan: "トラックパッドの横スワイプで時間を移動",
-  helpGainReset: "ゲインスライダーをダブルクリックして 0 dB に戻す",
+  helpGainReset: "チャンネルのゲイン/パンスライダーをダブルクリックするとリセットされます",
   helpSelectionPlayback: "波形またはスペクトログラムをドラッグして範囲を選択します。選択範囲がある場合、再生はその範囲だけになります。",
   selectionAnalysis: "選択範囲分析",
   selectionAnalysisHelp: "選択範囲分析:\n選択した時間範囲をすばやく集計し、録音レベル、ダイナミックレンジ、クリッピングリスク、ノイズフロア、周波数分布を確認します。\n\n対象:\n結果は現在アクティブなチャンネルだけで計算します。複数チャンネルを混合しません。\n\n切り替え:\nトラックをクリックすると、そのトラックがアクティブチャンネルになります。以後の RMS、Peak、Dominant、周波数分析はそのチャンネルを使います。",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens の初期化に失敗しました",
-  playbackGainLabel: "ゲイン",
-  playbackGain: "再生ゲイン (ダブルクリックでリセット)"
+  trackGain: "ゲイン",
+  trackPan: "パン",
+  panLeft: "L",
+  panRight: "R",
+  panCenter: "C",
+  doubleClickReset: "ダブルクリックでリセット"
 } satisfies LocaleMessages;

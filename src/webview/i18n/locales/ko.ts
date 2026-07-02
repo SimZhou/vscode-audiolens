@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "재생 및 선택",
   helpViewGroup: "보기 탐색",
   helpMouseGroup: "마우스 및 트랙패드",
-  helpGainGroup: "게인",
+  helpGainGroup: "게인 및 팬",
   helpPlayPause: "재생 / 일시정지",
   helpClearSelection: "메뉴 닫기, 선택 해제 또는 재생 커서 초기화",
   helpResetTimeZoom: "시간 확대 초기화",
   helpTrackpadZoom: "트랙패드 핀치로 시간 확대/축소",
   helpTrackpadPan: "트랙패드 가로 스와이프로 시간 이동",
-  helpGainReset: "게인 슬라이더를 더블 클릭하여 0 dB로 초기화",
+  helpGainReset: "채널의 게인/팬 슬라이더를 더블 클릭하면 초기화됩니다",
   helpSelectionPlayback: "파형 또는 스펙트로그램을 드래그하여 구간을 선택합니다. 선택 구간이 있으면 해당 범위만 재생합니다.",
   refreshSpectrogram: "Spectrogram 새로고침",
   resetView: "보기 초기화",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens 초기화 실패",
-  playbackGainLabel: "게인",
-  playbackGain: "재생 게인 (더블 클릭하여 초기화)"
+  trackGain: "게인",
+  trackPan: "팬",
+  panLeft: "L",
+  panRight: "R",
+  panCenter: "C",
+  doubleClickReset: "더블 클릭하여 초기화"
 } satisfies Partial<LocaleMessages>;
