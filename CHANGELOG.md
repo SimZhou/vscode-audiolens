@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0
+
+Per-channel gain and pan playback controls ([#6](https://github.com/SimZhou/vscode-audiolens/issues/6)).
+
+- Added an Audacity-style gain slider (−24 dB to +24 dB) and pan slider (100% L to 100% R) to each channel's sidebar, rendered as a ruler-style scale with a round draggable thumb; double-click resets a slider to center.
+- Stereo files can now be auditioned with true stereo imaging by panning CH 1 fully left and CH 2 fully right; the default remains the existing downmix behavior (all enabled channels summed to both ears).
+- Gain and pan changes apply smoothly during playback without zipper noise, and a floating readout shows the current value while hovering or dragging.
+- Removed the global playback gain slider from the top toolbar; gain control now lives on each channel.
+
 ## 1.5.3
 
 Download dialog default path update.

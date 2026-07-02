@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Wiedergabe & Auswahl",
   helpViewGroup: "Ansichtsnavigation",
   helpMouseGroup: "Maus & Trackpad",
-  helpGainGroup: "Gain",
+  helpGainGroup: "Gain & Panorama",
   helpPlayPause: "Wiedergabe / Pause",
   helpClearSelection: "Menü schließen, Auswahl löschen oder Wiedergabecursor zurücksetzen",
   helpResetTimeZoom: "Zeitzoom zurücksetzen",
   helpTrackpadZoom: "Mit Trackpad-Pinch die Zeit zoomen",
   helpTrackpadPan: "Horizontaler Trackpad-Swipe verschiebt die Zeit",
-  helpGainReset: "Gain-Regler doppelklicken, um auf 0 dB zurückzusetzen",
+  helpGainReset: "Gain- oder Panorama-Regler doppelklicken, um ihn zurückzusetzen",
   helpSelectionPlayback: "Wellenform oder Spektrogramm ziehen, um einen Bereich auszuwählen. Bei aktiver Auswahl wird nur dieser Bereich abgespielt.",
   refreshSpectrogram: "Spectrogram aktualisieren",
   resetView: "Ansicht zuruecksetzen",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens-Initialisierung fehlgeschlagen",
-  playbackGainLabel: "Gain",
-  playbackGain: "Wiedergabe-Gain (Doppelklick zum Zurücksetzen)"
+  trackGain: "Gain",
+  trackPan: "Panorama",
+  panLeft: "L",
+  panRight: "R",
+  panCenter: "M",
+  doubleClickReset: "Doppelklick zum Zurücksetzen"
 } satisfies Partial<LocaleMessages>;

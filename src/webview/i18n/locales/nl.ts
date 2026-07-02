@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Afspelen en selectie",
   helpViewGroup: "Weergavenavigatie",
   helpMouseGroup: "Muis en trackpad",
-  helpGainGroup: "Gain",
+  helpGainGroup: "Gain & panning",
   helpPlayPause: "Afspelen / pauze",
   helpClearSelection: "Menu sluiten, selectie wissen of afspeelcursor resetten",
   helpResetTimeZoom: "Tijdzoom resetten",
   helpTrackpadZoom: "Knijp op trackpad om tijd te zoomen",
   helpTrackpadPan: "Horizontale trackpad-swipe verschuift tijd",
-  helpGainReset: "Dubbelklik de gain-schuif om naar 0 dB te resetten",
+  helpGainReset: "Dubbelklik een gain- of panningschuif om te resetten",
   helpSelectionPlayback: "Sleep over golfvorm of spectrogram om een segment te selecteren. Met actieve selectie wordt alleen dat bereik afgespeeld.",
   refreshSpectrogram: "Spectrogram verversen",
   resetView: "Weergave resetten",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens-initialisatie mislukt",
-  playbackGainLabel: "Gain",
-  playbackGain: "Afspeel-gain (dubbelklik om te resetten)"
+  trackGain: "Gain",
+  trackPan: "Panning",
+  panLeft: "L",
+  panRight: "R",
+  panCenter: "M",
+  doubleClickReset: "Dubbelklik om te resetten"
 } satisfies Partial<LocaleMessages>;

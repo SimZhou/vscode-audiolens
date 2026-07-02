@@ -192,6 +192,10 @@ export interface LocaleMessages {
   pad: string;
   hop: string;
   initializationFailed: string;
-  playbackGainLabel: string;
-  playbackGain: string;
+  trackGain: string;
+  trackPan: string;
+  panLeft: string;
+  panRight: string;
+  panCenter: string;
+  doubleClickReset: string;
 }

@@ -59,7 +59,6 @@ interface AnalysisSettings {
   timeOffset: number;
   frequencyScale: FrequencyScale;
   palette: SpectrogramPalette;
-  playbackGain: number;
   defaultTrackRowHeight: number;
   defaultTrackWaveFr: number;
   defaultTrackSpecFr: number;
@@ -141,6 +140,10 @@ interface TrackView {
   mode: TrackViewMode;
   muted: boolean;
   solo: boolean;
+  gainDb: number;
+  pan: number;
+  gainSlider: HTMLInputElement;
+  panSlider: HTMLInputElement;
   rowHeight: number;
   waveFr: number;
   specFr: number;
@@ -160,6 +163,7 @@ const TRACK_WAVE_DEFAULT_FR = 0.38;
 const TRACK_SPEC_DEFAULT_FR = 0.62;
 const TRACK_WAVE_MIN_PX = 90;
 const TRACK_SPEC_MIN_PX = 160;
+const TRACK_GAIN_RANGE_DB = 24;
 // trackRow 使用 border-box，需要为上下边框各预留 1px。
 const TRACK_BOTH_MIN_H = TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX + 2;
 const SELECTION_SPECTRUM_DELAY_MS = 80;
@@ -1397,7 +1401,6 @@ export class AudioLensApp {
   private preferencesSaveTimer: number | undefined;
   private analysisTimer: number | undefined;
   private playbackAudioContext: AudioContext | undefined;
-  private playbackGainNode: GainNode | undefined;
   private playbackSourceNode: AudioNode | undefined;
   private playbackMediaSourceNode: MediaElementAudioSourceNode | undefined;
   private playbackBufferSourceNode: AudioBufferSourceNode | undefined;
@@ -1406,7 +1409,7 @@ export class AudioLensApp {
   private bufferPlaybackStartedAt = 0;
   private playbackSplitterNode: ChannelSplitterNode | undefined;
   private playbackMergerNode: ChannelMergerNode | undefined;
-  private playbackChannelGains: GainNode[] = [];
+  private playbackChannelGains: Array<{ left: GainNode; right: GainNode }> = [];
   private readonly pendingChunks = new Map<number, (message: Extract<ExtensionMessage, { type: "chunk" }>) => void>();
   private readonly pendingTranscodes = new Map<number, {
     resolve: (message: Extract<ExtensionMessage, { type: "transcodedAudio" }>) => void;
@@ -1448,7 +1451,6 @@ export class AudioLensApp {
     timeOffset: 0,
     frequencyScale: "linear",
     palette: "rose",
-    playbackGain: 0,
     defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
     defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
     defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
@@ -1821,19 +1823,6 @@ export class AudioLensApp {
       this.updateClock();
       this.setStatus(this.messages.audioLoaded);
     });
-    this.elements.playbackGain.addEventListener("input", () => {
-      this.settings.playbackGain = Number(this.elements.playbackGain.value);
-      this.elements.gainLabel.textContent = `${this.settings.playbackGain > 0 ? "+" : ""}${this.settings.playbackGain} dB`;
-      this.updateGainNode();
-      this.savePreferencesSoon();
-    });
-    this.elements.playbackGain.addEventListener("dblclick", () => {
-      this.settings.playbackGain = 0;
-      this.elements.playbackGain.value = "0";
-      this.elements.gainLabel.textContent = "0 dB";
-      this.updateGainNode();
-      this.savePreferencesSoon();
-    });
     this.elements.audio.addEventListener("error", () => {
       const detail = this.elements.audio.error?.message || this.messages.audioCannotPlay;
       if (this.audioBuffer) {
@@ -2016,7 +2005,7 @@ export class AudioLensApp {
 
     try {
       if (this.elements.audio.paused) {
-        this.updateGainNode();
+        this.ensurePlaybackGraph();
         if (this.playbackAudioContext?.state === "suspended") {
           await this.playbackAudioContext.resume();
         }
@@ -2091,7 +2080,7 @@ export class AudioLensApp {
     this.playbackSourceNode = source;
     this.bufferPlaybackStartedAt = this.playbackAudioContext.currentTime;
     this.bufferPlaybackPaused = false;
-    this.updateGainNode();
+    this.ensurePlaybackGraph();
     source.start(0, this.bufferPlaybackOffset);
     this.elements.play.textContent = "⏸";
     this.startPlaybackTicker();
@@ -2812,7 +2801,6 @@ export class AudioLensApp {
       spectrogramMaxHz: this.settings.spectrogramMaxHz,
       spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
       autoBrightness: this.settings.autoBrightness,
-      playbackGain: this.settings.playbackGain,
       defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
       defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
       defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
@@ -3291,7 +3279,9 @@ export class AudioLensApp {
     mode.className = "trackMode";
     this.populateTrackModeOptions(mode);
     mode.value = this.settings.defaultTrackMode;
-    sidebar.append(title, mute, solo, mode);
+    const gainSlider = this.createTrackSlider("gain");
+    const panSlider = this.createTrackSlider("pan");
+    sidebar.append(title, mute, solo, mode, gainSlider.control, panSlider.control);
 
     const body = document.createElement("div");
     body.className = "trackBody";
@@ -3324,6 +3314,10 @@ export class AudioLensApp {
       mode: this.settings.defaultTrackMode,
       muted: false,
       solo: false,
+      gainDb: 0,
+      pan: 0,
+      gainSlider: gainSlider.input,
+      panSlider: panSlider.input,
       rowHeight: this.settings.defaultTrackRowHeight,
       waveFr: this.settings.defaultTrackWaveFr,
       specFr: this.settings.defaultTrackSpecFr
@@ -3343,6 +3337,19 @@ export class AudioLensApp {
       this.redrawVisuals();
       this.analyze();
     });
+    this.bindTrackSlider(view, gainSlider, {
+      read: () => clamp(Number(gainSlider.input.value), -TRACK_GAIN_RANGE_DB, TRACK_GAIN_RANGE_DB),
+      apply: (value) => {
+        view.gainDb = value;
+      }
+    });
+    this.bindTrackSlider(view, panSlider, {
+      read: () => clamp(Number(panSlider.input.value), -100, 100) / 100,
+      apply: (value) => {
+        view.pan = value;
+      }
+    });
+    this.syncTrackSliderHints(view);
     this.bindFigureInteraction(waveform);
     this.bindFigureInteraction(spectrogram);
     this.elements.trackList.append(row);
@@ -3519,6 +3526,7 @@ export class AudioLensApp {
         this.populateTrackModeOptions(modeSelect);
         modeSelect.value = value;
       }
+      this.syncTrackSliderHints(view);
     }
   }
 
@@ -3542,6 +3550,129 @@ export class AudioLensApp {
     const effectiveMuted = hasSolo ? !view.solo : view.muted;
     view.row.querySelector<HTMLButtonElement>(".trackSolo")?.classList.toggle("isActive", view.solo);
     view.row.querySelector<HTMLButtonElement>(".trackMute")?.classList.toggle("isActive", effectiveMuted);
+  }
+
+  private createTrackSlider(kind: "gain" | "pan"): { control: HTMLDivElement; input: HTMLInputElement } {
+    const control = document.createElement("div");
+    control.className = `trackSliderControl ${kind === "gain" ? "trackGainControl" : "trackPanControl"}`;
+    const minLabel = document.createElement("span");
+    minLabel.className = "trackSliderEnd trackSliderEndMin";
+    const maxLabel = document.createElement("span");
+    maxLabel.className = "trackSliderEnd trackSliderEndMax";
+    const trackWrap = document.createElement("span");
+    trackWrap.className = "trackSliderTrack";
+    const ticks = document.createElement("span");
+    ticks.className = "trackSliderTicks";
+    const input = document.createElement("input");
+    input.type = "range";
+    input.className = "trackSlider";
+    const range = kind === "gain" ? TRACK_GAIN_RANGE_DB : 100;
+    input.min = String(-range);
+    input.max = String(range);
+    input.step = "1";
+    input.value = "0";
+    if (kind === "gain") {
+      minLabel.textContent = "−";
+      maxLabel.textContent = "+";
+    }
+    trackWrap.append(ticks, input);
+    control.append(minLabel, trackWrap, maxLabel);
+    return { control, input };
+  }
+
+  private bindTrackSlider(
+    view: TrackView,
+    slider: { control: HTMLDivElement; input: HTMLInputElement },
+    options: { read: () => number; apply: (value: number) => void }
+  ): void {
+    const { control, input } = slider;
+    const showTip = () => this.showTrackSliderTip(control);
+    input.addEventListener("input", () => {
+      options.apply(options.read());
+      this.syncTrackSliderHints(view);
+      this.updatePlaybackChannelGains();
+      showTip();
+    });
+    input.addEventListener("dblclick", () => {
+      input.value = "0";
+      options.apply(0);
+      this.syncTrackSliderHints(view);
+      this.updatePlaybackChannelGains();
+      showTip();
+    });
+    input.addEventListener("pointerenter", showTip);
+    input.addEventListener("pointerleave", () => {
+      if (!input.matches(":active")) {
+        this.hideFloatingTooltip();
+      }
+    });
+    input.addEventListener("pointerup", () => {
+      if (!control.matches(":hover")) {
+        this.hideFloatingTooltip();
+      }
+    });
+    input.addEventListener("pointercancel", () => this.hideFloatingTooltip());
+    input.addEventListener("blur", () => this.hideFloatingTooltip());
+  }
+
+  private syncTrackSliderHints(view: TrackView): void {
+    this.applyTrackSliderHint(view.gainSlider, this.messages.trackGain, this.formatTrackGain(view.gainDb));
+    this.applyTrackSliderHint(view.panSlider, this.messages.trackPan, this.formatTrackPan(view.pan));
+    const panControl = view.panSlider.closest<HTMLElement>(".trackSliderControl");
+    if (panControl) {
+      const minLabel = panControl.querySelector<HTMLElement>(".trackSliderEndMin");
+      const maxLabel = panControl.querySelector<HTMLElement>(".trackSliderEndMax");
+      if (minLabel) {
+        minLabel.textContent = this.messages.panLeft;
+      }
+      if (maxLabel) {
+        maxLabel.textContent = this.messages.panRight;
+      }
+    }
+  }
+
+  private applyTrackSliderHint(input: HTMLInputElement, label: string, valueText: string): void {
+    const control = input.closest<HTMLElement>(".trackSliderControl");
+    if (control) {
+      control.dataset.tooltip = `${label} ${valueText} · ${this.messages.doubleClickReset}`;
+    }
+    input.setAttribute("aria-label", label);
+    input.setAttribute("aria-valuetext", valueText);
+  }
+
+  private formatTrackGain(gainDb: number): string {
+    return `${gainDb > 0 ? "+" : ""}${gainDb} dB`;
+  }
+
+  private formatTrackPan(pan: number): string {
+    if (pan === 0) {
+      return this.messages.panCenter;
+    }
+    return pan < 0
+      ? `${this.messages.panLeft} ${Math.round(-pan * 100)}%`
+      : `${this.messages.panRight} ${Math.round(pan * 100)}%`;
+  }
+
+  private showTrackSliderTip(anchor: HTMLElement): void {
+    const text = anchor.dataset.tooltip;
+    if (!text) {
+      return;
+    }
+    const tooltip = this.elements.floatingTooltip;
+    tooltip.textContent = text;
+    tooltip.hidden = false;
+    tooltip.style.width = "max-content";
+    const margin = 8;
+    const anchorRect = anchor.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const left = clamp(
+      anchorRect.left + anchorRect.width / 2 - tooltipRect.width / 2,
+      margin,
+      Math.max(margin, window.innerWidth - tooltipRect.width - margin)
+    );
+    const top = Math.max(margin, anchorRect.top - tooltipRect.height - 8);
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
   }
 
   private selectChannel(channel: number): void {
@@ -4103,39 +4234,31 @@ export class AudioLensApp {
     this.elements.resetView.classList.toggle("isProminent", isDirty);
   }
 
-  private updateGainNode(): void {
+  private ensurePlaybackGraph(): void {
     if (!this.playbackAudioContext) {
       this.playbackAudioContext = new AudioContext();
-    }
-    if (!this.playbackGainNode) {
-      this.playbackGainNode = this.playbackAudioContext.createGain();
     }
     if (!this.audioBuffer && !this.playbackMediaSourceNode) {
       this.playbackMediaSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
       this.playbackSourceNode = this.playbackMediaSourceNode;
     }
     this.rebuildPlaybackChannelGraph();
-    if (this.playbackGainNode) {
-      const multiplier = Math.pow(10, this.settings.playbackGain / 20);
-      this.playbackGainNode.gain.value = multiplier;
-    }
-    this.updatePlaybackChannelGains();
+    this.updatePlaybackChannelGains(true);
   }
 
   private rebuildPlaybackChannelGraph(): void {
-    if (!this.playbackAudioContext || !this.playbackSourceNode || !this.playbackGainNode) {
+    if (!this.playbackAudioContext || !this.playbackSourceNode) {
       return;
     }
     this.playbackSourceNode.disconnect();
     this.playbackSplitterNode?.disconnect();
     this.playbackMergerNode?.disconnect();
-    this.playbackGainNode.disconnect();
-    for (const gain of this.playbackChannelGains) {
-      gain.disconnect();
+    for (const pair of this.playbackChannelGains) {
+      pair.left.disconnect();
+      pair.right.disconnect();
     }
     if (!this.audioBuffer) {
-      this.playbackSourceNode.connect(this.playbackGainNode);
-      this.playbackGainNode.connect(this.playbackAudioContext.destination);
+      this.playbackSourceNode.connect(this.playbackAudioContext.destination);
       this.playbackChannelGains = [];
       this.playbackSplitterNode = undefined;
       this.playbackMergerNode = undefined;
@@ -4144,28 +4267,51 @@ export class AudioLensApp {
     const channels = this.audioBuffer.numberOfChannels;
     this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
     this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(2);
-    this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext!.createGain());
+    this.playbackChannelGains = Array.from({ length: channels }, () => ({
+      left: this.playbackAudioContext!.createGain(),
+      right: this.playbackAudioContext!.createGain()
+    }));
     this.playbackSourceNode.connect(this.playbackSplitterNode);
-    this.playbackChannelGains.forEach((gain, channel) => {
-      this.playbackSplitterNode?.connect(gain, channel);
-      gain.connect(this.playbackMergerNode!, 0, 0);
-      gain.connect(this.playbackMergerNode!, 0, 1);
+    this.playbackChannelGains.forEach((pair, channel) => {
+      this.playbackSplitterNode?.connect(pair.left, channel);
+      this.playbackSplitterNode?.connect(pair.right, channel);
+      pair.left.connect(this.playbackMergerNode!, 0, 0);
+      pair.right.connect(this.playbackMergerNode!, 0, 1);
     });
-    this.playbackMergerNode.connect(this.playbackGainNode);
-    this.playbackGainNode.connect(this.playbackAudioContext.destination);
+    this.playbackMergerNode.connect(this.playbackAudioContext.destination);
   }
 
-  private updatePlaybackChannelGains(): void {
+  private updatePlaybackChannelGains(immediate = false): void {
     const hasSolo = this.trackViews.some((view) => view.solo);
     const enabledChannels = this.trackViews.length > 0
       ? this.trackViews.filter((view) => (hasSolo ? view.solo : !view.muted)).length
       : this.playbackChannelGains.length;
     const channelGain = enabledChannels > 0 ? 1 / enabledChannels : 0;
-    this.playbackChannelGains.forEach((gain, channel) => {
+    this.playbackChannelGains.forEach((pair, channel) => {
       const view = this.trackViews.find((item) => item.channel === channel);
       const enabled = view ? (hasSolo ? view.solo : !view.muted) : true;
-      gain.gain.value = enabled ? channelGain : 0;
+      const gainDb = view?.gainDb ?? 0;
+      const pan = view?.pan ?? 0;
+      // 平衡律：居中时两侧均为 1（保持既有下混响度），偏向一侧只衰减另一侧。
+      const base = enabled ? channelGain * Math.pow(10, gainDb / 20) : 0;
+      this.setPlaybackGainValue(pair.left, base * Math.min(1, 1 - pan), immediate);
+      this.setPlaybackGainValue(pair.right, base * Math.min(1, 1 + pan), immediate);
     });
+  }
+
+  private setPlaybackGainValue(node: GainNode, value: number, immediate: boolean): void {
+    const context = this.playbackAudioContext;
+    if (!context) {
+      node.gain.value = value;
+      return;
+    }
+    node.gain.cancelScheduledValues(context.currentTime);
+    if (immediate || this.bufferPlaybackPaused) {
+      node.gain.value = value;
+    } else {
+      // 播放中做短时间常数平滑，避免拖动滑块时出现台阶噪声。
+      node.gain.setTargetAtTime(value, context.currentTime, 0.02);
+    }
   }
 
   private getWaveformPeaks(channel: number, startSample: number, endSample: number, width: number): WaveformPeaks {

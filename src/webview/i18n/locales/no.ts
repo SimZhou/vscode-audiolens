@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Avspilling og utvalg",
   helpViewGroup: "Visningsnavigasjon",
   helpMouseGroup: "Mus og styreflate",
-  helpGainGroup: "Gain",
+  helpGainGroup: "Gain og panorering",
   helpPlayPause: "Spill av / pause",
   helpClearSelection: "Lukk meny, fjern utvalg eller tilbakestill avspillingsmarkør",
   helpResetTimeZoom: "Tilbakestill tidszoom",
   helpTrackpadZoom: "Knip på styreflaten for å zoome tid",
   helpTrackpadPan: "Horisontal sveip på styreflaten flytter tid",
-  helpGainReset: "Dobbeltklikk gain-glidebryteren for å gå til 0 dB",
+  helpGainReset: "Dobbeltklikk en gain- eller panoreringsglidebryter for å tilbakestille den",
   helpSelectionPlayback: "Dra i bølgeform eller spectrogram for å velge et segment. Med aktivt utvalg spilles bare dette området.",
   refreshSpectrogram: "Oppdater spectrogram",
   resetView: "Tilbakestill visning",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens-initialisering mislyktes",
-  playbackGainLabel: "Gain",
-  playbackGain: "Avspillings-gain (dobbeltklikk for å tilbakestille)"
+  trackGain: "Gain",
+  trackPan: "Panorering",
+  panLeft: "V",
+  panRight: "H",
+  panCenter: "M",
+  doubleClickReset: "Dobbeltklikk for å tilbakestille"
 } satisfies Partial<LocaleMessages>;

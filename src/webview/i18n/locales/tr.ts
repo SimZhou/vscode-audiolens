@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Oynatma ve seçim",
   helpViewGroup: "Görünüm gezinme",
   helpMouseGroup: "Fare ve trackpad",
-  helpGainGroup: "Kazanç",
+  helpGainGroup: "Kazanç ve pan",
   helpPlayPause: "Oynat / duraklat",
   helpClearSelection: "Menüyü kapat, seçimi temizle veya oynatma imlecini sıfırla",
   helpResetTimeZoom: "Zaman zumunu sıfırla",
   helpTrackpadZoom: "Trackpad sıkıştırma zaman zumu yapar",
   helpTrackpadPan: "Trackpad yatay kaydırma zamanı kaydırır",
-  helpGainReset: "Kazanç kaydırıcısına çift tıklayarak 0 dB'ye sıfırla",
+  helpGainReset: "Sıfırlamak için bir kanalın kazanç veya pan kaydırıcısına çift tıklayın",
   helpSelectionPlayback: "Bir segment seçmek için dalga biçimi veya spektrogram üzerinde sürükle. Seçim aktifken yalnızca o aralık oynatılır.",
   refreshSpectrogram: "Spektrogrami yenile",
   resetView: "Gorunumu sifirla",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens baslatilamadi",
-  playbackGainLabel: "Kazanç",
-  playbackGain: "Oynatma kazancı (sıfırlamak için çift tık)"
+  trackGain: "Kazanç",
+  trackPan: "Pan",
+  panLeft: "L",
+  panRight: "R",
+  panCenter: "C",
+  doubleClickReset: "Sıfırlamak için çift tıklayın"
 } satisfies Partial<LocaleMessages>;

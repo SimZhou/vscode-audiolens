@@ -103,13 +103,13 @@ export const messages = {
   helpPlaybackGroup: "Воспроизведение и выделение",
   helpViewGroup: "Навигация вида",
   helpMouseGroup: "Мышь и трекпад",
-  helpGainGroup: "Усиление",
+  helpGainGroup: "Усиление и панорама",
   helpPlayPause: "Пуск / пауза",
   helpClearSelection: "Закрыть меню, очистить выделение или сбросить курсор",
   helpResetTimeZoom: "Сбросить масштаб времени",
   helpTrackpadZoom: "Щипок на трекпаде масштабирует время",
   helpTrackpadPan: "Горизонтальный свайп трекпада сдвигает время",
-  helpGainReset: "Двойной клик по ползунку усиления сбрасывает до 0 dB",
+  helpGainReset: "Двойной клик по ползунку усиления или панорамы сбрасывает его",
   helpSelectionPlayback: "Потяните по волне или спектрограмме, чтобы выбрать сегмент. При активном выделении воспроизводится только этот диапазон.",
   refreshSpectrogram: "Обновить спектрограмму",
   resetView: "Сбросить вид",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "Сбой инициализации AudioLens",
-  playbackGainLabel: "Усиление",
-  playbackGain: "Усиление воспроизведения (двойной клик для сброса)"
+  trackGain: "Усиление",
+  trackPan: "Панорама",
+  panLeft: "Л",
+  panRight: "П",
+  panCenter: "Ц",
+  doubleClickReset: "Двойной клик для сброса"
 } satisfies Partial<LocaleMessages>;

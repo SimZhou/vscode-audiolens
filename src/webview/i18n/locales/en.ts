@@ -105,13 +105,13 @@ export const messages = {
   helpPlaybackGroup: "Playback & selection",
   helpViewGroup: "View navigation",
   helpMouseGroup: "Mouse & trackpad",
-  helpGainGroup: "Gain",
+  helpGainGroup: "Gain & pan",
   helpPlayPause: "Play / pause",
   helpClearSelection: "Close menu, clear selection, or reset playback cursor",
   helpResetTimeZoom: "Reset time zoom",
   helpTrackpadZoom: "Pinch on trackpad to zoom time",
   helpTrackpadPan: "Horizontal trackpad swipe pans time",
-  helpGainReset: "Double-click the gain slider to reset to 0 dB",
+  helpGainReset: "Double-click a channel's gain or pan slider to reset it",
   helpSelectionPlayback: "Drag waveform or spectrogram to select a segment. Playing with a selection active only plays that range.",
   selectionAnalysis: "Selection analysis",
   selectionAnalysisHelp: "Selection analysis:\nQuickly analyzes the selected time range to help inspect recording level, dynamic range, clipping risk, noise floor, and frequency distribution.\n\nScope:\nResults are calculated for the active channel only; channels are not mixed.\n\nSwitch channel:\nClick a track to make it active. RMS, Peak, Dominant, and frequency analysis then use that channel.",
@@ -173,6 +173,10 @@ export const messages = {
   pad: "pad",
   hop: "hop",
   initializationFailed: "AudioLens initialization failed",
-  playbackGainLabel: "Gain",
-  playbackGain: "Playback Gain (Double-click to reset)"
+  trackGain: "Gain",
+  trackPan: "Pan",
+  panLeft: "L",
+  panRight: "R",
+  panCenter: "C",
+  doubleClickReset: "Double-click to reset"
 } satisfies LocaleMessages;

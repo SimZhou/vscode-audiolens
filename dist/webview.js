@@ -1079,13 +1079,13 @@
     helpPlaybackGroup: "Wiedergabe & Auswahl",
     helpViewGroup: "Ansichtsnavigation",
     helpMouseGroup: "Maus & Trackpad",
-    helpGainGroup: "Gain",
+    helpGainGroup: "Gain & Panorama",
     helpPlayPause: "Wiedergabe / Pause",
     helpClearSelection: "Men\xFC schlie\xDFen, Auswahl l\xF6schen oder Wiedergabecursor zur\xFCcksetzen",
     helpResetTimeZoom: "Zeitzoom zur\xFCcksetzen",
     helpTrackpadZoom: "Mit Trackpad-Pinch die Zeit zoomen",
     helpTrackpadPan: "Horizontaler Trackpad-Swipe verschiebt die Zeit",
-    helpGainReset: "Gain-Regler doppelklicken, um auf 0 dB zur\xFCckzusetzen",
+    helpGainReset: "Gain- oder Panorama-Regler doppelklicken, um ihn zur\xFCckzusetzen",
     helpSelectionPlayback: "Wellenform oder Spektrogramm ziehen, um einen Bereich auszuw\xE4hlen. Bei aktiver Auswahl wird nur dieser Bereich abgespielt.",
     refreshSpectrogram: "Spectrogram aktualisieren",
     resetView: "Ansicht zuruecksetzen",
@@ -1149,8 +1149,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens-Initialisierung fehlgeschlagen",
-    playbackGainLabel: "Gain",
-    playbackGain: "Wiedergabe-Gain (Doppelklick zum Zur\xFCcksetzen)"
+    trackGain: "Gain",
+    trackPan: "Panorama",
+    panLeft: "L",
+    panRight: "R",
+    panCenter: "M",
+    doubleClickReset: "Doppelklick zum Zur\xFCcksetzen"
   };
 
   // src/webview/i18n/locales/en.ts
@@ -1259,13 +1263,13 @@
     helpPlaybackGroup: "Playback & selection",
     helpViewGroup: "View navigation",
     helpMouseGroup: "Mouse & trackpad",
-    helpGainGroup: "Gain",
+    helpGainGroup: "Gain & pan",
     helpPlayPause: "Play / pause",
     helpClearSelection: "Close menu, clear selection, or reset playback cursor",
     helpResetTimeZoom: "Reset time zoom",
     helpTrackpadZoom: "Pinch on trackpad to zoom time",
     helpTrackpadPan: "Horizontal trackpad swipe pans time",
-    helpGainReset: "Double-click the gain slider to reset to 0 dB",
+    helpGainReset: "Double-click a channel's gain or pan slider to reset it",
     helpSelectionPlayback: "Drag waveform or spectrogram to select a segment. Playing with a selection active only plays that range.",
     selectionAnalysis: "Selection analysis",
     selectionAnalysisHelp: "Selection analysis:\nQuickly analyzes the selected time range to help inspect recording level, dynamic range, clipping risk, noise floor, and frequency distribution.\n\nScope:\nResults are calculated for the active channel only; channels are not mixed.\n\nSwitch channel:\nClick a track to make it active. RMS, Peak, Dominant, and frequency analysis then use that channel.",
@@ -1327,8 +1331,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens initialization failed",
-    playbackGainLabel: "Gain",
-    playbackGain: "Playback Gain (Double-click to reset)"
+    trackGain: "Gain",
+    trackPan: "Pan",
+    panLeft: "L",
+    panRight: "R",
+    panCenter: "C",
+    doubleClickReset: "Double-click to reset"
   };
 
   // src/webview/i18n/locales/es.ts
@@ -1435,13 +1443,13 @@
     helpPlaybackGroup: "Reproducci\xF3n y selecci\xF3n",
     helpViewGroup: "Navegaci\xF3n de vista",
     helpMouseGroup: "Rat\xF3n y trackpad",
-    helpGainGroup: "Ganancia",
+    helpGainGroup: "Ganancia y panorama",
     helpPlayPause: "Reproducir / pausar",
     helpClearSelection: "Cerrar men\xFA, borrar selecci\xF3n o reiniciar cursor de reproducci\xF3n",
     helpResetTimeZoom: "Reiniciar zoom de tiempo",
     helpTrackpadZoom: "Pellizcar en el trackpad para ampliar el tiempo",
     helpTrackpadPan: "Deslizamiento horizontal del trackpad para mover el tiempo",
-    helpGainReset: "Doble clic en el control de ganancia para volver a 0 dB",
+    helpGainReset: "Doble clic en un control de ganancia o panorama para restablecerlo",
     helpSelectionPlayback: "Arrastra la forma de onda o el espectrograma para seleccionar un segmento. Con una selecci\xF3n activa, solo se reproduce ese rango.",
     refreshSpectrogram: "Actualizar espectrograma",
     resetView: "Restablecer vista",
@@ -1505,8 +1513,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "Error al inicializar AudioLens",
-    playbackGainLabel: "Ganancia",
-    playbackGain: "Ganancia de reproducci\xF3n (doble clic para reiniciar)"
+    trackGain: "Ganancia",
+    trackPan: "Panorama",
+    panLeft: "I",
+    panRight: "D",
+    panCenter: "C",
+    doubleClickReset: "Doble clic para restablecer"
   };
 
   // src/webview/i18n/locales/fr.ts
@@ -1613,13 +1625,13 @@
     helpPlaybackGroup: "Lecture et s\xE9lection",
     helpViewGroup: "Navigation",
     helpMouseGroup: "Souris et pav\xE9 tactile",
-    helpGainGroup: "Gain",
+    helpGainGroup: "Gain et panoramique",
     helpPlayPause: "Lire / pause",
     helpClearSelection: "Fermer le menu, effacer la s\xE9lection ou r\xE9initialiser le curseur",
     helpResetTimeZoom: "R\xE9initialiser le zoom temporel",
     helpTrackpadZoom: "Pincer le pav\xE9 tactile pour zoomer le temps",
     helpTrackpadPan: "Balayage horizontal du pav\xE9 tactile pour d\xE9placer le temps",
-    helpGainReset: "Double-cliquer le curseur de gain pour revenir \xE0 0 dB",
+    helpGainReset: "Double-cliquer un curseur de gain ou de panoramique pour le r\xE9initialiser",
     helpSelectionPlayback: "Faites glisser la forme d'onde ou le spectrogramme pour s\xE9lectionner un segment. Avec une s\xE9lection active, seule cette plage est lue.",
     refreshSpectrogram: "Actualiser le spectrogramme",
     resetView: "R\xE9initialiser la vue",
@@ -1683,8 +1695,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "\xC9chec d'initialisation d'AudioLens",
-    playbackGainLabel: "Gain",
-    playbackGain: "Gain de lecture (double-clic pour r\xE9initialiser)"
+    trackGain: "Gain",
+    trackPan: "Panoramique",
+    panLeft: "G",
+    panRight: "D",
+    panCenter: "C",
+    doubleClickReset: "Double-clic pour r\xE9initialiser"
   };
 
   // src/webview/i18n/locales/id.ts
@@ -1791,13 +1807,13 @@
     helpPlaybackGroup: "Pemutaran & pilihan",
     helpViewGroup: "Navigasi tampilan",
     helpMouseGroup: "Mouse & trackpad",
-    helpGainGroup: "Gain",
+    helpGainGroup: "Gain & pan",
     helpPlayPause: "Putar / jeda",
     helpClearSelection: "Tutup menu, hapus pilihan, atau reset kursor putar",
     helpResetTimeZoom: "Reset zoom waktu",
     helpTrackpadZoom: "Cubit trackpad untuk zoom waktu",
     helpTrackpadPan: "Geser horizontal trackpad untuk menggeser waktu",
-    helpGainReset: "Klik ganda slider gain untuk reset ke 0 dB",
+    helpGainReset: "Klik ganda slider gain atau pan untuk mengatur ulang",
     helpSelectionPlayback: "Seret waveform atau spectrogram untuk memilih segmen. Saat pilihan aktif, hanya rentang itu yang diputar.",
     refreshSpectrogram: "Segarkan spectrogram",
     resetView: "Reset tampilan",
@@ -1861,8 +1877,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "Inisialisasi AudioLens gagal",
-    playbackGainLabel: "Gain",
-    playbackGain: "Gain pemutaran (klik ganda untuk reset)"
+    trackGain: "Gain",
+    trackPan: "Pan",
+    panLeft: "L",
+    panRight: "R",
+    panCenter: "C",
+    doubleClickReset: "Klik ganda untuk mengatur ulang"
   };
 
   // src/webview/i18n/locales/it.ts
@@ -1969,13 +1989,13 @@
     helpPlaybackGroup: "Riproduzione e selezione",
     helpViewGroup: "Navigazione vista",
     helpMouseGroup: "Mouse e trackpad",
-    helpGainGroup: "Guadagno",
+    helpGainGroup: "Guadagno e pan",
     helpPlayPause: "Riproduci / pausa",
     helpClearSelection: "Chiudi menu, cancella selezione o reimposta cursore",
     helpResetTimeZoom: "Reimposta zoom tempo",
     helpTrackpadZoom: "Pizzica sul trackpad per zoomare il tempo",
     helpTrackpadPan: "Scorrimento orizzontale del trackpad per spostare il tempo",
-    helpGainReset: "Doppio clic sul cursore guadagno per tornare a 0 dB",
+    helpGainReset: "Doppio clic su un cursore guadagno o pan per reimpostarlo",
     helpSelectionPlayback: "Trascina forma d'onda o spettrogramma per selezionare un segmento. Con una selezione attiva, viene riprodotto solo quel range.",
     refreshSpectrogram: "Aggiorna spettrogramma",
     resetView: "Reimposta vista",
@@ -2039,8 +2059,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "Inizializzazione di AudioLens non riuscita",
-    playbackGainLabel: "Guadagno",
-    playbackGain: "Guadagno di riproduzione (doppio clic per reimpostare)"
+    trackGain: "Guadagno",
+    trackPan: "Pan",
+    panLeft: "S",
+    panRight: "D",
+    panCenter: "C",
+    doubleClickReset: "Doppio clic per reimpostare"
   };
 
   // src/webview/i18n/locales/ja.ts
@@ -2149,13 +2173,13 @@
     helpPlaybackGroup: "\u518D\u751F\u3068\u9078\u629E\u7BC4\u56F2",
     helpViewGroup: "\u8868\u793A\u64CD\u4F5C",
     helpMouseGroup: "\u30DE\u30A6\u30B9\u3068\u30C8\u30E9\u30C3\u30AF\u30D1\u30C3\u30C9",
-    helpGainGroup: "\u30B2\u30A4\u30F3",
+    helpGainGroup: "\u30B2\u30A4\u30F3\u3068\u30D1\u30F3",
     helpPlayPause: "\u518D\u751F / \u4E00\u6642\u505C\u6B62",
     helpClearSelection: "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B\u3001\u9078\u629E\u7BC4\u56F2\u3092\u89E3\u9664\u3001\u307E\u305F\u306F\u518D\u751F\u30AB\u30FC\u30BD\u30EB\u3092\u30EA\u30BB\u30C3\u30C8",
     helpResetTimeZoom: "\u6642\u9593\u30BA\u30FC\u30E0\u3092\u30EA\u30BB\u30C3\u30C8",
     helpTrackpadZoom: "\u30C8\u30E9\u30C3\u30AF\u30D1\u30C3\u30C9\u306E\u30D4\u30F3\u30C1\u3067\u6642\u9593\u3092\u30BA\u30FC\u30E0",
     helpTrackpadPan: "\u30C8\u30E9\u30C3\u30AF\u30D1\u30C3\u30C9\u306E\u6A2A\u30B9\u30EF\u30A4\u30D7\u3067\u6642\u9593\u3092\u79FB\u52D5",
-    helpGainReset: "\u30B2\u30A4\u30F3\u30B9\u30E9\u30A4\u30C0\u30FC\u3092\u30C0\u30D6\u30EB\u30AF\u30EA\u30C3\u30AF\u3057\u3066 0 dB \u306B\u623B\u3059",
+    helpGainReset: "\u30C1\u30E3\u30F3\u30CD\u30EB\u306E\u30B2\u30A4\u30F3/\u30D1\u30F3\u30B9\u30E9\u30A4\u30C0\u30FC\u3092\u30C0\u30D6\u30EB\u30AF\u30EA\u30C3\u30AF\u3059\u308B\u3068\u30EA\u30BB\u30C3\u30C8\u3055\u308C\u307E\u3059",
     helpSelectionPlayback: "\u6CE2\u5F62\u307E\u305F\u306F\u30B9\u30DA\u30AF\u30C8\u30ED\u30B0\u30E9\u30E0\u3092\u30C9\u30E9\u30C3\u30B0\u3057\u3066\u7BC4\u56F2\u3092\u9078\u629E\u3057\u307E\u3059\u3002\u9078\u629E\u7BC4\u56F2\u304C\u3042\u308B\u5834\u5408\u3001\u518D\u751F\u306F\u305D\u306E\u7BC4\u56F2\u3060\u3051\u306B\u306A\u308A\u307E\u3059\u3002",
     selectionAnalysis: "\u9078\u629E\u7BC4\u56F2\u5206\u6790",
     selectionAnalysisHelp: "\u9078\u629E\u7BC4\u56F2\u5206\u6790:\n\u9078\u629E\u3057\u305F\u6642\u9593\u7BC4\u56F2\u3092\u3059\u3070\u3084\u304F\u96C6\u8A08\u3057\u3001\u9332\u97F3\u30EC\u30D9\u30EB\u3001\u30C0\u30A4\u30CA\u30DF\u30C3\u30AF\u30EC\u30F3\u30B8\u3001\u30AF\u30EA\u30C3\u30D4\u30F3\u30B0\u30EA\u30B9\u30AF\u3001\u30CE\u30A4\u30BA\u30D5\u30ED\u30A2\u3001\u5468\u6CE2\u6570\u5206\u5E03\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002\n\n\u5BFE\u8C61:\n\u7D50\u679C\u306F\u73FE\u5728\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30C1\u30E3\u30F3\u30CD\u30EB\u3060\u3051\u3067\u8A08\u7B97\u3057\u307E\u3059\u3002\u8907\u6570\u30C1\u30E3\u30F3\u30CD\u30EB\u3092\u6DF7\u5408\u3057\u307E\u305B\u3093\u3002\n\n\u5207\u308A\u66FF\u3048:\n\u30C8\u30E9\u30C3\u30AF\u3092\u30AF\u30EA\u30C3\u30AF\u3059\u308B\u3068\u3001\u305D\u306E\u30C8\u30E9\u30C3\u30AF\u304C\u30A2\u30AF\u30C6\u30A3\u30D6\u30C1\u30E3\u30F3\u30CD\u30EB\u306B\u306A\u308A\u307E\u3059\u3002\u4EE5\u5F8C\u306E RMS\u3001Peak\u3001Dominant\u3001\u5468\u6CE2\u6570\u5206\u6790\u306F\u305D\u306E\u30C1\u30E3\u30F3\u30CD\u30EB\u3092\u4F7F\u3044\u307E\u3059\u3002",
@@ -2217,8 +2241,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens \u306E\u521D\u671F\u5316\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
-    playbackGainLabel: "\u30B2\u30A4\u30F3",
-    playbackGain: "\u518D\u751F\u30B2\u30A4\u30F3 (\u30C0\u30D6\u30EB\u30AF\u30EA\u30C3\u30AF\u3067\u30EA\u30BB\u30C3\u30C8)"
+    trackGain: "\u30B2\u30A4\u30F3",
+    trackPan: "\u30D1\u30F3",
+    panLeft: "L",
+    panRight: "R",
+    panCenter: "C",
+    doubleClickReset: "\u30C0\u30D6\u30EB\u30AF\u30EA\u30C3\u30AF\u3067\u30EA\u30BB\u30C3\u30C8"
   };
 
   // src/webview/i18n/locales/ko.ts
@@ -2325,13 +2353,13 @@
     helpPlaybackGroup: "\uC7AC\uC0DD \uBC0F \uC120\uD0DD",
     helpViewGroup: "\uBCF4\uAE30 \uD0D0\uC0C9",
     helpMouseGroup: "\uB9C8\uC6B0\uC2A4 \uBC0F \uD2B8\uB799\uD328\uB4DC",
-    helpGainGroup: "\uAC8C\uC778",
+    helpGainGroup: "\uAC8C\uC778 \uBC0F \uD32C",
     helpPlayPause: "\uC7AC\uC0DD / \uC77C\uC2DC\uC815\uC9C0",
     helpClearSelection: "\uBA54\uB274 \uB2EB\uAE30, \uC120\uD0DD \uD574\uC81C \uB610\uB294 \uC7AC\uC0DD \uCEE4\uC11C \uCD08\uAE30\uD654",
     helpResetTimeZoom: "\uC2DC\uAC04 \uD655\uB300 \uCD08\uAE30\uD654",
     helpTrackpadZoom: "\uD2B8\uB799\uD328\uB4DC \uD540\uCE58\uB85C \uC2DC\uAC04 \uD655\uB300/\uCD95\uC18C",
     helpTrackpadPan: "\uD2B8\uB799\uD328\uB4DC \uAC00\uB85C \uC2A4\uC640\uC774\uD504\uB85C \uC2DC\uAC04 \uC774\uB3D9",
-    helpGainReset: "\uAC8C\uC778 \uC2AC\uB77C\uC774\uB354\uB97C \uB354\uBE14 \uD074\uB9AD\uD558\uC5EC 0 dB\uB85C \uCD08\uAE30\uD654",
+    helpGainReset: "\uCC44\uB110\uC758 \uAC8C\uC778/\uD32C \uC2AC\uB77C\uC774\uB354\uB97C \uB354\uBE14 \uD074\uB9AD\uD558\uBA74 \uCD08\uAE30\uD654\uB429\uB2C8\uB2E4",
     helpSelectionPlayback: "\uD30C\uD615 \uB610\uB294 \uC2A4\uD399\uD2B8\uB85C\uADF8\uB7A8\uC744 \uB4DC\uB798\uADF8\uD558\uC5EC \uAD6C\uAC04\uC744 \uC120\uD0DD\uD569\uB2C8\uB2E4. \uC120\uD0DD \uAD6C\uAC04\uC774 \uC788\uC73C\uBA74 \uD574\uB2F9 \uBC94\uC704\uB9CC \uC7AC\uC0DD\uD569\uB2C8\uB2E4.",
     refreshSpectrogram: "Spectrogram \uC0C8\uB85C\uACE0\uCE68",
     resetView: "\uBCF4\uAE30 \uCD08\uAE30\uD654",
@@ -2395,8 +2423,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens \uCD08\uAE30\uD654 \uC2E4\uD328",
-    playbackGainLabel: "\uAC8C\uC778",
-    playbackGain: "\uC7AC\uC0DD \uAC8C\uC778 (\uB354\uBE14 \uD074\uB9AD\uD558\uC5EC \uCD08\uAE30\uD654)"
+    trackGain: "\uAC8C\uC778",
+    trackPan: "\uD32C",
+    panLeft: "L",
+    panRight: "R",
+    panCenter: "C",
+    doubleClickReset: "\uB354\uBE14 \uD074\uB9AD\uD558\uC5EC \uCD08\uAE30\uD654"
   };
 
   // src/webview/i18n/locales/nl.ts
@@ -2503,13 +2535,13 @@
     helpPlaybackGroup: "Afspelen en selectie",
     helpViewGroup: "Weergavenavigatie",
     helpMouseGroup: "Muis en trackpad",
-    helpGainGroup: "Gain",
+    helpGainGroup: "Gain & panning",
     helpPlayPause: "Afspelen / pauze",
     helpClearSelection: "Menu sluiten, selectie wissen of afspeelcursor resetten",
     helpResetTimeZoom: "Tijdzoom resetten",
     helpTrackpadZoom: "Knijp op trackpad om tijd te zoomen",
     helpTrackpadPan: "Horizontale trackpad-swipe verschuift tijd",
-    helpGainReset: "Dubbelklik de gain-schuif om naar 0 dB te resetten",
+    helpGainReset: "Dubbelklik een gain- of panningschuif om te resetten",
     helpSelectionPlayback: "Sleep over golfvorm of spectrogram om een segment te selecteren. Met actieve selectie wordt alleen dat bereik afgespeeld.",
     refreshSpectrogram: "Spectrogram verversen",
     resetView: "Weergave resetten",
@@ -2573,8 +2605,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens-initialisatie mislukt",
-    playbackGainLabel: "Gain",
-    playbackGain: "Afspeel-gain (dubbelklik om te resetten)"
+    trackGain: "Gain",
+    trackPan: "Panning",
+    panLeft: "L",
+    panRight: "R",
+    panCenter: "M",
+    doubleClickReset: "Dubbelklik om te resetten"
   };
 
   // src/webview/i18n/locales/no.ts
@@ -2681,13 +2717,13 @@
     helpPlaybackGroup: "Avspilling og utvalg",
     helpViewGroup: "Visningsnavigasjon",
     helpMouseGroup: "Mus og styreflate",
-    helpGainGroup: "Gain",
+    helpGainGroup: "Gain og panorering",
     helpPlayPause: "Spill av / pause",
     helpClearSelection: "Lukk meny, fjern utvalg eller tilbakestill avspillingsmark\xF8r",
     helpResetTimeZoom: "Tilbakestill tidszoom",
     helpTrackpadZoom: "Knip p\xE5 styreflaten for \xE5 zoome tid",
     helpTrackpadPan: "Horisontal sveip p\xE5 styreflaten flytter tid",
-    helpGainReset: "Dobbeltklikk gain-glidebryteren for \xE5 g\xE5 til 0 dB",
+    helpGainReset: "Dobbeltklikk en gain- eller panoreringsglidebryter for \xE5 tilbakestille den",
     helpSelectionPlayback: "Dra i b\xF8lgeform eller spectrogram for \xE5 velge et segment. Med aktivt utvalg spilles bare dette omr\xE5det.",
     refreshSpectrogram: "Oppdater spectrogram",
     resetView: "Tilbakestill visning",
@@ -2751,8 +2787,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens-initialisering mislyktes",
-    playbackGainLabel: "Gain",
-    playbackGain: "Avspillings-gain (dobbeltklikk for \xE5 tilbakestille)"
+    trackGain: "Gain",
+    trackPan: "Panorering",
+    panLeft: "V",
+    panRight: "H",
+    panCenter: "M",
+    doubleClickReset: "Dobbeltklikk for \xE5 tilbakestille"
   };
 
   // src/webview/i18n/locales/pl.ts
@@ -2859,13 +2899,13 @@
     helpPlaybackGroup: "Odtwarzanie i zaznaczenie",
     helpViewGroup: "Nawigacja widoku",
     helpMouseGroup: "Mysz i trackpad",
-    helpGainGroup: "Wzmocnienie",
+    helpGainGroup: "Wzmocnienie i panorama",
     helpPlayPause: "Odtw\xF3rz / pauza",
     helpClearSelection: "Zamknij menu, wyczy\u015B\u0107 zaznaczenie lub zresetuj kursor",
     helpResetTimeZoom: "Zresetuj powi\u0119kszenie czasu",
     helpTrackpadZoom: "Gest szczypania na trackpadzie powi\u0119ksza czas",
     helpTrackpadPan: "Poziome przesuni\u0119cie trackpada przesuwa czas",
-    helpGainReset: "Dwuklik suwaka wzmocnienia resetuje do 0 dB",
+    helpGainReset: "Dwuklik suwaka wzmocnienia lub panoramy resetuje go",
     helpSelectionPlayback: "Przeci\u0105gnij po przebiegu lub spektrogramie, aby zaznaczy\u0107 segment. Przy aktywnym zaznaczeniu odtwarzany jest tylko ten zakres.",
     refreshSpectrogram: "Od\u015Bwie\u017C spektrogram",
     resetView: "Resetuj widok",
@@ -2929,8 +2969,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "Inicjalizacja AudioLens nie powiod\u0142a si\u0119",
-    playbackGainLabel: "Wzmocnienie",
-    playbackGain: "Wzmocnienie odtwarzania (dwuklik resetuje)"
+    trackGain: "Wzmocnienie",
+    trackPan: "Panorama",
+    panLeft: "L",
+    panRight: "P",
+    panCenter: "C",
+    doubleClickReset: "Dwuklik resetuje"
   };
 
   // src/webview/i18n/locales/pt.ts
@@ -3037,13 +3081,13 @@
     helpPlaybackGroup: "Reprodu\xE7\xE3o e sele\xE7\xE3o",
     helpViewGroup: "Navega\xE7\xE3o da vista",
     helpMouseGroup: "Mouse e trackpad",
-    helpGainGroup: "Ganho",
+    helpGainGroup: "Ganho e pan",
     helpPlayPause: "Reproduzir / pausar",
     helpClearSelection: "Fechar menu, limpar sele\xE7\xE3o ou redefinir cursor",
     helpResetTimeZoom: "Redefinir zoom temporal",
     helpTrackpadZoom: "Pin\xE7ar no trackpad para ampliar o tempo",
     helpTrackpadPan: "Deslize horizontal do trackpad move o tempo",
-    helpGainReset: "Duplo clique no controle de ganho para voltar a 0 dB",
+    helpGainReset: "Duplo clique em um controle de ganho ou pan para redefini-lo",
     helpSelectionPlayback: "Arraste a forma de onda ou o espectrograma para selecionar um segmento. Com sele\xE7\xE3o ativa, s\xF3 esse intervalo \xE9 reproduzido.",
     refreshSpectrogram: "Atualizar espectrograma",
     resetView: "Redefinir vista",
@@ -3107,8 +3151,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "Falha ao inicializar AudioLens",
-    playbackGainLabel: "Ganho",
-    playbackGain: "Ganho de reprodu\xE7\xE3o (duplo clique para redefinir)"
+    trackGain: "Ganho",
+    trackPan: "Pan",
+    panLeft: "E",
+    panRight: "D",
+    panCenter: "C",
+    doubleClickReset: "Duplo clique para redefinir"
   };
 
   // src/webview/i18n/locales/ru.ts
@@ -3215,13 +3263,13 @@
     helpPlaybackGroup: "\u0412\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0438\u0435 \u0438 \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435",
     helpViewGroup: "\u041D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F \u0432\u0438\u0434\u0430",
     helpMouseGroup: "\u041C\u044B\u0448\u044C \u0438 \u0442\u0440\u0435\u043A\u043F\u0430\u0434",
-    helpGainGroup: "\u0423\u0441\u0438\u043B\u0435\u043D\u0438\u0435",
+    helpGainGroup: "\u0423\u0441\u0438\u043B\u0435\u043D\u0438\u0435 \u0438 \u043F\u0430\u043D\u043E\u0440\u0430\u043C\u0430",
     helpPlayPause: "\u041F\u0443\u0441\u043A / \u043F\u0430\u0443\u0437\u0430",
     helpClearSelection: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043C\u0435\u043D\u044E, \u043E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u0438\u043B\u0438 \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043A\u0443\u0440\u0441\u043E\u0440",
     helpResetTimeZoom: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043C\u0430\u0441\u0448\u0442\u0430\u0431 \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
     helpTrackpadZoom: "\u0429\u0438\u043F\u043E\u043A \u043D\u0430 \u0442\u0440\u0435\u043A\u043F\u0430\u0434\u0435 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u0438\u0440\u0443\u0435\u0442 \u0432\u0440\u0435\u043C\u044F",
     helpTrackpadPan: "\u0413\u043E\u0440\u0438\u0437\u043E\u043D\u0442\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0432\u0430\u0439\u043F \u0442\u0440\u0435\u043A\u043F\u0430\u0434\u0430 \u0441\u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0432\u0440\u0435\u043C\u044F",
-    helpGainReset: "\u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u043F\u043E \u043F\u043E\u043B\u0437\u0443\u043D\u043A\u0443 \u0443\u0441\u0438\u043B\u0435\u043D\u0438\u044F \u0441\u0431\u0440\u0430\u0441\u044B\u0432\u0430\u0435\u0442 \u0434\u043E 0 dB",
+    helpGainReset: "\u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u043F\u043E \u043F\u043E\u043B\u0437\u0443\u043D\u043A\u0443 \u0443\u0441\u0438\u043B\u0435\u043D\u0438\u044F \u0438\u043B\u0438 \u043F\u0430\u043D\u043E\u0440\u0430\u043C\u044B \u0441\u0431\u0440\u0430\u0441\u044B\u0432\u0430\u0435\u0442 \u0435\u0433\u043E",
     helpSelectionPlayback: "\u041F\u043E\u0442\u044F\u043D\u0438\u0442\u0435 \u043F\u043E \u0432\u043E\u043B\u043D\u0435 \u0438\u043B\u0438 \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0435, \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0441\u0435\u0433\u043C\u0435\u043D\u0442. \u041F\u0440\u0438 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u043C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0438 \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u044D\u0442\u043E\u0442 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D.",
     refreshSpectrogram: "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0441\u043F\u0435\u043A\u0442\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0443",
     resetView: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0432\u0438\u0434",
@@ -3285,8 +3333,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "\u0421\u0431\u043E\u0439 \u0438\u043D\u0438\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438 AudioLens",
-    playbackGainLabel: "\u0423\u0441\u0438\u043B\u0435\u043D\u0438\u0435",
-    playbackGain: "\u0423\u0441\u0438\u043B\u0435\u043D\u0438\u0435 \u0432\u043E\u0441\u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0438\u044F (\u0434\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u0434\u043B\u044F \u0441\u0431\u0440\u043E\u0441\u0430)"
+    trackGain: "\u0423\u0441\u0438\u043B\u0435\u043D\u0438\u0435",
+    trackPan: "\u041F\u0430\u043D\u043E\u0440\u0430\u043C\u0430",
+    panLeft: "\u041B",
+    panRight: "\u041F",
+    panCenter: "\u0426",
+    doubleClickReset: "\u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u0434\u043B\u044F \u0441\u0431\u0440\u043E\u0441\u0430"
   };
 
   // src/webview/i18n/locales/tr.ts
@@ -3393,13 +3445,13 @@
     helpPlaybackGroup: "Oynatma ve se\xE7im",
     helpViewGroup: "G\xF6r\xFCn\xFCm gezinme",
     helpMouseGroup: "Fare ve trackpad",
-    helpGainGroup: "Kazan\xE7",
+    helpGainGroup: "Kazan\xE7 ve pan",
     helpPlayPause: "Oynat / duraklat",
     helpClearSelection: "Men\xFCy\xFC kapat, se\xE7imi temizle veya oynatma imlecini s\u0131f\u0131rla",
     helpResetTimeZoom: "Zaman zumunu s\u0131f\u0131rla",
     helpTrackpadZoom: "Trackpad s\u0131k\u0131\u015Ft\u0131rma zaman zumu yapar",
     helpTrackpadPan: "Trackpad yatay kayd\u0131rma zaman\u0131 kayd\u0131r\u0131r",
-    helpGainReset: "Kazan\xE7 kayd\u0131r\u0131c\u0131s\u0131na \xE7ift t\u0131klayarak 0 dB'ye s\u0131f\u0131rla",
+    helpGainReset: "S\u0131f\u0131rlamak i\xE7in bir kanal\u0131n kazan\xE7 veya pan kayd\u0131r\u0131c\u0131s\u0131na \xE7ift t\u0131klay\u0131n",
     helpSelectionPlayback: "Bir segment se\xE7mek i\xE7in dalga bi\xE7imi veya spektrogram \xFCzerinde s\xFCr\xFCkle. Se\xE7im aktifken yaln\u0131zca o aral\u0131k oynat\u0131l\u0131r.",
     refreshSpectrogram: "Spektrogrami yenile",
     resetView: "Gorunumu sifirla",
@@ -3463,8 +3515,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens baslatilamadi",
-    playbackGainLabel: "Kazan\xE7",
-    playbackGain: "Oynatma kazanc\u0131 (s\u0131f\u0131rlamak i\xE7in \xE7ift t\u0131k)"
+    trackGain: "Kazan\xE7",
+    trackPan: "Pan",
+    panLeft: "L",
+    panRight: "R",
+    panCenter: "C",
+    doubleClickReset: "S\u0131f\u0131rlamak i\xE7in \xE7ift t\u0131klay\u0131n"
   };
 
   // src/webview/i18n/locales/vi.ts
@@ -3571,13 +3627,13 @@
     helpPlaybackGroup: "Ph\xE1t v\xE0 v\xF9ng ch\u1ECDn",
     helpViewGroup: "\u0110i\u1EC1u h\u01B0\u1EDBng ch\u1EBF \u0111\u1ED9 xem",
     helpMouseGroup: "Chu\u1ED9t v\xE0 trackpad",
-    helpGainGroup: "Gain",
+    helpGainGroup: "Gain & pan",
     helpPlayPause: "Ph\xE1t / t\u1EA1m d\u1EEBng",
     helpClearSelection: "\u0110\xF3ng menu, x\xF3a v\xF9ng ch\u1ECDn ho\u1EB7c \u0111\u1EB7t l\u1EA1i con tr\u1ECF ph\xE1t",
     helpResetTimeZoom: "\u0110\u1EB7t l\u1EA1i thu ph\xF3ng th\u1EDDi gian",
     helpTrackpadZoom: "Ch\u1EE5m tr\xEAn trackpad \u0111\u1EC3 thu ph\xF3ng th\u1EDDi gian",
     helpTrackpadPan: "Vu\u1ED1t ngang tr\xEAn trackpad \u0111\u1EC3 d\u1ECBch chuy\u1EC3n th\u1EDDi gian",
-    helpGainReset: "Nh\u1EA5p \u0111\xFAp thanh gain \u0111\u1EC3 \u0111\u1EB7t l\u1EA1i v\u1EC1 0 dB",
+    helpGainReset: "Nh\u1EA5p \u0111\xFAp thanh tr\u01B0\u1EE3t gain ho\u1EB7c pan c\u1EE7a k\xEAnh \u0111\u1EC3 \u0111\u1EB7t l\u1EA1i",
     helpSelectionPlayback: "K\xE9o tr\xEAn d\u1EA1ng s\xF3ng ho\u1EB7c spectrogram \u0111\u1EC3 ch\u1ECDn \u0111o\u1EA1n. Khi c\xF3 v\xF9ng ch\u1ECDn, ch\u1EC9 v\xF9ng \u0111\xF3 \u0111\u01B0\u1EE3c ph\xE1t.",
     refreshSpectrogram: "L\xE0m m\u1EDBi spectrogram",
     resetView: "\u0110\u1EB7t l\u1EA1i ch\u1EBF \u0111\u1ED9 xem",
@@ -3641,8 +3697,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "Kh\u1EDFi t\u1EA1o AudioLens th\u1EA5t b\u1EA1i",
-    playbackGainLabel: "Gain",
-    playbackGain: "Gain ph\xE1t l\u1EA1i (nh\u1EA5p \u0111\xFAp \u0111\u1EC3 \u0111\u1EB7t l\u1EA1i)"
+    trackGain: "Gain",
+    trackPan: "Pan",
+    panLeft: "T",
+    panRight: "P",
+    panCenter: "G",
+    doubleClickReset: "Nh\u1EA5p \u0111\xFAp \u0111\u1EC3 \u0111\u1EB7t l\u1EA1i"
   };
 
   // src/webview/i18n/locales/zh-CN.ts
@@ -3751,13 +3811,13 @@
     helpPlaybackGroup: "\u64AD\u653E\u4E0E\u9009\u533A",
     helpViewGroup: "\u89C6\u56FE\u5BFC\u822A",
     helpMouseGroup: "\u9F20\u6807\u4E0E\u89E6\u63A7\u677F",
-    helpGainGroup: "\u64AD\u653E\u589E\u76CA",
+    helpGainGroup: "\u589E\u76CA\u4E0E\u58F0\u9053\u5E73\u8861",
     helpPlayPause: "\u64AD\u653E / \u6682\u505C",
     helpClearSelection: "\u5173\u95ED\u83DC\u5355\u3001\u6E05\u9664\u9009\u533A\u6216\u91CD\u7F6E\u64AD\u653E\u6E38\u6807",
     helpResetTimeZoom: "\u91CD\u7F6E\u65F6\u95F4\u7F29\u653E",
     helpTrackpadZoom: "\u89E6\u63A7\u677F\u53CC\u6307\u634F\u5408\u53EF\u7F29\u653E\u65F6\u95F4",
     helpTrackpadPan: "\u89E6\u63A7\u677F\u6A2A\u5411\u6ED1\u52A8\u53EF\u5E73\u79FB\u65F6\u95F4",
-    helpGainReset: "\u53CC\u51FB\u589E\u76CA\u6ED1\u5757\u53EF\u91CD\u7F6E\u4E3A 0 dB",
+    helpGainReset: "\u53CC\u51FB\u901A\u9053\u7684\u589E\u76CA\u6216\u58F0\u9053\u5E73\u8861\u6ED1\u5757\u53EF\u91CD\u7F6E",
     helpSelectionPlayback: "\u5728\u6CE2\u5F62\u56FE\u6216\u8BED\u8C31\u56FE\u4E0A\u62D6\u62FD\u53EF\u6846\u9009\u7247\u6BB5\uFF1B\u6709\u9009\u533A\u65F6\u64AD\u653E\u53EA\u8BD5\u542C\u8BE5\u8303\u56F4\u3002",
     selectionAnalysis: "\u9009\u533A\u5206\u6790",
     selectionAnalysisHelp: "\u9009\u533A\u5206\u6790\uFF1A\n\u5BF9\u5F53\u524D\u6846\u9009\u7684\u65F6\u95F4\u8303\u56F4\u8FDB\u884C\u5FEB\u901F\u7EDF\u8BA1\uFF0C\u5E2E\u52A9\u5224\u65AD\u5F55\u97F3\u7535\u5E73\u3001\u52A8\u6001\u8303\u56F4\u3001\u524A\u6CE2\u98CE\u9669\u3001\u566A\u58F0\u5E95\u548C\u9891\u7387\u5206\u5E03\u3002\n\n\u5206\u6790\u5BF9\u8C61\uFF1A\n\u5F53\u524D\u7ED3\u679C\u53EA\u9488\u5BF9\u6FC0\u6D3B\u901A\u9053\uFF0C\u4E0D\u4F1A\u628A\u591A\u4E2A\u901A\u9053\u6DF7\u5408\u8BA1\u7B97\u3002\n\n\u5982\u4F55\u5207\u6362\uFF1A\n\u70B9\u51FB\u67D0\u4E00\u6761\u97F3\u8F68\u540E\uFF0C\u8BE5\u97F3\u8F68\u4F1A\u6210\u4E3A\u5F53\u524D\u6FC0\u6D3B\u901A\u9053\uFF1B\u4E4B\u540E\u7684 RMS\u3001Peak\u3001Dominant \u548C\u9891\u7387\u5206\u6790\u90FD\u4F1A\u4F7F\u7528\u8FD9\u4E2A\u901A\u9053\u7684\u6570\u636E\u3002",
@@ -3819,8 +3879,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u8D25",
-    playbackGainLabel: "\u64AD\u653E\u589E\u76CA",
-    playbackGain: "\u64AD\u653E\u589E\u76CA (\u53CC\u51FB\u91CD\u7F6E\u4E3A 0)"
+    trackGain: "\u589E\u76CA",
+    trackPan: "\u58F0\u9053\u5E73\u8861",
+    panLeft: "\u5DE6",
+    panRight: "\u53F3",
+    panCenter: "\u4E2D",
+    doubleClickReset: "\u53CC\u51FB\u91CD\u7F6E"
   };
 
   // src/webview/i18n/locales/zh-TW.ts
@@ -3927,13 +3991,13 @@
     helpPlaybackGroup: "\u64AD\u653E\u8207\u9078\u5340",
     helpViewGroup: "\u8996\u5716\u5C0E\u89BD",
     helpMouseGroup: "\u6ED1\u9F20\u8207\u89F8\u63A7\u677F",
-    helpGainGroup: "\u64AD\u653E\u589E\u76CA",
+    helpGainGroup: "\u589E\u76CA\u8207\u8072\u9053\u5E73\u8861",
     helpPlayPause: "\u64AD\u653E / \u66AB\u505C",
     helpClearSelection: "\u95DC\u9589\u9078\u55AE\u3001\u6E05\u9664\u9078\u5340\u6216\u91CD\u8A2D\u64AD\u653E\u6E38\u6A19",
     helpResetTimeZoom: "\u91CD\u8A2D\u6642\u9593\u7E2E\u653E",
     helpTrackpadZoom: "\u89F8\u63A7\u677F\u96D9\u6307\u634F\u5408\u53EF\u7E2E\u653E\u6642\u9593",
     helpTrackpadPan: "\u89F8\u63A7\u677F\u6A6B\u5411\u6ED1\u52D5\u53EF\u5E73\u79FB\u6642\u9593",
-    helpGainReset: "\u96D9\u64CA\u589E\u76CA\u6ED1\u687F\u53EF\u91CD\u8A2D\u70BA 0 dB",
+    helpGainReset: "\u96D9\u64CA\u901A\u9053\u7684\u589E\u76CA\u6216\u8072\u9053\u5E73\u8861\u6ED1\u687F\u53EF\u91CD\u8A2D",
     helpSelectionPlayback: "\u5728\u6CE2\u5F62\u5716\u6216\u983B\u8B5C\u5716\u4E0A\u62D6\u66F3\u53EF\u6846\u9078\u7247\u6BB5\uFF1B\u6709\u9078\u5340\u6642\u64AD\u653E\u53EA\u6703\u8A66\u807D\u8A72\u7BC4\u570D\u3002",
     refreshSpectrogram: "\u91CD\u65B0\u6574\u7406\u983B\u8B5C\u5716",
     resetView: "\u91CD\u8A2D\u8996\u5716",
@@ -3997,8 +4061,12 @@
     pad: "pad",
     hop: "hop",
     initializationFailed: "AudioLens \u521D\u59CB\u5316\u5931\u6557",
-    playbackGainLabel: "\u589E\u76CA",
-    playbackGain: "\u64AD\u653E\u589E\u76CA (\u96D9\u64CA\u91CD\u8A2D\u70BA 0)"
+    trackGain: "\u589E\u76CA",
+    trackPan: "\u8072\u9053\u5E73\u8861",
+    panLeft: "\u5DE6",
+    panRight: "\u53F3",
+    panCenter: "\u4E2D",
+    doubleClickReset: "\u96D9\u64CA\u91CD\u8A2D"
   };
 
   // src/webview/i18n/index.ts
@@ -4297,16 +4365,11 @@
                 <div class="helpRow"><span><span class="helpGesture" data-i18n="helpHorizontalSwipe">Horizontal swipe</span></span><span data-i18n="helpTrackpadPan">Horizontal trackpad swipe pans time</span></div>
               </section>
               <section class="helpSection">
-                <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain</div>
-                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click the gain slider to reset to 0 dB</span></div>
+                <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain & pan</div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click a channel's gain or pan slider to reset it</span></div>
               </section>
             </div>
           </details>
-          <div class="gainControl" data-i18n-title="playbackGain" data-i18n-tooltip="playbackGain" data-tooltip="Playback Gain (Double-click to reset)" title="Playback Gain (Double-click to reset)" aria-label="Playback Gain">
-            <span class="gainTitle" data-i18n="playbackGainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">Gain</span>
-            <span id="gainLabel" class="gainLabel" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)">0 dB</span>
-            <input id="playbackGain" class="gainSlider" type="range" min="-12" max="24" step="1" value="0" data-i18n-title="playbackGain" title="Playback Gain (Double-click to reset)" />
-          </div>
           <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">\u2699</span></button>
         </div>
       </header>
@@ -4725,8 +4788,6 @@
       settingsToggle: query("#settingsToggle", HTMLButtonElement),
       downloadAudio: query("#downloadAudio", HTMLButtonElement),
       helpMenu: query("#helpMenu", HTMLElement),
-      gainLabel: query("#gainLabel", HTMLSpanElement),
-      playbackGain: query("#playbackGain", HTMLInputElement),
       settingsPanel: query("#settingsPanel", HTMLElement),
       windowFunction: query("#windowFunction", HTMLSelectElement),
       fftSize: query("#fftSize", HTMLSelectElement),
@@ -4840,6 +4901,7 @@
   var TRACK_SPEC_DEFAULT_FR = 0.62;
   var TRACK_WAVE_MIN_PX = 90;
   var TRACK_SPEC_MIN_PX = 160;
+  var TRACK_GAIN_RANGE_DB = 24;
   var TRACK_BOTH_MIN_H = TRACK_WAVE_MIN_PX + TRACK_SPEC_MIN_PX + 2;
   var SELECTION_SPECTRUM_DELAY_MS = 80;
   var BAND_LIMITS = [
@@ -6067,7 +6129,6 @@
     preferencesSaveTimer;
     analysisTimer;
     playbackAudioContext;
-    playbackGainNode;
     playbackSourceNode;
     playbackMediaSourceNode;
     playbackBufferSourceNode;
@@ -6115,7 +6176,6 @@
       timeOffset: 0,
       frequencyScale: "linear",
       palette: "rose",
-      playbackGain: 0,
       defaultTrackRowHeight: TRACK_ROW_DEFAULT_H,
       defaultTrackWaveFr: TRACK_WAVE_DEFAULT_FR,
       defaultTrackSpecFr: TRACK_SPEC_DEFAULT_FR
@@ -6452,19 +6512,6 @@
         this.updateClock();
         this.setStatus(this.messages.audioLoaded);
       });
-      this.elements.playbackGain.addEventListener("input", () => {
-        this.settings.playbackGain = Number(this.elements.playbackGain.value);
-        this.elements.gainLabel.textContent = `${this.settings.playbackGain > 0 ? "+" : ""}${this.settings.playbackGain} dB`;
-        this.updateGainNode();
-        this.savePreferencesSoon();
-      });
-      this.elements.playbackGain.addEventListener("dblclick", () => {
-        this.settings.playbackGain = 0;
-        this.elements.playbackGain.value = "0";
-        this.elements.gainLabel.textContent = "0 dB";
-        this.updateGainNode();
-        this.savePreferencesSoon();
-      });
       this.elements.audio.addEventListener("error", () => {
         const detail = this.elements.audio.error?.message || this.messages.audioCannotPlay;
         if (this.audioBuffer) {
@@ -6645,7 +6692,7 @@
       }
       try {
         if (this.elements.audio.paused) {
-          this.updateGainNode();
+          this.ensurePlaybackGraph();
           if (this.playbackAudioContext?.state === "suspended") {
             await this.playbackAudioContext.resume();
           }
@@ -6715,7 +6762,7 @@
       this.playbackSourceNode = source;
       this.bufferPlaybackStartedAt = this.playbackAudioContext.currentTime;
       this.bufferPlaybackPaused = false;
-      this.updateGainNode();
+      this.ensurePlaybackGraph();
       source.start(0, this.bufferPlaybackOffset);
       this.elements.play.textContent = "\u23F8";
       this.startPlaybackTicker();
@@ -7379,7 +7426,6 @@
         spectrogramMaxHz: this.settings.spectrogramMaxHz,
         spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
         autoBrightness: this.settings.autoBrightness,
-        playbackGain: this.settings.playbackGain,
         defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
         defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
         defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
@@ -7820,7 +7866,9 @@
       mode.className = "trackMode";
       this.populateTrackModeOptions(mode);
       mode.value = this.settings.defaultTrackMode;
-      sidebar.append(title, mute, solo, mode);
+      const gainSlider = this.createTrackSlider("gain");
+      const panSlider = this.createTrackSlider("pan");
+      sidebar.append(title, mute, solo, mode, gainSlider.control, panSlider.control);
       const body = document.createElement("div");
       body.className = "trackBody";
       const waveformWrap = document.createElement("div");
@@ -7851,6 +7899,10 @@
         mode: this.settings.defaultTrackMode,
         muted: false,
         solo: false,
+        gainDb: 0,
+        pan: 0,
+        gainSlider: gainSlider.input,
+        panSlider: panSlider.input,
         rowHeight: this.settings.defaultTrackRowHeight,
         waveFr: this.settings.defaultTrackWaveFr,
         specFr: this.settings.defaultTrackSpecFr
@@ -7870,6 +7922,19 @@
         this.redrawVisuals();
         this.analyze();
       });
+      this.bindTrackSlider(view, gainSlider, {
+        read: () => clamp2(Number(gainSlider.input.value), -TRACK_GAIN_RANGE_DB, TRACK_GAIN_RANGE_DB),
+        apply: (value) => {
+          view.gainDb = value;
+        }
+      });
+      this.bindTrackSlider(view, panSlider, {
+        read: () => clamp2(Number(panSlider.input.value), -100, 100) / 100,
+        apply: (value) => {
+          view.pan = value;
+        }
+      });
+      this.syncTrackSliderHints(view);
       this.bindFigureInteraction(waveform);
       this.bindFigureInteraction(spectrogram);
       this.elements.trackList.append(row);
@@ -8028,6 +8093,7 @@
           this.populateTrackModeOptions(modeSelect);
           modeSelect.value = value;
         }
+        this.syncTrackSliderHints(view);
       }
     }
     populateTrackModeOptions(select) {
@@ -8049,6 +8115,116 @@
       const effectiveMuted = hasSolo ? !view.solo : view.muted;
       view.row.querySelector(".trackSolo")?.classList.toggle("isActive", view.solo);
       view.row.querySelector(".trackMute")?.classList.toggle("isActive", effectiveMuted);
+    }
+    createTrackSlider(kind) {
+      const control = document.createElement("div");
+      control.className = `trackSliderControl ${kind === "gain" ? "trackGainControl" : "trackPanControl"}`;
+      const minLabel = document.createElement("span");
+      minLabel.className = "trackSliderEnd trackSliderEndMin";
+      const maxLabel = document.createElement("span");
+      maxLabel.className = "trackSliderEnd trackSliderEndMax";
+      const trackWrap = document.createElement("span");
+      trackWrap.className = "trackSliderTrack";
+      const ticks = document.createElement("span");
+      ticks.className = "trackSliderTicks";
+      const input = document.createElement("input");
+      input.type = "range";
+      input.className = "trackSlider";
+      const range = kind === "gain" ? TRACK_GAIN_RANGE_DB : 100;
+      input.min = String(-range);
+      input.max = String(range);
+      input.step = "1";
+      input.value = "0";
+      if (kind === "gain") {
+        minLabel.textContent = "\u2212";
+        maxLabel.textContent = "+";
+      }
+      trackWrap.append(ticks, input);
+      control.append(minLabel, trackWrap, maxLabel);
+      return { control, input };
+    }
+    bindTrackSlider(view, slider, options) {
+      const { control, input } = slider;
+      const showTip = () => this.showTrackSliderTip(control);
+      input.addEventListener("input", () => {
+        options.apply(options.read());
+        this.syncTrackSliderHints(view);
+        this.updatePlaybackChannelGains();
+        showTip();
+      });
+      input.addEventListener("dblclick", () => {
+        input.value = "0";
+        options.apply(0);
+        this.syncTrackSliderHints(view);
+        this.updatePlaybackChannelGains();
+        showTip();
+      });
+      input.addEventListener("pointerenter", showTip);
+      input.addEventListener("pointerleave", () => {
+        if (!input.matches(":active")) {
+          this.hideFloatingTooltip();
+        }
+      });
+      input.addEventListener("pointerup", () => {
+        if (!control.matches(":hover")) {
+          this.hideFloatingTooltip();
+        }
+      });
+      input.addEventListener("pointercancel", () => this.hideFloatingTooltip());
+      input.addEventListener("blur", () => this.hideFloatingTooltip());
+    }
+    syncTrackSliderHints(view) {
+      this.applyTrackSliderHint(view.gainSlider, this.messages.trackGain, this.formatTrackGain(view.gainDb));
+      this.applyTrackSliderHint(view.panSlider, this.messages.trackPan, this.formatTrackPan(view.pan));
+      const panControl = view.panSlider.closest(".trackSliderControl");
+      if (panControl) {
+        const minLabel = panControl.querySelector(".trackSliderEndMin");
+        const maxLabel = panControl.querySelector(".trackSliderEndMax");
+        if (minLabel) {
+          minLabel.textContent = this.messages.panLeft;
+        }
+        if (maxLabel) {
+          maxLabel.textContent = this.messages.panRight;
+        }
+      }
+    }
+    applyTrackSliderHint(input, label, valueText) {
+      const control = input.closest(".trackSliderControl");
+      if (control) {
+        control.dataset.tooltip = `${label} ${valueText} \xB7 ${this.messages.doubleClickReset}`;
+      }
+      input.setAttribute("aria-label", label);
+      input.setAttribute("aria-valuetext", valueText);
+    }
+    formatTrackGain(gainDb) {
+      return `${gainDb > 0 ? "+" : ""}${gainDb} dB`;
+    }
+    formatTrackPan(pan) {
+      if (pan === 0) {
+        return this.messages.panCenter;
+      }
+      return pan < 0 ? `${this.messages.panLeft} ${Math.round(-pan * 100)}%` : `${this.messages.panRight} ${Math.round(pan * 100)}%`;
+    }
+    showTrackSliderTip(anchor) {
+      const text = anchor.dataset.tooltip;
+      if (!text) {
+        return;
+      }
+      const tooltip = this.elements.floatingTooltip;
+      tooltip.textContent = text;
+      tooltip.hidden = false;
+      tooltip.style.width = "max-content";
+      const margin = 8;
+      const anchorRect = anchor.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const left = clamp2(
+        anchorRect.left + anchorRect.width / 2 - tooltipRect.width / 2,
+        margin,
+        Math.max(margin, window.innerWidth - tooltipRect.width - margin)
+      );
+      const top = Math.max(margin, anchorRect.top - tooltipRect.height - 8);
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
     }
     selectChannel(channel) {
       this.settings.channel = clamp2(channel, 0, Math.max(0, (this.audioBuffer?.numberOfChannels ?? 1) - 1));
@@ -8559,38 +8735,30 @@
       const isDirty = Math.abs(this.settings.timeZoom - 1) > 1e-6 || Math.abs(this.settings.timeOffset) > 1e-6 || Math.abs(this.settings.amplitudeZoom - 1) > 1e-6 || Boolean(this.selection);
       this.elements.resetView.classList.toggle("isProminent", isDirty);
     }
-    updateGainNode() {
+    ensurePlaybackGraph() {
       if (!this.playbackAudioContext) {
         this.playbackAudioContext = new AudioContext();
-      }
-      if (!this.playbackGainNode) {
-        this.playbackGainNode = this.playbackAudioContext.createGain();
       }
       if (!this.audioBuffer && !this.playbackMediaSourceNode) {
         this.playbackMediaSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
         this.playbackSourceNode = this.playbackMediaSourceNode;
       }
       this.rebuildPlaybackChannelGraph();
-      if (this.playbackGainNode) {
-        const multiplier = Math.pow(10, this.settings.playbackGain / 20);
-        this.playbackGainNode.gain.value = multiplier;
-      }
-      this.updatePlaybackChannelGains();
+      this.updatePlaybackChannelGains(true);
     }
     rebuildPlaybackChannelGraph() {
-      if (!this.playbackAudioContext || !this.playbackSourceNode || !this.playbackGainNode) {
+      if (!this.playbackAudioContext || !this.playbackSourceNode) {
         return;
       }
       this.playbackSourceNode.disconnect();
       this.playbackSplitterNode?.disconnect();
       this.playbackMergerNode?.disconnect();
-      this.playbackGainNode.disconnect();
-      for (const gain of this.playbackChannelGains) {
-        gain.disconnect();
+      for (const pair of this.playbackChannelGains) {
+        pair.left.disconnect();
+        pair.right.disconnect();
       }
       if (!this.audioBuffer) {
-        this.playbackSourceNode.connect(this.playbackGainNode);
-        this.playbackGainNode.connect(this.playbackAudioContext.destination);
+        this.playbackSourceNode.connect(this.playbackAudioContext.destination);
         this.playbackChannelGains = [];
         this.playbackSplitterNode = void 0;
         this.playbackMergerNode = void 0;
@@ -8599,25 +8767,45 @@
       const channels = this.audioBuffer.numberOfChannels;
       this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
       this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(2);
-      this.playbackChannelGains = Array.from({ length: channels }, () => this.playbackAudioContext.createGain());
+      this.playbackChannelGains = Array.from({ length: channels }, () => ({
+        left: this.playbackAudioContext.createGain(),
+        right: this.playbackAudioContext.createGain()
+      }));
       this.playbackSourceNode.connect(this.playbackSplitterNode);
-      this.playbackChannelGains.forEach((gain, channel) => {
-        this.playbackSplitterNode?.connect(gain, channel);
-        gain.connect(this.playbackMergerNode, 0, 0);
-        gain.connect(this.playbackMergerNode, 0, 1);
+      this.playbackChannelGains.forEach((pair, channel) => {
+        this.playbackSplitterNode?.connect(pair.left, channel);
+        this.playbackSplitterNode?.connect(pair.right, channel);
+        pair.left.connect(this.playbackMergerNode, 0, 0);
+        pair.right.connect(this.playbackMergerNode, 0, 1);
       });
-      this.playbackMergerNode.connect(this.playbackGainNode);
-      this.playbackGainNode.connect(this.playbackAudioContext.destination);
+      this.playbackMergerNode.connect(this.playbackAudioContext.destination);
     }
-    updatePlaybackChannelGains() {
+    updatePlaybackChannelGains(immediate = false) {
       const hasSolo = this.trackViews.some((view) => view.solo);
       const enabledChannels = this.trackViews.length > 0 ? this.trackViews.filter((view) => hasSolo ? view.solo : !view.muted).length : this.playbackChannelGains.length;
       const channelGain = enabledChannels > 0 ? 1 / enabledChannels : 0;
-      this.playbackChannelGains.forEach((gain, channel) => {
+      this.playbackChannelGains.forEach((pair, channel) => {
         const view = this.trackViews.find((item) => item.channel === channel);
         const enabled = view ? hasSolo ? view.solo : !view.muted : true;
-        gain.gain.value = enabled ? channelGain : 0;
+        const gainDb = view?.gainDb ?? 0;
+        const pan = view?.pan ?? 0;
+        const base = enabled ? channelGain * Math.pow(10, gainDb / 20) : 0;
+        this.setPlaybackGainValue(pair.left, base * Math.min(1, 1 - pan), immediate);
+        this.setPlaybackGainValue(pair.right, base * Math.min(1, 1 + pan), immediate);
       });
+    }
+    setPlaybackGainValue(node, value, immediate) {
+      const context = this.playbackAudioContext;
+      if (!context) {
+        node.gain.value = value;
+        return;
+      }
+      node.gain.cancelScheduledValues(context.currentTime);
+      if (immediate || this.bufferPlaybackPaused) {
+        node.gain.value = value;
+      } else {
+        node.gain.setTargetAtTime(value, context.currentTime, 0.02);
+      }
     }
     getWaveformPeaks(channel, startSample, endSample, width) {
       const cacheKey = `ch-${channel}:${startSample}:${endSample}:${width}`;
@@ -9856,68 +10044,6 @@
       align-items: center;
       gap: 8px;
     }
-    .gainControl {
-      position: relative;
-      flex: 0 0 auto;
-      display: grid;
-      grid-template-columns: 6ch 80px;
-      grid-template-rows: 14px 22px;
-      align-items: center;
-      column-gap: 8px;
-      row-gap: 2px;
-      margin-right: 8px;
-    }
-    .gainControl::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      z-index: 40;
-      top: calc(100% + 8px);
-      right: 0;
-      width: max-content;
-      max-width: min(280px, calc(100vw - 24px));
-      padding: 6px 8px;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 4px;
-      color: var(--vscode-foreground);
-      background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-      box-shadow: 0 8px 22px rgb(0 0 0 / 24%);
-      font-size: 12px;
-      line-height: 1.35;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-2px);
-      transition: opacity 90ms ease, transform 90ms ease;
-    }
-    .gainControl:hover::after,
-    .gainControl:has(:focus-visible)::after {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .gainTitle {
-      grid-column: 1 / -1;
-      color: var(--vscode-descriptionForeground);
-      font-size: 12px;
-      line-height: 1;
-      text-align: center;
-      white-space: nowrap;
-    }
-    .gainLabel {
-      font-variant-numeric: tabular-nums;
-      flex: 0 0 6ch;
-      width: 6ch;
-      text-align: right;
-      font-size: 12px;
-      color: var(--vscode-descriptionForeground);
-    }
-    .gainSlider {
-      width: 80px;
-      margin: 0;
-    }
-    .gainSlider:focus,
-    .gainSlider:focus-visible {
-      outline: none;
-    }
     .brand {
       letter-spacing: 0;
     }
@@ -10358,6 +10484,90 @@
       border: 1px solid var(--vscode-input-border, transparent);
       border-radius: 4px;
       text-align-last: center;
+    }
+    .trackSliderControl {
+      display: grid;
+      grid-template-columns: 11px minmax(0, 1fr) 11px;
+      align-items: center;
+      column-gap: 2px;
+      min-height: 16px;
+    }
+    .trackGainControl {
+      margin-top: 2px;
+    }
+    .trackSliderEnd {
+      font-size: 10px;
+      line-height: 1;
+      color: var(--vscode-descriptionForeground);
+      text-align: center;
+      user-select: none;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .trackSliderTrack {
+      position: relative;
+      display: block;
+      height: 16px;
+      min-width: 0;
+    }
+    .trackSliderTicks {
+      --track-tick: color-mix(in srgb, var(--vscode-descriptionForeground) 50%, transparent);
+      --track-tick-strong: color-mix(in srgb, var(--vscode-descriptionForeground) 80%, transparent);
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 6px;
+      right: 6px;
+      pointer-events: none;
+      background:
+        linear-gradient(var(--track-tick-strong), var(--track-tick-strong)) no-repeat left center / 1px 8px,
+        linear-gradient(var(--track-tick), var(--track-tick)) no-repeat 25% center / 1px 5px,
+        linear-gradient(var(--track-tick-strong), var(--track-tick-strong)) no-repeat center center / 1px 10px,
+        linear-gradient(var(--track-tick), var(--track-tick)) no-repeat 75% center / 1px 5px,
+        linear-gradient(var(--track-tick-strong), var(--track-tick-strong)) no-repeat right center / 1px 8px,
+        linear-gradient(var(--track-tick), var(--track-tick)) no-repeat center center / 100% 1px;
+    }
+    .trackSlider {
+      -webkit-appearance: none;
+      appearance: none;
+      position: relative;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .trackSlider::-webkit-slider-runnable-track {
+      height: 16px;
+      background: transparent;
+    }
+    .trackSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      margin-top: 2px;
+      border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--vscode-button-background) 70%, var(--vscode-foreground));
+      background: var(--vscode-button-background);
+      box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+      transition: transform 90ms ease, box-shadow 90ms ease;
+    }
+    .trackSlider:hover::-webkit-slider-thumb {
+      transform: scale(1.15);
+    }
+    .trackSlider:active::-webkit-slider-thumb {
+      transform: scale(1.25);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent), 0 1px 3px rgb(0 0 0 / 30%);
+    }
+    .trackSlider:focus,
+    .trackSlider:focus-visible {
+      outline: none;
+    }
+    .trackSlider:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 2px var(--vscode-focusBorder);
     }
     .trackBody,
     .trackCanvasWrap {
