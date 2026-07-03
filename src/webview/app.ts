@@ -1691,6 +1691,9 @@ export class AudioLensApp {
     this.elements.wavPcmPanel.hidden = true;
 
     this.stopPlaybackTicker();
+    // 在解码前清掉上一份文件的 worker 采样，保证后续 loadSamples/analyze 不会撞上迟到的 clearSamples。
+    // 不能放在 loadPcm/loadEncoded 之后：PCM 路径下 loadPcm 内部已 decode+analyze，事后清采样会让在途分析读空。
+    this.resetWorkerSampleStore();
     if (metadata.kind === "pcm") {
       const loaded = await this.loadPcm(metadata);
       if (!loaded) {
@@ -1715,7 +1718,6 @@ export class AudioLensApp {
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
     this.waveformCache.clear();
-    this.resetWorkerSampleStore();
     this.selection = undefined;
     this.playheadTime = undefined;
     this.dragPlayheadTime = undefined;

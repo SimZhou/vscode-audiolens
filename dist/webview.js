@@ -179,11 +179,15 @@
       // \u7A81\u53D1\u5408\u5E76\uFF1A\u5148\u8BA9\u51FA\u4E00\u6B21\u4E8B\u4EF6\u5FAA\u73AF\uFF0C\u8BA9\u540C\u4E00\u7A81\u53D1\u4E2D\u6392\u961F\u7684\u66F4\u9AD8\u4EE3\u9645\u8BF7\u6C42\u5148\u6CE8\u518C\uFF0C
       // \u8FC7\u671F\u8BF7\u6C42\u5728\u8FD9\u91CC\u76F4\u63A5\u9000\u51FA\uFF0C\u4E00\u5217 FFT \u90FD\u4E0D\u7B97\u3002
       await yieldToQueue();
-      if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+      if (generation < (latestGenerationByChannel.get(channel) || 0)) {
+        return;
+      }
       const stored = channelSamples.get(channel);
       const fallback = message.samples ? new Float32Array(message.samples) : undefined;
       const samples = stored || fallback;
-      if (!samples) return;
+      if (!samples) {
+        return;
+      }
       const settings = message.settings;
       const profile = settings.profile === true;
       const totalStart = profile ? performance.now() : 0;
@@ -6835,6 +6839,7 @@
       this.elements.headerInfoPanel.hidden = true;
       this.elements.wavPcmPanel.hidden = true;
       this.stopPlaybackTicker();
+      this.resetWorkerSampleStore();
       if (metadata.kind === "pcm") {
         const loaded = await this.loadPcm(metadata);
         if (!loaded) {
@@ -6859,7 +6864,6 @@
       this.spectrogramRangeCache.clear();
       this.lastSpectrogramByChannel.clear();
       this.waveformCache.clear();
-      this.resetWorkerSampleStore();
       this.selection = void 0;
       this.playheadTime = void 0;
       this.dragPlayheadTime = void 0;

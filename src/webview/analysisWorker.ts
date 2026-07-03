@@ -80,11 +80,15 @@ export const analysisWorkerSource = `
       // 突发合并：先让出一次事件循环，让同一突发中排队的更高代际请求先注册，
       // 过期请求在这里直接退出，一列 FFT 都不算。
       await yieldToQueue();
-      if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+      if (generation < (latestGenerationByChannel.get(channel) || 0)) {
+        return;
+      }
       const stored = channelSamples.get(channel);
       const fallback = message.samples ? new Float32Array(message.samples) : undefined;
       const samples = stored || fallback;
-      if (!samples) return;
+      if (!samples) {
+        return;
+      }
       const settings = message.settings;
       const profile = settings.profile === true;
       const totalStart = profile ? performance.now() : 0;

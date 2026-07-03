@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.1
+
+Fix: multi-channel PCM spectrograms on first open.
+
+- Fixed a regression from 1.8.0 where opening a multi-channel PCM file (e.g. a 2mic1ref capture) showed the spectrogram only on the first channel while the other channels stayed empty until a setting was changed. The worker sample store was being cleared after analysis had already started, so the deferred per-channel rendering found no samples. The sample-store reset now happens before decoding, not after.
+
 ## 1.8.0
 
 Real-time spectrogram zoom and pan.
