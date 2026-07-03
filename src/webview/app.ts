@@ -16,6 +16,7 @@ import {
   FrequencyScale,
   getVisibleRange,
   normalizeDbRange,
+  panRange,
   SpectrogramPalette,
   WaveformPeaks,
   zoomRange
@@ -4496,6 +4497,53 @@ export class AudioLensApp {
     }
     event.preventDefault();
 
+    const plotRect = this.getPlotRect(canvas);
+    if (this.canvasClientX(canvas, event.clientX) < plotRect.left) {
+      const channel = Number(canvas.dataset.channel ?? 0);
+      const view = this.trackViews.find((v) => v.channel === channel);
+      const isSpec = canvas.classList.contains("trackSpectrogram");
+      const isWave = canvas.classList.contains("trackWaveform");
+      const zoomIn = event.deltaY < 0;
+      if (view && (timeZoomModifier || trackpadPinchZoom)) {
+        if (isSpec) {
+          const nyquist = this.nyquistFrequency();
+          const anchor = this.axisFrequencyFromClientY(channel, canvas, event.clientY);
+          const r = this.effectiveFrequencyRange(channel);
+          const z = zoomRange({ min: r.minHz, max: r.maxHz }, anchor, zoomIn ? 0.8 : 1.25, 0, nyquist);
+          view.freqRangeOverride = { minHz: z.min, maxHz: z.max };
+          this.redrawVisuals();
+          this.scheduleAnalyze();
+        } else if (isWave) {
+          const bound = this.amplitudeBound(channel);
+          view.ampRangeOverride = zoomRange(this.effectiveAmplitudeRange(channel), this.axisAmplitudeFromClientY(channel, canvas, event.clientY), zoomIn ? 0.8 : 1.25, -bound, bound);
+          this.updateResetViewButtonState();
+          this.redrawVisuals();
+        }
+        return;
+      }
+      if (view && (event.shiftKey || horizontalPan)) {
+        const dir = event.shiftKey
+          ? (event.deltaY > 0 ? 1 : -1)
+          : (normalizeWheelDelta(event.deltaX, event.deltaMode) > 0 ? 1 : -1);
+        if (isSpec) {
+          const nyquist = this.nyquistFrequency();
+          const r = this.effectiveFrequencyRange(channel);
+          const p = panRange({ min: r.minHz, max: r.maxHz }, dir * (r.maxHz - r.minHz) * 0.1, 0, nyquist);
+          view.freqRangeOverride = { minHz: p.min, maxHz: p.max };
+          this.redrawVisuals();
+          this.scheduleAnalyze();
+        } else if (isWave) {
+          const bound = this.amplitudeBound(channel);
+          const r = this.effectiveAmplitudeRange(channel);
+          view.ampRangeOverride = panRange(r, dir * (r.max - r.min) * 0.1, -bound, bound);
+          this.updateResetViewButtonState();
+          this.redrawVisuals();
+        }
+        return;
+      }
+      return;
+    }
+
     if (timeZoomModifier || trackpadPinchZoom) {
       const ratio = this.canvasXRatio(canvas, event.clientX);
       const anchorTime = this.timeFromCanvasX(canvas, event.clientX);
@@ -4978,6 +5026,15 @@ export class AudioLensApp {
     const ratio = clamp((rect.bottom - y) / Math.max(1, rect.height), 0, 1);
     const { min, max } = this.effectiveAmplitudeRange(channel);
     return min + ratio * (max - min);
+  }
+
+  private axisFrequencyFromClientY(channel: number, canvas: HTMLCanvasElement, clientY: number): number {
+    const rect = this.getPlotRect(canvas);
+    const bounds = canvas.getBoundingClientRect();
+    const y = (clientY - bounds.top) * (canvas.height / Math.max(1, bounds.height));
+    const ratio = clamp((rect.bottom - y) / Math.max(1, rect.height), 0, 1);
+    const range = this.effectiveFrequencyRange(channel);
+    return frequencyFromRatio(ratio, this.effectiveFrequencyScale(channel), range.minHz, range.maxHz);
   }
 
   private canvasClientX(canvas: HTMLCanvasElement, clientX: number): number {
