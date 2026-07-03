@@ -17,7 +17,8 @@ import {
   getVisibleRange,
   normalizeDbRange,
   SpectrogramPalette,
-  WaveformPeaks
+  WaveformPeaks,
+  zoomRange
 } from "../shared/analysis";
 import { AnalysisWorkerResult, createAnalysisWorker, SelectionSpectrumResult, SpectrogramResult } from "./analysisWorker";
 import { AudioHeaderInfo, readAudioFileFacts, readAudioHeaderInfo } from "./audioFacts";
@@ -56,7 +57,9 @@ interface AnalysisSettings {
   spectrogramMaxHz: number;
   spectrogramMaxFollowsNyquist: boolean;
   autoBrightness: boolean;
-  amplitudeZoom: number;
+  amplitudeAuto: boolean;
+  amplitudeMin: number;
+  amplitudeMax: number;
   timeZoom: number;
   timeOffset: number;
   frequencyScale: FrequencyScale;
@@ -160,7 +163,6 @@ const SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
 const PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
 const TRACK_AXIS_WIDTH = 78;
 const AXIS_FONT_SIZE = 13;
-const WAVEFORM_AMPLITUDE_SCALE = 0.45;
 const PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
 const TRACK_ROW_DEFAULT_H = 280;
 const TRACK_ROW_MIN_H = 132;
@@ -1427,6 +1429,7 @@ export class AudioLensApp {
   private readonly spectrogramRangeCache = new Map<string, SpectrogramRangeState>();
   private readonly lastSpectrogramByChannel = new Map<number, SpectrogramResult>();
   private readonly waveformCache = new Map<string, WaveformPeaks>();
+  private readonly channelPeakCache = new Map<number, number>();
   private readonly pcmStatusStates = new WeakMap<HTMLElement, PcmStatusState>();
   private worker = createAnalysisWorker();
   private selectionWorker = createAnalysisWorker();
@@ -1451,7 +1454,9 @@ export class AudioLensApp {
     spectrogramMaxHz: 8000,
     spectrogramMaxFollowsNyquist: true,
     autoBrightness: true,
-    amplitudeZoom: 1,
+    amplitudeAuto: true,
+    amplitudeMin: -1,
+    amplitudeMax: 1,
     timeZoom: 1,
     timeOffset: 0,
     frequencyScale: "linear",
@@ -1597,6 +1602,7 @@ export class AudioLensApp {
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
     this.waveformCache.clear();
+    this.channelPeakCache.clear();
     this.pendingAnalysisKeys.clear();
     this.pendingAnalysisTargets.clear();
     this.trackViews = [];
@@ -1674,7 +1680,6 @@ export class AudioLensApp {
       }
     }
     this.settings.channel = 0;
-    this.applyAutoAmplitudeZoom();
     this.spectrogramCache.clear();
     this.spectrogramBitmapCache.clear();
     this.spectrogramRangeCache.clear();
@@ -2647,7 +2652,6 @@ export class AudioLensApp {
     this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
     this.elements.timeZoom.value = String(this.settings.timeZoom);
     this.elements.timeOffset.value = String(this.settings.timeOffset);
-    this.elements.amplitudeZoom.value = String(this.settings.amplitudeZoom);
     this.elements.minDb.value = String(this.settings.minDb);
     this.elements.maxDb.value = String(this.settings.maxDb);
     const frequencyRange = this.spectrogramFrequencyRange();
@@ -2664,7 +2668,6 @@ export class AudioLensApp {
     return [
       this.elements.timeZoom,
       this.elements.timeOffset,
-      this.elements.amplitudeZoom,
       this.elements.minDb,
       this.elements.maxDb
     ];
@@ -2673,7 +2676,6 @@ export class AudioLensApp {
   private updateAnalysisSettings(): void {
     this.settings.timeZoom = clamp(Number(this.elements.timeZoom.value), 1, 64);
     this.settings.timeOffset = clamp(Number(this.elements.timeOffset.value), 0, 1);
-    this.settings.amplitudeZoom = clamp(Number(this.elements.amplitudeZoom.value), 0.25, 32);
     const minDbStr = this.elements.minDb.value;
     const maxDbStr = this.elements.maxDb.value;
     if (!minDbStr || !maxDbStr) {
@@ -2868,34 +2870,13 @@ export class AudioLensApp {
     return normalizeDbRange(rmsDb - 72, peakDb - 27);
   }
 
-  private applyAutoAmplitudeZoom(): void {
-    const peak = this.computeAudioPeak();
-    if (peak <= 1e-6) {
-      this.settings.amplitudeZoom = 1;
-      return;
-    }
-    const target = peak < 0.95 ? 0.95 : 1.05;
-    this.settings.amplitudeZoom = clamp(target / peak, 0.25, 32);
-  }
-
-  private computeAudioPeak(): number {
-    if (!this.audioBuffer) {
-      return 0;
-    }
-    let peak = 0;
-    for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
-      const samples = this.audioBuffer.getChannelData(channel);
-      for (let index = 0; index < samples.length; index += 1) {
-        peak = Math.max(peak, Math.abs(samples[index] ?? 0));
-      }
-    }
-    return peak;
-  }
-
   private resetView(): void {
     this.settings.timeZoom = 1;
     this.settings.timeOffset = 0;
-    this.applyAutoAmplitudeZoom();
+    this.settings.amplitudeAuto = true;
+    for (const view of this.trackViews) {
+      view.ampRangeOverride = undefined;
+    }
     this.selection = undefined;
     this.selectionPlaybackEnd = undefined;
     this.hideSelectionBox();
@@ -3025,7 +3006,6 @@ export class AudioLensApp {
     this.sourceSampleRate = decoded.sampleRate;
     await audioContext.close();
     this.settings.channel = 0;
-    this.applyAutoAmplitudeZoom();
     this.spectrogramCache.clear();
     this.spectrogramBitmapCache.clear();
     this.spectrogramRangeCache.clear();
@@ -3881,9 +3861,11 @@ export class AudioLensApp {
     context.fillStyle = canvasBackgroundColor();
     context.fillRect(0, 0, canvas.width, canvas.height);
     this.drawPlotFrame(context, rect);
-    this.drawWaveformAxis(context, rect);
+    this.drawWaveformAxis(context, rect, channel);
     const peaks = this.getWaveformPeaks(channel, range.startSample, range.endSample, Math.max(1, Math.floor(rect.width)));
-    const mid = rect.top + rect.height / 2;
+    const channelRange = this.effectiveAmplitudeRange(channel);
+    const span = Math.max(1e-6, channelRange.max - channelRange.min);
+    const yOf = (v: number) => clamp(rect.bottom - ((v - channelRange.min) / span) * rect.height, rect.top, rect.bottom);
     context.strokeStyle = "#8cc8ff";
     context.lineWidth = deviceLineWidth();
     context.beginPath();
@@ -3891,8 +3873,8 @@ export class AudioLensApp {
       const min = peaks.min[i] ?? 0;
       const max = peaks.max[i] ?? 0;
       const x = rect.left + i;
-      context.moveTo(x, clamp(mid - min * this.settings.amplitudeZoom * rect.height * WAVEFORM_AMPLITUDE_SCALE, rect.top, rect.bottom));
-      context.lineTo(x, clamp(mid - max * this.settings.amplitudeZoom * rect.height * WAVEFORM_AMPLITUDE_SCALE, rect.top, rect.bottom));
+      context.moveTo(x, yOf(min));
+      context.lineTo(x, yOf(max));
     }
     context.stroke();
     this.drawSelectionOverlay(context, rect, range);
@@ -4247,7 +4229,8 @@ export class AudioLensApp {
     const isDirty =
       Math.abs(this.settings.timeZoom - 1) > 1e-6 ||
       Math.abs(this.settings.timeOffset) > 1e-6 ||
-      Math.abs(this.settings.amplitudeZoom - 1) > 1e-6 ||
+      !this.settings.amplitudeAuto ||
+      this.trackViews.some((v) => v.ampRangeOverride) ||
       Boolean(this.selection);
     this.elements.resetView.classList.toggle("isProminent", isDirty);
   }
@@ -4479,11 +4462,22 @@ export class AudioLensApp {
       return;
     }
 
-    if (event.altKey) {
-      const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
-      this.settings.amplitudeZoom = clamp(this.settings.amplitudeZoom * factor, 0.25, 32);
-      this.syncControls();
-      this.redrawVisuals();
+    if (event.altKey && canvas.classList.contains("trackWaveform")) {
+      event.preventDefault();
+      const channel = Number(canvas.dataset.channel ?? 0);
+      const view = this.trackViews.find((v) => v.channel === channel);
+      if (view) {
+        const b = this.amplitudeBound(channel);
+        const factor = event.deltaY < 0 ? 0.8 : 1.25;
+        view.ampRangeOverride = zoomRange(
+          this.effectiveAmplitudeRange(channel),
+          this.axisAmplitudeFromClientY(channel, canvas, event.clientY),
+          factor,
+          -b,
+          b
+        );
+        this.redrawVisuals();
+      }
     }
   }
 
@@ -4871,6 +4865,53 @@ export class AudioLensApp {
     return { minHz: range.minHz, maxHz: range.maxHz };
   }
 
+  private channelPeak(channel: number): number {
+    const cached = this.channelPeakCache.get(channel);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const samples = this.samplesForChannel(channel);
+    let peak = 0;
+    if (samples) {
+      const stride = Math.max(1, Math.ceil(samples.length / 1_000_000));
+      for (let i = 0; i < samples.length; i += stride) {
+        peak = Math.max(peak, Math.abs(samples[i] ?? 0));
+      }
+    }
+    this.channelPeakCache.set(channel, peak);
+    return peak;
+  }
+
+  private autoAmplitudeRange(channel: number): { min: number; max: number } {
+    const p = this.channelPeak(channel);
+    const m = clamp(p <= 1e-6 ? 1 : p / 0.9, 1e-3, 1e6);
+    return { min: -m, max: m };
+  }
+
+  private effectiveAmplitudeRange(channel: number): { min: number; max: number } {
+    const view = this.trackViews.find((v) => v.channel === channel);
+    if (view?.ampRangeOverride) {
+      return view.ampRangeOverride;
+    }
+    if (this.settings.amplitudeAuto) {
+      return this.autoAmplitudeRange(channel);
+    }
+    return { min: this.settings.amplitudeMin, max: this.settings.amplitudeMax };
+  }
+
+  private amplitudeBound(channel: number): number {
+    return Math.max(1, this.channelPeak(channel) * 1.05);
+  }
+
+  private axisAmplitudeFromClientY(channel: number, canvas: HTMLCanvasElement, clientY: number): number {
+    const rect = this.getPlotRect(canvas);
+    const bounds = canvas.getBoundingClientRect();
+    const y = (clientY - bounds.top) * (canvas.height / Math.max(1, bounds.height));
+    const ratio = clamp((rect.bottom - y) / Math.max(1, rect.height), 0, 1);
+    const { min, max } = this.effectiveAmplitudeRange(channel);
+    return min + ratio * (max - min);
+  }
+
   private getPlotRect(canvas: HTMLCanvasElement): PlotRect {
     if (canvas.classList.contains("trackWaveform") || canvas.classList.contains("trackSpectrogram")) {
       const ratio = window.devicePixelRatio || 1;
@@ -4904,32 +4945,32 @@ export class AudioLensApp {
     context.strokeRect(rect.left, rect.top, rect.width, rect.height);
   }
 
-  private drawWaveformAxis(context: CanvasRenderingContext2D, rect: PlotRect): void {
+  private drawWaveformAxis(context: CanvasRenderingContext2D, rect: PlotRect, channel: number): void {
     context.save();
     context.fillStyle = axisTextColor();
     context.strokeStyle = axisGridColor();
     context.font = axisFont();
     context.textAlign = "right";
-    const visibleAmplitude = 0.5 / Math.max(1e-6, this.settings.amplitudeZoom * WAVEFORM_AMPLITUDE_SCALE);
-    const mid = rect.top + rect.height / 2;
-    for (const { value, y } of [
-      { value: visibleAmplitude, y: rect.top },
-      { value: 0, y: mid },
-      { value: -visibleAmplitude, y: rect.bottom }
-    ]) {
+    const { min: lo, max: hi } = this.effectiveAmplitudeRange(channel);
+    const heightCss = rect.height / (window.devicePixelRatio || 1);
+    const intervals = computeAxisIntervals(heightCss, { even: true });
+    for (let index = 0; index <= intervals; index += 1) {
+      const ratio = index / intervals;
+      const value = hi - ratio * (hi - lo);
+      const y = rect.top + ratio * rect.height;
       context.beginPath();
       context.moveTo(rect.left, y);
       context.lineTo(rect.right, y);
       context.stroke();
-      if (value > 0) {
+      if (index === 0) {
         context.textBaseline = "top";
-        context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), rect.top + devicePx(2));
-      } else if (value < 0) {
+        context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(6), rect.top + devicePx(2));
+      } else if (index === intervals) {
         context.textBaseline = "bottom";
-        context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), rect.bottom - devicePx(2));
+        context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(6), rect.bottom - devicePx(2));
       } else {
         context.textBaseline = "middle";
-        context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), y);
+        context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(6), y);
       }
     }
     context.restore();

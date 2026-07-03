@@ -46,7 +46,6 @@ export interface ViewElements {
   wavPcmStatus: HTMLSpanElement;
   timeZoom: HTMLInputElement;
   timeOffset: HTMLInputElement;
-  amplitudeZoom: HTMLInputElement;
   minDb: HTMLInputElement;
   maxDb: HTMLInputElement;
   spectrogramMinHz: HTMLInputElement;
@@ -400,11 +399,6 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <input id="timeOffset" type="range" min="0" max="1" step="0.001" value="0" />
             <small class="wheelHint"><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
           </label>
-          <label>
-            <span data-i18n="amplitudeZoom">Amplitude zoom</span>
-            <input id="amplitudeZoom" type="range" min="0.25" max="32" step="0.25" value="1" />
-            <small class="wheelHint"><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
-          </label>
           <button id="resetView" class="secondary" data-i18n="resetView">Reset view</button>
           <button id="analyze" class="primary" data-i18n="refreshSpectrogram">Refresh spectrogram</button>
           </div>
@@ -636,7 +630,6 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     wavPcmStatus: query("#wavPcmStatus", HTMLSpanElement),
     timeZoom: query("#timeZoom", HTMLInputElement),
     timeOffset: query("#timeOffset", HTMLInputElement),
-    amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
     minDb: query("#minDb", HTMLInputElement),
     maxDb: query("#maxDb", HTMLInputElement),
     spectrogramMinHz: query("#spectrogramMinHz", HTMLInputElement),
