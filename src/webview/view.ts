@@ -46,13 +46,15 @@ export interface ViewElements {
   wavPcmStatus: HTMLSpanElement;
   timeZoom: HTMLInputElement;
   timeOffset: HTMLInputElement;
-  amplitudeZoom: HTMLInputElement;
   minDb: HTMLInputElement;
   maxDb: HTMLInputElement;
   spectrogramMinHz: HTMLInputElement;
   spectrogramMaxHz: HTMLInputElement;
   spectrogramMaxFollowsNyquist: HTMLInputElement;
   autoBrightness: HTMLInputElement;
+  amplitudeAuto: HTMLInputElement;
+  amplitudeMinInput: HTMLInputElement;
+  amplitudeMaxInput: HTMLInputElement;
   frequencyScale: HTMLSelectElement;
   palette: HTMLSelectElement;
   analyze: HTMLButtonElement;
@@ -82,6 +84,7 @@ export interface ViewElements {
   spectrogram: HTMLCanvasElement;
   selectionBox: HTMLDivElement;
   selectionContextMenu: HTMLDivElement;
+  freqScaleMenu: HTMLDivElement;
   floatingTooltip: HTMLDivElement;
 }
 
@@ -182,6 +185,14 @@ export function renderShell(root: HTMLDivElement): ViewElements {
               <section class="helpSection">
                 <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain & pan</div>
                 <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click a channel's gain or pan slider to reset it</span></div>
+              </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpAxisGroup">Vertical axis</div>
+                <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisZoom"></span></div>
+                <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisPan"></span></div>
+                <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisAlt"></span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="helpAxisScaleMenu"></span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpAxisReset"></span></div>
               </section>
             </div>
           </details>
@@ -357,6 +368,21 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           </label>
         </div>
         <div class="settingsSubsection">
+          <strong data-i18n="amplitudeRange">Amplitude range (waveform)</strong>
+          <label class="checkboxLabel">
+            <input id="amplitudeAuto" type="checkbox" checked />
+            <span data-i18n="amplitudeAuto">Auto (fit each channel)</span>
+          </label>
+          <label>
+            <span data-i18n="minAmplitude">Min amplitude</span>
+            <input id="amplitudeMinInput" type="number" step="0.1" value="-1" />
+          </label>
+          <label>
+            <span data-i18n="maxAmplitude">Max amplitude</span>
+            <input id="amplitudeMaxInput" type="number" step="0.1" value="1" />
+          </label>
+        </div>
+        <div class="settingsSubsection">
           <strong data-i18n="spectrogramAppearance">Spectrogram appearance</strong>
           <label>
             <span data-i18n="palette">Palette</span>
@@ -399,11 +425,6 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <span data-i18n="timePosition">Time position</span>
             <input id="timeOffset" type="range" min="0" max="1" step="0.001" value="0" />
             <small class="wheelHint"><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
-          </label>
-          <label>
-            <span data-i18n="amplitudeZoom">Amplitude zoom</span>
-            <input id="amplitudeZoom" type="range" min="0.25" max="32" step="0.25" value="1" />
-            <small class="wheelHint"><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
           </label>
           <button id="resetView" class="secondary" data-i18n="resetView">Reset view</button>
           <button id="analyze" class="primary" data-i18n="refreshSpectrogram">Refresh spectrogram</button>
@@ -584,6 +605,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <button type="button" role="menuitem" data-action="download-selection" data-i18n="downloadSelectionWav">Download selection as WAV</button>
             <button type="button" role="menuitem" data-action="clear-selection" data-i18n="clearSelection">Clear selection</button>
           </div>
+          <div id="freqScaleMenu" class="contextMenu freqScaleMenu" role="menu" hidden></div>
           <div id="floatingTooltip" class="floatingTooltip" hidden></div>
         </section>
       </section>
@@ -636,13 +658,15 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     wavPcmStatus: query("#wavPcmStatus", HTMLSpanElement),
     timeZoom: query("#timeZoom", HTMLInputElement),
     timeOffset: query("#timeOffset", HTMLInputElement),
-    amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
     minDb: query("#minDb", HTMLInputElement),
     maxDb: query("#maxDb", HTMLInputElement),
     spectrogramMinHz: query("#spectrogramMinHz", HTMLInputElement),
     spectrogramMaxHz: query("#spectrogramMaxHz", HTMLInputElement),
     spectrogramMaxFollowsNyquist: query("#spectrogramMaxFollowsNyquist", HTMLInputElement),
     autoBrightness: query("#autoBrightness", HTMLInputElement),
+    amplitudeAuto: query("#amplitudeAuto", HTMLInputElement),
+    amplitudeMinInput: query("#amplitudeMinInput", HTMLInputElement),
+    amplitudeMaxInput: query("#amplitudeMaxInput", HTMLInputElement),
     frequencyScale: query("#frequencyScale", HTMLSelectElement),
     palette: query("#palette", HTMLSelectElement),
     analyze: query("#analyze", HTMLButtonElement),
@@ -672,6 +696,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     spectrogram: query("#spectrogram", HTMLCanvasElement),
     selectionBox: query("#selectionBox", HTMLDivElement),
     selectionContextMenu: query("#selectionContextMenu", HTMLDivElement),
+    freqScaleMenu: query("#freqScaleMenu", HTMLDivElement),
     floatingTooltip: query("#floatingTooltip", HTMLDivElement)
   };
 }

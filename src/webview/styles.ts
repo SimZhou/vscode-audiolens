@@ -1214,6 +1214,19 @@ export function injectStyles(): void {
       background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
       outline: none;
     }
+    .contextMenuTitle {
+      padding: 4px 10px 6px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      border-bottom: 1px solid var(--vscode-panel-border);
+      margin-bottom: 4px;
+    }
+    .freqScaleMenu button.isChecked::before {
+      content: "✓ ";
+    }
+    .freqScaleMenu button:not(.isChecked)::before {
+      content: "\\00a0\\00a0";
+    }
     .selectionAnalysisPane {
       position: fixed;
       z-index: 25;

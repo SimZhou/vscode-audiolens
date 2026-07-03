@@ -87,6 +87,10 @@ export interface LocaleMessages {
   minDb: string;
   maxDb: string;
   autoBrightness: string;
+  amplitudeRange: string;
+  minAmplitude: string;
+  maxAmplitude: string;
+  amplitudeAuto: string;
   channel: string;
   timeZoom: string;
   timePosition: string;
@@ -198,4 +202,12 @@ export interface LocaleMessages {
   panRight: string;
   panCenter: string;
   doubleClickReset: string;
+  freqScaleMenuTitle: string;
+  restoreChannelDefault: string;
+  helpAxisGroup: string;
+  helpAxisZoom: string;
+  helpAxisPan: string;
+  helpAxisAlt: string;
+  helpAxisScaleMenu: string;
+  helpAxisReset: string;
 }
