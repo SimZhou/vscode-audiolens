@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "L",
   panRight: "R",
   panCenter: "M",
-  doubleClickReset: "Dubbelklik om te resetten"
+  doubleClickReset: "Dubbelklik om te resetten",
+  freqScaleMenuTitle: "Kanaal-frequentieschaal",
+  restoreChannelDefault: "Kanaalstandaard herstellen",
+  helpAxisGroup: "Verticale as",
+  helpAxisZoom: "Ctrl + wiel / pinch op een as: die as zoomen (per kanaal)",
+  helpAxisPan: "Shift + wiel / horizontaal vegen op een as: die as pannen (per kanaal)",
+  helpAxisAlt: "Alt + wiel op een golfvorm: amplitude van het kanaal zoomen",
+  helpAxisScaleMenu: "Rechtsklik op de frequentie-as: schaal van dit kanaal instellen",
+  helpAxisReset: "Dubbelklik op een as: kanaalstandaard herstellen",
 } satisfies Partial<LocaleMessages>;

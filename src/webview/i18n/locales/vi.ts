@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "T",
   panRight: "P",
   panCenter: "G",
-  doubleClickReset: "Nhấp đúp để đặt lại"
+  doubleClickReset: "Nhấp đúp để đặt lại",
+  freqScaleMenuTitle: "Thang tần số kênh",
+  restoreChannelDefault: "Khôi phục mặc định kênh",
+  helpAxisGroup: "Trục dọc",
+  helpAxisZoom: "Ctrl + cuộn / chụm trên một trục: thu phóng trục đó (mỗi kênh)",
+  helpAxisPan: "Shift + cuộn / vuốt ngang trên một trục: dịch trục đó (mỗi kênh)",
+  helpAxisAlt: "Alt + cuộn trên dạng sóng: thu phóng biên độ kênh",
+  helpAxisScaleMenu: "Chuột phải trục tần số: đặt thang cho kênh này",
+  helpAxisReset: "Nhấp đúp một trục: khôi phục mặc định kênh này",
 } satisfies Partial<LocaleMessages>;

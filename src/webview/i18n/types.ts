@@ -202,4 +202,12 @@ export interface LocaleMessages {
   panRight: string;
   panCenter: string;
   doubleClickReset: string;
+  freqScaleMenuTitle: string;
+  restoreChannelDefault: string;
+  helpAxisGroup: string;
+  helpAxisZoom: string;
+  helpAxisPan: string;
+  helpAxisAlt: string;
+  helpAxisScaleMenu: string;
+  helpAxisReset: string;
 }

@@ -84,6 +84,7 @@ export interface ViewElements {
   spectrogram: HTMLCanvasElement;
   selectionBox: HTMLDivElement;
   selectionContextMenu: HTMLDivElement;
+  freqScaleMenu: HTMLDivElement;
   floatingTooltip: HTMLDivElement;
 }
 
@@ -596,6 +597,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <button type="button" role="menuitem" data-action="download-selection" data-i18n="downloadSelectionWav">Download selection as WAV</button>
             <button type="button" role="menuitem" data-action="clear-selection" data-i18n="clearSelection">Clear selection</button>
           </div>
+          <div id="freqScaleMenu" class="contextMenu freqScaleMenu" role="menu" hidden></div>
           <div id="floatingTooltip" class="floatingTooltip" hidden></div>
         </section>
       </section>
@@ -686,6 +688,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     spectrogram: query("#spectrogram", HTMLCanvasElement),
     selectionBox: query("#selectionBox", HTMLDivElement),
     selectionContextMenu: query("#selectionContextMenu", HTMLDivElement),
+    freqScaleMenu: query("#freqScaleMenu", HTMLDivElement),
     floatingTooltip: query("#floatingTooltip", HTMLDivElement)
   };
 }

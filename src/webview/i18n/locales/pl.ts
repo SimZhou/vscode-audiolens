@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "L",
   panRight: "P",
   panCenter: "C",
-  doubleClickReset: "Dwuklik resetuje"
+  doubleClickReset: "Dwuklik resetuje",
+  freqScaleMenuTitle: "Skala częstotliwości kanału",
+  restoreChannelDefault: "Przywróć domyślne kanału",
+  helpAxisGroup: "Oś pionowa",
+  helpAxisZoom: "Ctrl + kółko / szczypanie na osi: powiększ tę oś (na kanał)",
+  helpAxisPan: "Shift + kółko / poziomy gest na osi: przesuń tę oś (na kanał)",
+  helpAxisAlt: "Alt + kółko na przebiegu: powiększ amplitudę kanału",
+  helpAxisScaleMenu: "Prawy klik na osi częstotliwości: ustaw skalę tego kanału",
+  helpAxisReset: "Dwuklik na osi: przywróć domyślne kanału",
 } satisfies Partial<LocaleMessages>;

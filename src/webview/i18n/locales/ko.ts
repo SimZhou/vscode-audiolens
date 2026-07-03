@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "L",
   panRight: "R",
   panCenter: "C",
-  doubleClickReset: "더블 클릭하여 초기화"
+  doubleClickReset: "더블 클릭하여 초기화",
+  freqScaleMenuTitle: "채널 주파수 스케일",
+  restoreChannelDefault: "채널 기본값 복원",
+  helpAxisGroup: "세로축",
+  helpAxisZoom: "축에서 Ctrl+휠 / 핀치: 해당 축 확대(채널별)",
+  helpAxisPan: "축에서 Shift+휠 / 가로 스와이프: 해당 축 이동(채널별)",
+  helpAxisAlt: "파형에서 Alt+휠: 해당 채널 진폭 확대",
+  helpAxisScaleMenu: "주파수 축 우클릭: 이 채널의 스케일 설정",
+  helpAxisReset: "축 더블클릭: 이 채널 기본값 복원",
 } satisfies Partial<LocaleMessages>;

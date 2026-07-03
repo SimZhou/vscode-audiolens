@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "Л",
   panRight: "П",
   panCenter: "Ц",
-  doubleClickReset: "Двойной клик для сброса"
+  doubleClickReset: "Двойной клик для сброса",
+  freqScaleMenuTitle: "Частотная шкала канала",
+  restoreChannelDefault: "Сбросить канал к умолчанию",
+  helpAxisGroup: "Вертикальная ось",
+  helpAxisZoom: "Ctrl + колесо / щипок на оси: масштаб этой оси (по каналам)",
+  helpAxisPan: "Shift + колесо / горизонтальный свайп на оси: сдвиг этой оси (по каналам)",
+  helpAxisAlt: "Alt + колесо на волне: масштаб амплитуды канала",
+  helpAxisScaleMenu: "ПКМ по оси частот: задать шкалу этого канала",
+  helpAxisReset: "Двойной клик по оси: сбросить канал к умолчанию",
 } satisfies Partial<LocaleMessages>;

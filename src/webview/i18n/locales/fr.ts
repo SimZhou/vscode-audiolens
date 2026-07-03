@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "G",
   panRight: "D",
   panCenter: "C",
-  doubleClickReset: "Double-clic pour réinitialiser"
+  doubleClickReset: "Double-clic pour réinitialiser",
+  freqScaleMenuTitle: "Échelle de fréquence du canal",
+  restoreChannelDefault: "Rétablir le défaut du canal",
+  helpAxisGroup: "Axe vertical",
+  helpAxisZoom: "Ctrl + molette / pincement sur un axe : zoom de cet axe (par canal)",
+  helpAxisPan: "Maj + molette / balayage horizontal sur un axe : panoramique de cet axe (par canal)",
+  helpAxisAlt: "Alt + molette sur une onde : zoom de l'amplitude du canal",
+  helpAxisScaleMenu: "Clic droit sur l'axe de fréquence : définir l'échelle du canal",
+  helpAxisReset: "Double-clic sur un axe : rétablir le défaut du canal",
 } satisfies Partial<LocaleMessages>;

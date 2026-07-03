@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "左",
   panRight: "右",
   panCenter: "中",
-  doubleClickReset: "双击重置"
+  doubleClickReset: "双击重置",
+  freqScaleMenuTitle: "该通道频率刻度",
+  restoreChannelDefault: "恢复该通道默认",
+  helpAxisGroup: "纵向坐标轴",
+  helpAxisZoom: "坐标轴上 Ctrl+滚轮 / 捏合：缩放该轴（每通道）",
+  helpAxisPan: "坐标轴上 Shift+滚轮 / 横向滑动：平移该轴（每通道）",
+  helpAxisAlt: "波形图上 Alt+滚轮：缩放该通道振幅",
+  helpAxisScaleMenu: "频率轴右键：设置该通道刻度类型",
+  helpAxisReset: "坐标轴双击：恢复该通道默认",
 } satisfies LocaleMessages;

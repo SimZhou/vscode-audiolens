@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "L",
   panRight: "R",
   panCenter: "C",
-  doubleClickReset: "Sıfırlamak için çift tıklayın"
+  doubleClickReset: "Sıfırlamak için çift tıklayın",
+  freqScaleMenuTitle: "Kanal frekans ölçeği",
+  restoreChannelDefault: "Kanal varsayılanına dön",
+  helpAxisGroup: "Dikey eksen",
+  helpAxisZoom: "Eksende Ctrl + tekerlek / kıstırma: o ekseni yakınlaştır (kanal başına)",
+  helpAxisPan: "Eksende Shift + tekerlek / yatay kaydırma: o ekseni kaydır (kanal başına)",
+  helpAxisAlt: "Dalga üzerinde Alt + tekerlek: kanalın genliğini yakınlaştır",
+  helpAxisScaleMenu: "Frekans eksenine sağ tık: bu kanalın ölçeğini ayarla",
+  helpAxisReset: "Eksene çift tık: bu kanalın varsayılanını geri yükle",
 } satisfies Partial<LocaleMessages>;

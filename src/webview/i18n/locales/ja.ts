@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "L",
   panRight: "R",
   panCenter: "C",
-  doubleClickReset: "ダブルクリックでリセット"
+  doubleClickReset: "ダブルクリックでリセット",
+  freqScaleMenuTitle: "チャンネル周波数スケール",
+  restoreChannelDefault: "チャンネル既定に戻す",
+  helpAxisGroup: "縦軸",
+  helpAxisZoom: "軸上で Ctrl+ホイール / ピンチ：その軸をズーム（チャンネルごと）",
+  helpAxisPan: "軸上で Shift+ホイール / 横スワイプ：その軸をパン（チャンネルごと）",
+  helpAxisAlt: "波形上で Alt+ホイール：そのチャンネルの振幅をズーム",
+  helpAxisScaleMenu: "周波数軸を右クリック：このチャンネルのスケールを設定",
+  helpAxisReset: "軸をダブルクリック：このチャンネルを既定に戻す",
 } satisfies LocaleMessages;

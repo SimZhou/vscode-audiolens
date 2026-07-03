@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "L",
   panRight: "R",
   panCenter: "C",
-  doubleClickReset: "Klik ganda untuk mengatur ulang"
+  doubleClickReset: "Klik ganda untuk mengatur ulang",
+  freqScaleMenuTitle: "Skala frekuensi kanal",
+  restoreChannelDefault: "Pulihkan default kanal",
+  helpAxisGroup: "Sumbu vertikal",
+  helpAxisZoom: "Ctrl + roda / cubit pada sumbu: zoom sumbu itu (per kanal)",
+  helpAxisPan: "Shift + roda / geser horizontal pada sumbu: geser sumbu itu (per kanal)",
+  helpAxisAlt: "Alt + roda pada gelombang: zoom amplitudo kanal",
+  helpAxisScaleMenu: "Klik kanan sumbu frekuensi: atur skala kanal ini",
+  helpAxisReset: "Klik ganda sumbu: pulihkan default kanal ini",
 } satisfies Partial<LocaleMessages>;

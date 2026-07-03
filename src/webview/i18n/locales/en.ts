@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "L",
   panRight: "R",
   panCenter: "C",
-  doubleClickReset: "Double-click to reset"
+  doubleClickReset: "Double-click to reset",
+  freqScaleMenuTitle: "Channel frequency scale",
+  restoreChannelDefault: "Restore channel default",
+  helpAxisGroup: "Vertical axis",
+  helpAxisZoom: "Ctrl + wheel / pinch on an axis: zoom that axis (per channel)",
+  helpAxisPan: "Shift + wheel / horizontal swipe on an axis: pan that axis (per channel)",
+  helpAxisAlt: "Alt + wheel on a waveform: zoom that channel's amplitude",
+  helpAxisScaleMenu: "Right-click the frequency axis: set this channel's scale",
+  helpAxisReset: "Double-click an axis: restore this channel's default",
 } satisfies LocaleMessages;

@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "V",
   panRight: "H",
   panCenter: "M",
-  doubleClickReset: "Dobbeltklikk for å tilbakestille"
+  doubleClickReset: "Dobbeltklikk for å tilbakestille",
+  freqScaleMenuTitle: "Kanalens frekvensskala",
+  restoreChannelDefault: "Tilbakestill kanalstandard",
+  helpAxisGroup: "Vertikal akse",
+  helpAxisZoom: "Ctrl + hjul / knip på en akse: zoom den aksen (per kanal)",
+  helpAxisPan: "Shift + hjul / horisontal sveip på en akse: panorer den aksen (per kanal)",
+  helpAxisAlt: "Alt + hjul på en bølgeform: zoom kanalens amplitude",
+  helpAxisScaleMenu: "Høyreklikk frekvensaksen: sett kanalens skala",
+  helpAxisReset: "Dobbeltklikk en akse: tilbakestill kanalstandard",
 } satisfies Partial<LocaleMessages>;

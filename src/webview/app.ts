@@ -2271,6 +2271,10 @@ export class AudioLensApp {
   }
 
   private handleEscape(): void {
+    if (!this.elements.freqScaleMenu.hidden) {
+      this.hideFreqScaleMenu();
+      return;
+    }
     if (!this.elements.selectionContextMenu.hidden) {
       this.hideSelectionContextMenu();
       return;
@@ -2337,6 +2341,9 @@ export class AudioLensApp {
     }
     if (!this.elements.selectionContextMenu.hidden && !this.elements.selectionContextMenu.contains(target)) {
       this.hideSelectionContextMenu();
+    }
+    if (!this.elements.freqScaleMenu.hidden && !this.elements.freqScaleMenu.contains(target)) {
+      this.hideFreqScaleMenu();
     }
     if (
       !this.elements.headerInfoPanel.hidden &&
@@ -4417,6 +4424,12 @@ export class AudioLensApp {
     };
 
     canvas.addEventListener("contextmenu", (event) => {
+      const gutterRect = this.getPlotRect(canvas);
+      if (canvas.classList.contains("trackSpectrogram") && this.canvasClientX(canvas, event.clientX) < gutterRect.left) {
+        event.preventDefault();
+        this.showFreqScaleMenu(Number(canvas.dataset.channel ?? 0), event.clientX, event.clientY);
+        return;
+      }
       event.preventDefault();
       if (this.selection) {
         if (this.isPointerInsideSelection(canvas, event.clientX)) {
@@ -4427,6 +4440,25 @@ export class AudioLensApp {
         return;
       }
       this.resetView();
+    });
+    canvas.addEventListener("dblclick", (event) => {
+      const rect = this.getPlotRect(canvas);
+      if (this.canvasClientX(canvas, event.clientX) >= rect.left) {
+        return;
+      }
+      const channel = Number(canvas.dataset.channel ?? 0);
+      if (canvas.classList.contains("trackSpectrogram")) {
+        event.preventDefault();
+        this.resetChannelFreqOverrides(channel);
+      } else if (canvas.classList.contains("trackWaveform")) {
+        event.preventDefault();
+        const view = this.trackViews.find((v) => v.channel === channel);
+        if (view) {
+          view.ampRangeOverride = undefined;
+          this.updateResetViewButtonState();
+          this.redrawVisuals();
+        }
+      }
     });
     canvas.addEventListener(
       "wheel",
@@ -4946,6 +4978,80 @@ export class AudioLensApp {
     const ratio = clamp((rect.bottom - y) / Math.max(1, rect.height), 0, 1);
     const { min, max } = this.effectiveAmplitudeRange(channel);
     return min + ratio * (max - min);
+  }
+
+  private canvasClientX(canvas: HTMLCanvasElement, clientX: number): number {
+    const bounds = canvas.getBoundingClientRect();
+    return (clientX - bounds.left) * (canvas.width / Math.max(1, bounds.width));
+  }
+
+  private showFreqScaleMenu(channel: number, clientX: number, clientY: number): void {
+    const menu = this.elements.freqScaleMenu;
+    const current = this.effectiveFrequencyScale(channel);
+    const types: Array<[FrequencyScale, string]> = [
+      ["linear", "Linear"],
+      ["log", "Log"],
+      ["mel", "Mel"],
+      ["bark", "Bark"],
+      ["erb", "ERB"]
+    ];
+    menu.replaceChildren();
+    const title = document.createElement("div");
+    title.className = "contextMenuTitle";
+    title.textContent = this.messages.freqScaleMenuTitle;
+    menu.appendChild(title);
+    for (const [value, label] of types) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.setAttribute("role", "menuitemradio");
+      if (value === current) {
+        item.classList.add("isChecked");
+      }
+      item.textContent = label;
+      item.addEventListener("click", () => {
+        this.setChannelFreqScale(channel, value);
+        this.hideFreqScaleMenu();
+      });
+      menu.appendChild(item);
+    }
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.setAttribute("role", "menuitem");
+    reset.textContent = this.messages.restoreChannelDefault;
+    reset.addEventListener("click", () => {
+      this.resetChannelFreqOverrides(channel);
+      this.hideFreqScaleMenu();
+    });
+    menu.appendChild(reset);
+    menu.hidden = false;
+    const margin = 8;
+    menu.style.left = `${Math.min(clientX, window.innerWidth - menu.offsetWidth - margin)}px`;
+    menu.style.top = `${Math.min(clientY, window.innerHeight - menu.offsetHeight - margin)}px`;
+  }
+
+  private hideFreqScaleMenu(): void {
+    this.elements.freqScaleMenu.hidden = true;
+  }
+
+  private setChannelFreqScale(channel: number, scale: FrequencyScale): void {
+    const view = this.trackViews.find((v) => v.channel === channel);
+    if (!view) {
+      return;
+    }
+    view.freqScaleOverride = scale;
+    this.redrawVisuals();
+    this.analyze();
+  }
+
+  private resetChannelFreqOverrides(channel: number): void {
+    const view = this.trackViews.find((v) => v.channel === channel);
+    if (!view) {
+      return;
+    }
+    view.freqScaleOverride = undefined;
+    view.freqRangeOverride = undefined;
+    this.redrawVisuals();
+    this.analyze();
   }
 
   private getPlotRect(canvas: HTMLCanvasElement): PlotRect {

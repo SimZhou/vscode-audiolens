@@ -182,5 +182,13 @@ export const messages = {
   panLeft: "I",
   panRight: "D",
   panCenter: "C",
-  doubleClickReset: "Doble clic para restablecer"
+  doubleClickReset: "Doble clic para restablecer",
+  freqScaleMenuTitle: "Escala de frecuencia del canal",
+  restoreChannelDefault: "Restaurar valor del canal",
+  helpAxisGroup: "Eje vertical",
+  helpAxisZoom: "Ctrl + rueda / pellizco en un eje: zoom de ese eje (por canal)",
+  helpAxisPan: "Mayús + rueda / deslizar horizontal en un eje: desplazar ese eje (por canal)",
+  helpAxisAlt: "Alt + rueda en una onda: zoom de amplitud del canal",
+  helpAxisScaleMenu: "Clic derecho en el eje de frecuencia: definir la escala del canal",
+  helpAxisReset: "Doble clic en un eje: restaurar el valor del canal",
 } satisfies Partial<LocaleMessages>;
