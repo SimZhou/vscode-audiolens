@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0
+
+Vertical axis and per-channel frequency/amplitude controls.
+
+- Waveform amplitude axis and spectrogram frequency axis tick counts now adapt to track height; the left axis gutter is narrower and frequency labels are compact (e.g. `8k`, `500`).
+- Each channel's frequency axis can be customized independently (non-persistent): right-click to set its scale type (linear/log/mel/bark/erb); `Ctrl`+wheel / pinch zooms and `Shift`+wheel / horizontal swipe pans its frequency range; double-click restores the channel default.
+- Amplitude is now a per-channel range instead of a global zoom factor: `Alt`+wheel on a waveform (or `Ctrl`/pinch on its axis) zooms that channel, `Shift`/horizontal pans it, double-click resets it. A new "Amplitude range (waveform)" setting provides a global default with an auto-fit toggle (each channel fits its own peak).
+
 ## 1.6.0
 
 Per-channel gain and pan playback controls ([#6](https://github.com/SimZhou/vscode-audiolens/issues/6)).

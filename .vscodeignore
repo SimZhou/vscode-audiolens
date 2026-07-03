@@ -39,5 +39,6 @@ dist/*.map
 .DS_Store
 **/.DS_Store
 tsconfig.json
+*.sh
 
 AudioLens_logo.v1.png
