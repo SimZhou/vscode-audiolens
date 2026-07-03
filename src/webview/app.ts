@@ -1979,6 +1979,27 @@ export class AudioLensApp {
       }
       this.savePreferencesSoon();
     });
+    this.elements.amplitudeAuto.addEventListener("change", () => {
+      this.settings.amplitudeAuto = this.elements.amplitudeAuto.checked;
+      this.savePreferencesSoon();
+      this.updateResetViewButtonState();
+      this.redrawVisuals();
+    });
+    const onAmplitudeRange = () => {
+      const lo = Number(this.elements.amplitudeMinInput.value);
+      const hi = Number(this.elements.amplitudeMaxInput.value);
+      if (Number.isFinite(lo) && Number.isFinite(hi) && hi > lo) {
+        this.settings.amplitudeMin = lo;
+        this.settings.amplitudeMax = hi;
+        this.settings.amplitudeAuto = false;
+        this.elements.amplitudeAuto.checked = false;
+        this.savePreferencesSoon();
+        this.updateResetViewButtonState();
+        this.redrawVisuals();
+      }
+    };
+    this.elements.amplitudeMinInput.addEventListener("change", onAmplitudeRange);
+    this.elements.amplitudeMaxInput.addEventListener("change", onAmplitudeRange);
     for (const input of this.analysisInputs()) {
       input.addEventListener("input", () => this.updateAnalysisSettings());
     }
@@ -2659,6 +2680,9 @@ export class AudioLensApp {
     this.elements.spectrogramMaxHz.value = String(Math.round(frequencyRange.maxHz));
     this.elements.spectrogramMaxFollowsNyquist.checked = this.settings.spectrogramMaxFollowsNyquist;
     this.elements.autoBrightness.checked = this.settings.autoBrightness;
+    this.elements.amplitudeAuto.checked = this.settings.amplitudeAuto;
+    this.elements.amplitudeMinInput.value = String(this.settings.amplitudeMin);
+    this.elements.amplitudeMaxInput.value = String(this.settings.amplitudeMax);
     this.elements.frequencyScale.value = this.settings.frequencyScale;
     this.elements.palette.value = this.settings.palette;
     this.updateResetViewButtonState();
@@ -2769,6 +2793,15 @@ export class AudioLensApp {
     if (preferences.autoBrightness !== undefined) {
       this.settings.autoBrightness = preferences.autoBrightness;
     }
+    if (preferences.amplitudeAuto !== undefined) {
+      this.settings.amplitudeAuto = preferences.amplitudeAuto;
+    }
+    if (preferences.amplitudeMin !== undefined) {
+      this.settings.amplitudeMin = preferences.amplitudeMin;
+    }
+    if (preferences.amplitudeMax !== undefined) {
+      this.settings.amplitudeMax = preferences.amplitudeMax;
+    }
     if (preferences.waveformHeight !== undefined) {
       this.setPlotHeight("--waveform-height", preferences.waveformHeight, PLOT_HEIGHT_LIMITS.waveformMin, PLOT_HEIGHT_LIMITS.waveformMax);
     }
@@ -2814,6 +2847,9 @@ export class AudioLensApp {
       spectrogramMaxHz: this.settings.spectrogramMaxHz,
       spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
       autoBrightness: this.settings.autoBrightness,
+      amplitudeAuto: this.settings.amplitudeAuto,
+      amplitudeMin: this.settings.amplitudeMin,
+      amplitudeMax: this.settings.amplitudeMax,
       defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
       defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
       defaultTrackSpecFr: this.settings.defaultTrackSpecFr,

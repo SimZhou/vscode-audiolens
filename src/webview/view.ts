@@ -52,6 +52,9 @@ export interface ViewElements {
   spectrogramMaxHz: HTMLInputElement;
   spectrogramMaxFollowsNyquist: HTMLInputElement;
   autoBrightness: HTMLInputElement;
+  amplitudeAuto: HTMLInputElement;
+  amplitudeMinInput: HTMLInputElement;
+  amplitudeMaxInput: HTMLInputElement;
   frequencyScale: HTMLSelectElement;
   palette: HTMLSelectElement;
   analyze: HTMLButtonElement;
@@ -356,6 +359,21 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           </label>
         </div>
         <div class="settingsSubsection">
+          <strong data-i18n="amplitudeRange">Amplitude range (waveform)</strong>
+          <label class="checkboxLabel">
+            <input id="amplitudeAuto" type="checkbox" checked />
+            <span data-i18n="amplitudeAuto">Auto (fit each channel)</span>
+          </label>
+          <label>
+            <span data-i18n="minAmplitude">Min amplitude</span>
+            <input id="amplitudeMinInput" type="number" step="0.1" value="-1" />
+          </label>
+          <label>
+            <span data-i18n="maxAmplitude">Max amplitude</span>
+            <input id="amplitudeMaxInput" type="number" step="0.1" value="1" />
+          </label>
+        </div>
+        <div class="settingsSubsection">
           <strong data-i18n="spectrogramAppearance">Spectrogram appearance</strong>
           <label>
             <span data-i18n="palette">Palette</span>
@@ -636,6 +654,9 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     spectrogramMaxHz: query("#spectrogramMaxHz", HTMLInputElement),
     spectrogramMaxFollowsNyquist: query("#spectrogramMaxFollowsNyquist", HTMLInputElement),
     autoBrightness: query("#autoBrightness", HTMLInputElement),
+    amplitudeAuto: query("#amplitudeAuto", HTMLInputElement),
+    amplitudeMinInput: query("#amplitudeMinInput", HTMLInputElement),
+    amplitudeMaxInput: query("#amplitudeMaxInput", HTMLInputElement),
     frequencyScale: query("#frequencyScale", HTMLSelectElement),
     palette: query("#palette", HTMLSelectElement),
     analyze: query("#analyze", HTMLButtonElement),

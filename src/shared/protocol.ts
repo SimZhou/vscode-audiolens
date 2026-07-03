@@ -40,7 +40,9 @@ export interface AudioLensPreferences {
   spectrogramMaxHz?: number;
   spectrogramMaxFollowsNyquist?: boolean;
   autoBrightness?: boolean;
-  amplitudeZoom?: number;
+  amplitudeAuto?: boolean;
+  amplitudeMin?: number;
+  amplitudeMax?: number;
   defaultTrackMode?: "both" | "waveform" | "spectrogram";
   waveformHeight?: number;
   spectrogramHeight?: number;

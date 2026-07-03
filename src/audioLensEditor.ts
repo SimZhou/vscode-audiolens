@@ -518,7 +518,9 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       spectrogramMaxHz: value.spectrogramMaxHz,
       spectrogramMaxFollowsNyquist: value.spectrogramMaxFollowsNyquist,
       autoBrightness: value.autoBrightness,
-      amplitudeZoom: value.amplitudeZoom,
+      amplitudeAuto: value.amplitudeAuto,
+      amplitudeMin: value.amplitudeMin,
+      amplitudeMax: value.amplitudeMax,
       waveformHeight: value.waveformHeight,
       spectrogramHeight: value.spectrogramHeight,
       defaultPcmFormat: value.defaultPcmFormat

@@ -87,6 +87,10 @@ export interface LocaleMessages {
   minDb: string;
   maxDb: string;
   autoBrightness: string;
+  amplitudeRange: string;
+  minAmplitude: string;
+  maxAmplitude: string;
+  amplitudeAuto: string;
   channel: string;
   timeZoom: string;
   timePosition: string;
