@@ -186,6 +186,14 @@ export function renderShell(root: HTMLDivElement): ViewElements {
                 <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain & pan</div>
                 <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click a channel's gain or pan slider to reset it</span></div>
               </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpAxisGroup">Vertical axis</div>
+                <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisZoom"></span></div>
+                <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisPan"></span></div>
+                <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisAlt"></span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="helpAxisScaleMenu"></span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpAxisReset"></span></div>
+              </section>
             </div>
           </details>
           <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">⚙</span></button>
