@@ -85,6 +85,50 @@
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
+  function computeAxisIntervals(heightCssPx, options = {}) {
+    const min = options.min ?? 2;
+    const max = options.max ?? 8;
+    const raw = Math.round((Number.isFinite(heightCssPx) ? heightCssPx : 0) / 44);
+    let n = Math.min(max, Math.max(min, raw));
+    if (options.even && n % 2 !== 0) {
+      n = Math.max(min, n - 1);
+    }
+    return n;
+  }
+  function formatAxisFrequency(hz) {
+    const v = Math.max(0, Number.isFinite(hz) ? hz : 0);
+    if (v >= 1e3) {
+      const k = v / 1e3;
+      const rounded = k >= 100 ? Math.round(k) : Math.round(k * 10) / 10;
+      return `${rounded}k`;
+    }
+    return `${Math.round(v)}`;
+  }
+  var MIN_RANGE_SPAN = 1e-6;
+  function zoomRange(range, anchor, factor, lower, upper) {
+    const outerSpan = Math.max(MIN_RANGE_SPAN, upper - lower);
+    const curSpan = Math.max(MIN_RANGE_SPAN, range.max - range.min);
+    const newSpan = Math.min(outerSpan, Math.max(MIN_RANGE_SPAN, curSpan * factor));
+    const a = Math.min(range.max, Math.max(range.min, anchor));
+    const ratio = (a - range.min) / curSpan;
+    let lo = a - ratio * newSpan;
+    let hi = lo + newSpan;
+    if (lo < lower) {
+      lo = lower;
+      hi = lower + newSpan;
+    }
+    if (hi > upper) {
+      hi = upper;
+      lo = upper - newSpan;
+    }
+    return { min: Math.max(lower, lo), max: Math.min(upper, hi) };
+  }
+  function panRange(range, delta, lower, upper) {
+    const span = Math.max(MIN_RANGE_SPAN, range.max - range.min);
+    const maxLo = Math.max(lower, upper - span);
+    const lo = Math.min(maxLo, Math.max(lower, range.min + delta));
+    return { min: lo, max: lo + span };
+  }
 
   // src/webview/analysisWorker.ts
   function createAnalysisWorker() {
@@ -1015,6 +1059,10 @@
     minDb: "Min. dB (Helligkeit)",
     maxDb: "Max. dB (Helligkeit)",
     autoBrightness: "Auto-Helligkeit",
+    amplitudeRange: "Amplitudenbereich (Wellenform)",
+    minAmplitude: "Min. Amplitude",
+    maxAmplitude: "Max. Amplitude",
+    amplitudeAuto: "Auto (pro Kanal)",
     channel: "Kanal",
     timeZoom: "Zeitzoom",
     timePosition: "Zeitposition",
@@ -1154,7 +1202,15 @@
     panLeft: "L",
     panRight: "R",
     panCenter: "M",
-    doubleClickReset: "Doppelklick zum Zur\xFCcksetzen"
+    doubleClickReset: "Doppelklick zum Zur\xFCcksetzen",
+    freqScaleMenuTitle: "Kanal-Frequenzskala",
+    restoreChannelDefault: "Kanal-Standard wiederherstellen",
+    helpAxisGroup: "Vertikale Achse",
+    helpAxisZoom: "Strg + Rad / Pinch auf einer Achse: diese Achse zoomen (pro Kanal)",
+    helpAxisPan: "Umschalt + Rad / horizontales Wischen auf einer Achse: diese Achse verschieben (pro Kanal)",
+    helpAxisAlt: "Alt + Rad auf einer Wellenform: Amplitude des Kanals zoomen",
+    helpAxisScaleMenu: "Rechtsklick auf die Frequenzachse: Skala dieses Kanals festlegen",
+    helpAxisReset: "Doppelklick auf eine Achse: Kanal-Standard wiederherstellen"
   };
 
   // src/webview/i18n/locales/en.ts
@@ -1226,6 +1282,10 @@
     minDb: "Min dB (brightness)",
     maxDb: "Max dB (brightness)",
     autoBrightness: "Auto brightness",
+    amplitudeRange: "Amplitude range (waveform)",
+    minAmplitude: "Min amplitude",
+    maxAmplitude: "Max amplitude",
+    amplitudeAuto: "Auto (fit each channel)",
     channel: "Channel",
     timeZoom: "Time zoom",
     timePosition: "Time position",
@@ -1336,7 +1396,15 @@
     panLeft: "L",
     panRight: "R",
     panCenter: "C",
-    doubleClickReset: "Double-click to reset"
+    doubleClickReset: "Double-click to reset",
+    freqScaleMenuTitle: "Channel frequency scale",
+    restoreChannelDefault: "Restore channel default",
+    helpAxisGroup: "Vertical axis",
+    helpAxisZoom: "Ctrl + wheel / pinch on an axis: zoom that axis (per channel)",
+    helpAxisPan: "Shift + wheel / horizontal swipe on an axis: pan that axis (per channel)",
+    helpAxisAlt: "Alt + wheel on a waveform: zoom that channel's amplitude",
+    helpAxisScaleMenu: "Right-click the frequency axis: set this channel's scale",
+    helpAxisReset: "Double-click an axis: restore this channel's default"
   };
 
   // src/webview/i18n/locales/es.ts
@@ -1379,6 +1447,10 @@
     minDb: "dB m\xEDn. (brillo)",
     maxDb: "dB m\xE1x. (brillo)",
     autoBrightness: "Brillo autom\xE1tico",
+    amplitudeRange: "Rango de amplitud (onda)",
+    minAmplitude: "Amplitud m\xEDn",
+    maxAmplitude: "Amplitud m\xE1x",
+    amplitudeAuto: "Auto (por canal)",
     channel: "Canal",
     timeZoom: "Zoom de tiempo",
     timePosition: "Posici\xF3n temporal",
@@ -1518,7 +1590,15 @@
     panLeft: "I",
     panRight: "D",
     panCenter: "C",
-    doubleClickReset: "Doble clic para restablecer"
+    doubleClickReset: "Doble clic para restablecer",
+    freqScaleMenuTitle: "Escala de frecuencia del canal",
+    restoreChannelDefault: "Restaurar valor del canal",
+    helpAxisGroup: "Eje vertical",
+    helpAxisZoom: "Ctrl + rueda / pellizco en un eje: zoom de ese eje (por canal)",
+    helpAxisPan: "May\xFAs + rueda / deslizar horizontal en un eje: desplazar ese eje (por canal)",
+    helpAxisAlt: "Alt + rueda en una onda: zoom de amplitud del canal",
+    helpAxisScaleMenu: "Clic derecho en el eje de frecuencia: definir la escala del canal",
+    helpAxisReset: "Doble clic en un eje: restaurar el valor del canal"
   };
 
   // src/webview/i18n/locales/fr.ts
@@ -1561,6 +1641,10 @@
     minDb: "dB min (luminosit\xE9)",
     maxDb: "dB max (luminosit\xE9)",
     autoBrightness: "Luminosit\xE9 auto",
+    amplitudeRange: "Plage d'amplitude (onde)",
+    minAmplitude: "Amplitude min",
+    maxAmplitude: "Amplitude max",
+    amplitudeAuto: "Auto (par canal)",
     channel: "Canal",
     timeZoom: "Zoom temporel",
     timePosition: "Position temporelle",
@@ -1700,7 +1784,15 @@
     panLeft: "G",
     panRight: "D",
     panCenter: "C",
-    doubleClickReset: "Double-clic pour r\xE9initialiser"
+    doubleClickReset: "Double-clic pour r\xE9initialiser",
+    freqScaleMenuTitle: "\xC9chelle de fr\xE9quence du canal",
+    restoreChannelDefault: "R\xE9tablir le d\xE9faut du canal",
+    helpAxisGroup: "Axe vertical",
+    helpAxisZoom: "Ctrl + molette / pincement sur un axe : zoom de cet axe (par canal)",
+    helpAxisPan: "Maj + molette / balayage horizontal sur un axe : panoramique de cet axe (par canal)",
+    helpAxisAlt: "Alt + molette sur une onde : zoom de l'amplitude du canal",
+    helpAxisScaleMenu: "Clic droit sur l'axe de fr\xE9quence : d\xE9finir l'\xE9chelle du canal",
+    helpAxisReset: "Double-clic sur un axe : r\xE9tablir le d\xE9faut du canal"
   };
 
   // src/webview/i18n/locales/id.ts
@@ -1743,6 +1835,10 @@
     minDb: "Min dB (kecerahan)",
     maxDb: "Maks dB (kecerahan)",
     autoBrightness: "Kecerahan otomatis",
+    amplitudeRange: "Rentang amplitudo (gelombang)",
+    minAmplitude: "Amplitudo min",
+    maxAmplitude: "Amplitudo maks",
+    amplitudeAuto: "Auto (per kanal)",
     channel: "Kanal",
     timeZoom: "Zoom waktu",
     timePosition: "Posisi waktu",
@@ -1882,7 +1978,15 @@
     panLeft: "L",
     panRight: "R",
     panCenter: "C",
-    doubleClickReset: "Klik ganda untuk mengatur ulang"
+    doubleClickReset: "Klik ganda untuk mengatur ulang",
+    freqScaleMenuTitle: "Skala frekuensi kanal",
+    restoreChannelDefault: "Pulihkan default kanal",
+    helpAxisGroup: "Sumbu vertikal",
+    helpAxisZoom: "Ctrl + roda / cubit pada sumbu: zoom sumbu itu (per kanal)",
+    helpAxisPan: "Shift + roda / geser horizontal pada sumbu: geser sumbu itu (per kanal)",
+    helpAxisAlt: "Alt + roda pada gelombang: zoom amplitudo kanal",
+    helpAxisScaleMenu: "Klik kanan sumbu frekuensi: atur skala kanal ini",
+    helpAxisReset: "Klik ganda sumbu: pulihkan default kanal ini"
   };
 
   // src/webview/i18n/locales/it.ts
@@ -1925,6 +2029,10 @@
     minDb: "dB min (luminosit\xE0)",
     maxDb: "dB max (luminosit\xE0)",
     autoBrightness: "Luminosit\xE0 auto",
+    amplitudeRange: "Intervallo ampiezza (onda)",
+    minAmplitude: "Ampiezza min",
+    maxAmplitude: "Ampiezza max",
+    amplitudeAuto: "Auto (per canale)",
     channel: "Canale",
     timeZoom: "Zoom tempo",
     timePosition: "Posizione tempo",
@@ -2064,7 +2172,15 @@
     panLeft: "S",
     panRight: "D",
     panCenter: "C",
-    doubleClickReset: "Doppio clic per reimpostare"
+    doubleClickReset: "Doppio clic per reimpostare",
+    freqScaleMenuTitle: "Scala di frequenza del canale",
+    restoreChannelDefault: "Ripristina predefinito del canale",
+    helpAxisGroup: "Asse verticale",
+    helpAxisZoom: "Ctrl + rotellina / pinch su un asse: zoom di quell'asse (per canale)",
+    helpAxisPan: "Maiusc + rotellina / scorrimento orizzontale su un asse: pan di quell'asse (per canale)",
+    helpAxisAlt: "Alt + rotellina su un'onda: zoom dell'ampiezza del canale",
+    helpAxisScaleMenu: "Clic destro sull'asse di frequenza: imposta la scala del canale",
+    helpAxisReset: "Doppio clic su un asse: ripristina il predefinito del canale"
   };
 
   // src/webview/i18n/locales/ja.ts
@@ -2136,6 +2252,10 @@
     minDb: "\u6700\u5C0F dB (\u660E\u308B\u3055)",
     maxDb: "\u6700\u5927 dB (\u660E\u308B\u3055)",
     autoBrightness: "\u81EA\u52D5\u660E\u308B\u3055",
+    amplitudeRange: "\u632F\u5E45\u7BC4\u56F2\uFF08\u6CE2\u5F62\uFF09",
+    minAmplitude: "\u6700\u5C0F\u632F\u5E45",
+    maxAmplitude: "\u6700\u5927\u632F\u5E45",
+    amplitudeAuto: "\u81EA\u52D5\uFF08\u5404\u30C1\u30E3\u30F3\u30CD\u30EB\u306B\u5408\u308F\u305B\u308B\uFF09",
     channel: "\u30C1\u30E3\u30F3\u30CD\u30EB",
     timeZoom: "\u6642\u9593\u30BA\u30FC\u30E0",
     timePosition: "\u6642\u9593\u4F4D\u7F6E",
@@ -2246,7 +2366,15 @@
     panLeft: "L",
     panRight: "R",
     panCenter: "C",
-    doubleClickReset: "\u30C0\u30D6\u30EB\u30AF\u30EA\u30C3\u30AF\u3067\u30EA\u30BB\u30C3\u30C8"
+    doubleClickReset: "\u30C0\u30D6\u30EB\u30AF\u30EA\u30C3\u30AF\u3067\u30EA\u30BB\u30C3\u30C8",
+    freqScaleMenuTitle: "\u30C1\u30E3\u30F3\u30CD\u30EB\u5468\u6CE2\u6570\u30B9\u30B1\u30FC\u30EB",
+    restoreChannelDefault: "\u30C1\u30E3\u30F3\u30CD\u30EB\u65E2\u5B9A\u306B\u623B\u3059",
+    helpAxisGroup: "\u7E26\u8EF8",
+    helpAxisZoom: "\u8EF8\u4E0A\u3067 Ctrl+\u30DB\u30A4\u30FC\u30EB / \u30D4\u30F3\u30C1\uFF1A\u305D\u306E\u8EF8\u3092\u30BA\u30FC\u30E0\uFF08\u30C1\u30E3\u30F3\u30CD\u30EB\u3054\u3068\uFF09",
+    helpAxisPan: "\u8EF8\u4E0A\u3067 Shift+\u30DB\u30A4\u30FC\u30EB / \u6A2A\u30B9\u30EF\u30A4\u30D7\uFF1A\u305D\u306E\u8EF8\u3092\u30D1\u30F3\uFF08\u30C1\u30E3\u30F3\u30CD\u30EB\u3054\u3068\uFF09",
+    helpAxisAlt: "\u6CE2\u5F62\u4E0A\u3067 Alt+\u30DB\u30A4\u30FC\u30EB\uFF1A\u305D\u306E\u30C1\u30E3\u30F3\u30CD\u30EB\u306E\u632F\u5E45\u3092\u30BA\u30FC\u30E0",
+    helpAxisScaleMenu: "\u5468\u6CE2\u6570\u8EF8\u3092\u53F3\u30AF\u30EA\u30C3\u30AF\uFF1A\u3053\u306E\u30C1\u30E3\u30F3\u30CD\u30EB\u306E\u30B9\u30B1\u30FC\u30EB\u3092\u8A2D\u5B9A",
+    helpAxisReset: "\u8EF8\u3092\u30C0\u30D6\u30EB\u30AF\u30EA\u30C3\u30AF\uFF1A\u3053\u306E\u30C1\u30E3\u30F3\u30CD\u30EB\u3092\u65E2\u5B9A\u306B\u623B\u3059"
   };
 
   // src/webview/i18n/locales/ko.ts
@@ -2289,6 +2417,10 @@
     minDb: "\uCD5C\uC18C dB (\uBC1D\uAE30)",
     maxDb: "\uCD5C\uB300 dB (\uBC1D\uAE30)",
     autoBrightness: "\uC790\uB3D9 \uBC1D\uAE30",
+    amplitudeRange: "\uC9C4\uD3ED \uBC94\uC704(\uD30C\uD615)",
+    minAmplitude: "\uCD5C\uC18C \uC9C4\uD3ED",
+    maxAmplitude: "\uCD5C\uB300 \uC9C4\uD3ED",
+    amplitudeAuto: "\uC790\uB3D9(\uCC44\uB110\uBCC4 \uB9DE\uCDA4)",
     channel: "\uCC44\uB110",
     timeZoom: "\uC2DC\uAC04 \uD655\uB300",
     timePosition: "\uC2DC\uAC04 \uC704\uCE58",
@@ -2428,7 +2560,15 @@
     panLeft: "L",
     panRight: "R",
     panCenter: "C",
-    doubleClickReset: "\uB354\uBE14 \uD074\uB9AD\uD558\uC5EC \uCD08\uAE30\uD654"
+    doubleClickReset: "\uB354\uBE14 \uD074\uB9AD\uD558\uC5EC \uCD08\uAE30\uD654",
+    freqScaleMenuTitle: "\uCC44\uB110 \uC8FC\uD30C\uC218 \uC2A4\uCF00\uC77C",
+    restoreChannelDefault: "\uCC44\uB110 \uAE30\uBCF8\uAC12 \uBCF5\uC6D0",
+    helpAxisGroup: "\uC138\uB85C\uCD95",
+    helpAxisZoom: "\uCD95\uC5D0\uC11C Ctrl+\uD720 / \uD540\uCE58: \uD574\uB2F9 \uCD95 \uD655\uB300(\uCC44\uB110\uBCC4)",
+    helpAxisPan: "\uCD95\uC5D0\uC11C Shift+\uD720 / \uAC00\uB85C \uC2A4\uC640\uC774\uD504: \uD574\uB2F9 \uCD95 \uC774\uB3D9(\uCC44\uB110\uBCC4)",
+    helpAxisAlt: "\uD30C\uD615\uC5D0\uC11C Alt+\uD720: \uD574\uB2F9 \uCC44\uB110 \uC9C4\uD3ED \uD655\uB300",
+    helpAxisScaleMenu: "\uC8FC\uD30C\uC218 \uCD95 \uC6B0\uD074\uB9AD: \uC774 \uCC44\uB110\uC758 \uC2A4\uCF00\uC77C \uC124\uC815",
+    helpAxisReset: "\uCD95 \uB354\uBE14\uD074\uB9AD: \uC774 \uCC44\uB110 \uAE30\uBCF8\uAC12 \uBCF5\uC6D0"
   };
 
   // src/webview/i18n/locales/nl.ts
@@ -2471,6 +2611,10 @@
     minDb: "Min dB (helderheid)",
     maxDb: "Max dB (helderheid)",
     autoBrightness: "Auto-helderheid",
+    amplitudeRange: "Amplitudebereik (golf)",
+    minAmplitude: "Min amplitude",
+    maxAmplitude: "Max amplitude",
+    amplitudeAuto: "Auto (per kanaal)",
     channel: "Kanaal",
     timeZoom: "Tijdzoom",
     timePosition: "Tijdpositie",
@@ -2610,7 +2754,15 @@
     panLeft: "L",
     panRight: "R",
     panCenter: "M",
-    doubleClickReset: "Dubbelklik om te resetten"
+    doubleClickReset: "Dubbelklik om te resetten",
+    freqScaleMenuTitle: "Kanaal-frequentieschaal",
+    restoreChannelDefault: "Kanaalstandaard herstellen",
+    helpAxisGroup: "Verticale as",
+    helpAxisZoom: "Ctrl + wiel / pinch op een as: die as zoomen (per kanaal)",
+    helpAxisPan: "Shift + wiel / horizontaal vegen op een as: die as pannen (per kanaal)",
+    helpAxisAlt: "Alt + wiel op een golfvorm: amplitude van het kanaal zoomen",
+    helpAxisScaleMenu: "Rechtsklik op de frequentie-as: schaal van dit kanaal instellen",
+    helpAxisReset: "Dubbelklik op een as: kanaalstandaard herstellen"
   };
 
   // src/webview/i18n/locales/no.ts
@@ -2653,6 +2805,10 @@
     minDb: "Min dB (lysstyrke)",
     maxDb: "Maks dB (lysstyrke)",
     autoBrightness: "Auto-lysstyrke",
+    amplitudeRange: "Amplitudeomr\xE5de (b\xF8lge)",
+    minAmplitude: "Min amplitude",
+    maxAmplitude: "Maks amplitude",
+    amplitudeAuto: "Auto (per kanal)",
     channel: "Kanal",
     timeZoom: "Tidszoom",
     timePosition: "Tidsposisjon",
@@ -2792,7 +2948,15 @@
     panLeft: "V",
     panRight: "H",
     panCenter: "M",
-    doubleClickReset: "Dobbeltklikk for \xE5 tilbakestille"
+    doubleClickReset: "Dobbeltklikk for \xE5 tilbakestille",
+    freqScaleMenuTitle: "Kanalens frekvensskala",
+    restoreChannelDefault: "Tilbakestill kanalstandard",
+    helpAxisGroup: "Vertikal akse",
+    helpAxisZoom: "Ctrl + hjul / knip p\xE5 en akse: zoom den aksen (per kanal)",
+    helpAxisPan: "Shift + hjul / horisontal sveip p\xE5 en akse: panorer den aksen (per kanal)",
+    helpAxisAlt: "Alt + hjul p\xE5 en b\xF8lgeform: zoom kanalens amplitude",
+    helpAxisScaleMenu: "H\xF8yreklikk frekvensaksen: sett kanalens skala",
+    helpAxisReset: "Dobbeltklikk en akse: tilbakestill kanalstandard"
   };
 
   // src/webview/i18n/locales/pl.ts
@@ -2835,6 +2999,10 @@
     minDb: "Min. dB (jasno\u015B\u0107)",
     maxDb: "Maks. dB (jasno\u015B\u0107)",
     autoBrightness: "Auto-jasno\u015B\u0107",
+    amplitudeRange: "Zakres amplitudy (fala)",
+    minAmplitude: "Min amplituda",
+    maxAmplitude: "Maks amplituda",
+    amplitudeAuto: "Auto (na kana\u0142)",
     channel: "Kana\u0142",
     timeZoom: "Powi\u0119kszenie czasu",
     timePosition: "Pozycja czasu",
@@ -2974,7 +3142,15 @@
     panLeft: "L",
     panRight: "P",
     panCenter: "C",
-    doubleClickReset: "Dwuklik resetuje"
+    doubleClickReset: "Dwuklik resetuje",
+    freqScaleMenuTitle: "Skala cz\u0119stotliwo\u015Bci kana\u0142u",
+    restoreChannelDefault: "Przywr\xF3\u0107 domy\u015Blne kana\u0142u",
+    helpAxisGroup: "O\u015B pionowa",
+    helpAxisZoom: "Ctrl + k\xF3\u0142ko / szczypanie na osi: powi\u0119ksz t\u0119 o\u015B (na kana\u0142)",
+    helpAxisPan: "Shift + k\xF3\u0142ko / poziomy gest na osi: przesu\u0144 t\u0119 o\u015B (na kana\u0142)",
+    helpAxisAlt: "Alt + k\xF3\u0142ko na przebiegu: powi\u0119ksz amplitud\u0119 kana\u0142u",
+    helpAxisScaleMenu: "Prawy klik na osi cz\u0119stotliwo\u015Bci: ustaw skal\u0119 tego kana\u0142u",
+    helpAxisReset: "Dwuklik na osi: przywr\xF3\u0107 domy\u015Blne kana\u0142u"
   };
 
   // src/webview/i18n/locales/pt.ts
@@ -3017,6 +3193,10 @@
     minDb: "dB m\xEDn. (brilho)",
     maxDb: "dB m\xE1x. (brilho)",
     autoBrightness: "Brilho autom\xE1tico",
+    amplitudeRange: "Faixa de amplitude (onda)",
+    minAmplitude: "Amplitude m\xEDn",
+    maxAmplitude: "Amplitude m\xE1x",
+    amplitudeAuto: "Auto (por canal)",
     channel: "Canal",
     timeZoom: "Zoom temporal",
     timePosition: "Posi\xE7\xE3o temporal",
@@ -3156,7 +3336,15 @@
     panLeft: "E",
     panRight: "D",
     panCenter: "C",
-    doubleClickReset: "Duplo clique para redefinir"
+    doubleClickReset: "Duplo clique para redefinir",
+    freqScaleMenuTitle: "Escala de frequ\xEAncia do canal",
+    restoreChannelDefault: "Restaurar padr\xE3o do canal",
+    helpAxisGroup: "Eixo vertical",
+    helpAxisZoom: "Ctrl + roda / pin\xE7a num eixo: zoom desse eixo (por canal)",
+    helpAxisPan: "Shift + roda / deslize horizontal num eixo: deslocar esse eixo (por canal)",
+    helpAxisAlt: "Alt + roda numa onda: zoom da amplitude do canal",
+    helpAxisScaleMenu: "Clique direito no eixo de frequ\xEAncia: definir a escala do canal",
+    helpAxisReset: "Duplo clique num eixo: restaurar o padr\xE3o do canal"
   };
 
   // src/webview/i18n/locales/ru.ts
@@ -3199,6 +3387,10 @@
     minDb: "\u041C\u0438\u043D. dB (\u044F\u0440\u043A\u043E\u0441\u0442\u044C)",
     maxDb: "\u041C\u0430\u043A\u0441. dB (\u044F\u0440\u043A\u043E\u0441\u0442\u044C)",
     autoBrightness: "\u0410\u0432\u0442\u043E-\u044F\u0440\u043A\u043E\u0441\u0442\u044C",
+    amplitudeRange: "\u0414\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0430\u043C\u043F\u043B\u0438\u0442\u0443\u0434\u044B (\u0432\u043E\u043B\u043D\u0430)",
+    minAmplitude: "\u041C\u0438\u043D. \u0430\u043C\u043F\u043B\u0438\u0442\u0443\u0434\u0430",
+    maxAmplitude: "\u041C\u0430\u043A\u0441. \u0430\u043C\u043F\u043B\u0438\u0442\u0443\u0434\u0430",
+    amplitudeAuto: "\u0410\u0432\u0442\u043E (\u043F\u043E \u043A\u0430\u043D\u0430\u043B\u0430\u043C)",
     channel: "\u041A\u0430\u043D\u0430\u043B",
     timeZoom: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431 \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
     timePosition: "\u041F\u043E\u0437\u0438\u0446\u0438\u044F \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
@@ -3338,7 +3530,15 @@
     panLeft: "\u041B",
     panRight: "\u041F",
     panCenter: "\u0426",
-    doubleClickReset: "\u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u0434\u043B\u044F \u0441\u0431\u0440\u043E\u0441\u0430"
+    doubleClickReset: "\u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u0434\u043B\u044F \u0441\u0431\u0440\u043E\u0441\u0430",
+    freqScaleMenuTitle: "\u0427\u0430\u0441\u0442\u043E\u0442\u043D\u0430\u044F \u0448\u043A\u0430\u043B\u0430 \u043A\u0430\u043D\u0430\u043B\u0430",
+    restoreChannelDefault: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043A\u0430\u043D\u0430\u043B \u043A \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+    helpAxisGroup: "\u0412\u0435\u0440\u0442\u0438\u043A\u0430\u043B\u044C\u043D\u0430\u044F \u043E\u0441\u044C",
+    helpAxisZoom: "Ctrl + \u043A\u043E\u043B\u0435\u0441\u043E / \u0449\u0438\u043F\u043E\u043A \u043D\u0430 \u043E\u0441\u0438: \u043C\u0430\u0441\u0448\u0442\u0430\u0431 \u044D\u0442\u043E\u0439 \u043E\u0441\u0438 (\u043F\u043E \u043A\u0430\u043D\u0430\u043B\u0430\u043C)",
+    helpAxisPan: "Shift + \u043A\u043E\u043B\u0435\u0441\u043E / \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0432\u0430\u0439\u043F \u043D\u0430 \u043E\u0441\u0438: \u0441\u0434\u0432\u0438\u0433 \u044D\u0442\u043E\u0439 \u043E\u0441\u0438 (\u043F\u043E \u043A\u0430\u043D\u0430\u043B\u0430\u043C)",
+    helpAxisAlt: "Alt + \u043A\u043E\u043B\u0435\u0441\u043E \u043D\u0430 \u0432\u043E\u043B\u043D\u0435: \u043C\u0430\u0441\u0448\u0442\u0430\u0431 \u0430\u043C\u043F\u043B\u0438\u0442\u0443\u0434\u044B \u043A\u0430\u043D\u0430\u043B\u0430",
+    helpAxisScaleMenu: "\u041F\u041A\u041C \u043F\u043E \u043E\u0441\u0438 \u0447\u0430\u0441\u0442\u043E\u0442: \u0437\u0430\u0434\u0430\u0442\u044C \u0448\u043A\u0430\u043B\u0443 \u044D\u0442\u043E\u0433\u043E \u043A\u0430\u043D\u0430\u043B\u0430",
+    helpAxisReset: "\u0414\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u043F\u043E \u043E\u0441\u0438: \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043A\u0430\u043D\u0430\u043B \u043A \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E"
   };
 
   // src/webview/i18n/locales/tr.ts
@@ -3381,6 +3581,10 @@
     minDb: "Min dB (parlakl\u0131k)",
     maxDb: "Maks dB (parlakl\u0131k)",
     autoBrightness: "Otomatik parlakl\u0131k",
+    amplitudeRange: "Genlik aral\u0131\u011F\u0131 (dalga)",
+    minAmplitude: "Min genlik",
+    maxAmplitude: "Maks genlik",
+    amplitudeAuto: "Otomatik (kanala g\xF6re)",
     channel: "Kanal",
     timeZoom: "Zaman zumu",
     timePosition: "Zaman konumu",
@@ -3520,7 +3724,15 @@
     panLeft: "L",
     panRight: "R",
     panCenter: "C",
-    doubleClickReset: "S\u0131f\u0131rlamak i\xE7in \xE7ift t\u0131klay\u0131n"
+    doubleClickReset: "S\u0131f\u0131rlamak i\xE7in \xE7ift t\u0131klay\u0131n",
+    freqScaleMenuTitle: "Kanal frekans \xF6l\xE7e\u011Fi",
+    restoreChannelDefault: "Kanal varsay\u0131lan\u0131na d\xF6n",
+    helpAxisGroup: "Dikey eksen",
+    helpAxisZoom: "Eksende Ctrl + tekerlek / k\u0131st\u0131rma: o ekseni yak\u0131nla\u015Ft\u0131r (kanal ba\u015F\u0131na)",
+    helpAxisPan: "Eksende Shift + tekerlek / yatay kayd\u0131rma: o ekseni kayd\u0131r (kanal ba\u015F\u0131na)",
+    helpAxisAlt: "Dalga \xFCzerinde Alt + tekerlek: kanal\u0131n genli\u011Fini yak\u0131nla\u015Ft\u0131r",
+    helpAxisScaleMenu: "Frekans eksenine sa\u011F t\u0131k: bu kanal\u0131n \xF6l\xE7e\u011Fini ayarla",
+    helpAxisReset: "Eksene \xE7ift t\u0131k: bu kanal\u0131n varsay\u0131lan\u0131n\u0131 geri y\xFCkle"
   };
 
   // src/webview/i18n/locales/vi.ts
@@ -3563,6 +3775,10 @@
     minDb: "dB t\u1ED1i thi\u1EC3u (\u0111\u1ED9 s\xE1ng)",
     maxDb: "dB t\u1ED1i \u0111a (\u0111\u1ED9 s\xE1ng)",
     autoBrightness: "\u0110\u1ED9 s\xE1ng t\u1EF1 \u0111\u1ED9ng",
+    amplitudeRange: "D\u1EA3i bi\xEAn \u0111\u1ED9 (s\xF3ng)",
+    minAmplitude: "Bi\xEAn \u0111\u1ED9 t\u1ED1i thi\u1EC3u",
+    maxAmplitude: "Bi\xEAn \u0111\u1ED9 t\u1ED1i \u0111a",
+    amplitudeAuto: "T\u1EF1 \u0111\u1ED9ng (theo k\xEAnh)",
     channel: "K\xEAnh",
     timeZoom: "Thu ph\xF3ng th\u1EDDi gian",
     timePosition: "V\u1ECB tr\xED th\u1EDDi gian",
@@ -3702,7 +3918,15 @@
     panLeft: "T",
     panRight: "P",
     panCenter: "G",
-    doubleClickReset: "Nh\u1EA5p \u0111\xFAp \u0111\u1EC3 \u0111\u1EB7t l\u1EA1i"
+    doubleClickReset: "Nh\u1EA5p \u0111\xFAp \u0111\u1EC3 \u0111\u1EB7t l\u1EA1i",
+    freqScaleMenuTitle: "Thang t\u1EA7n s\u1ED1 k\xEAnh",
+    restoreChannelDefault: "Kh\xF4i ph\u1EE5c m\u1EB7c \u0111\u1ECBnh k\xEAnh",
+    helpAxisGroup: "Tr\u1EE5c d\u1ECDc",
+    helpAxisZoom: "Ctrl + cu\u1ED9n / ch\u1EE5m tr\xEAn m\u1ED9t tr\u1EE5c: thu ph\xF3ng tr\u1EE5c \u0111\xF3 (m\u1ED7i k\xEAnh)",
+    helpAxisPan: "Shift + cu\u1ED9n / vu\u1ED1t ngang tr\xEAn m\u1ED9t tr\u1EE5c: d\u1ECBch tr\u1EE5c \u0111\xF3 (m\u1ED7i k\xEAnh)",
+    helpAxisAlt: "Alt + cu\u1ED9n tr\xEAn d\u1EA1ng s\xF3ng: thu ph\xF3ng bi\xEAn \u0111\u1ED9 k\xEAnh",
+    helpAxisScaleMenu: "Chu\u1ED9t ph\u1EA3i tr\u1EE5c t\u1EA7n s\u1ED1: \u0111\u1EB7t thang cho k\xEAnh n\xE0y",
+    helpAxisReset: "Nh\u1EA5p \u0111\xFAp m\u1ED9t tr\u1EE5c: kh\xF4i ph\u1EE5c m\u1EB7c \u0111\u1ECBnh k\xEAnh n\xE0y"
   };
 
   // src/webview/i18n/locales/zh-CN.ts
@@ -3774,6 +3998,10 @@
     minDb: "\u6700\u5C0F dB (\u4EAE\u5EA6)",
     maxDb: "\u6700\u5927 dB (\u4EAE\u5EA6)",
     autoBrightness: "\u81EA\u52A8\u4EAE\u5EA6",
+    amplitudeRange: "\u632F\u5E45\u8303\u56F4\uFF08\u6CE2\u5F62\uFF09",
+    minAmplitude: "\u6700\u5C0F\u632F\u5E45",
+    maxAmplitude: "\u6700\u5927\u632F\u5E45",
+    amplitudeAuto: "\u81EA\u9002\u5E94\uFF08\u6BCF\u901A\u9053\u8D34\u5408\uFF09",
     channel: "\u58F0\u9053",
     timeZoom: "\u65F6\u95F4\u7F29\u653E",
     timePosition: "\u65F6\u95F4\u4F4D\u7F6E",
@@ -3884,7 +4112,15 @@
     panLeft: "\u5DE6",
     panRight: "\u53F3",
     panCenter: "\u4E2D",
-    doubleClickReset: "\u53CC\u51FB\u91CD\u7F6E"
+    doubleClickReset: "\u53CC\u51FB\u91CD\u7F6E",
+    freqScaleMenuTitle: "\u8BE5\u901A\u9053\u9891\u7387\u523B\u5EA6",
+    restoreChannelDefault: "\u6062\u590D\u8BE5\u901A\u9053\u9ED8\u8BA4",
+    helpAxisGroup: "\u7EB5\u5411\u5750\u6807\u8F74",
+    helpAxisZoom: "\u5750\u6807\u8F74\u4E0A Ctrl+\u6EDA\u8F6E / \u634F\u5408\uFF1A\u7F29\u653E\u8BE5\u8F74\uFF08\u6BCF\u901A\u9053\uFF09",
+    helpAxisPan: "\u5750\u6807\u8F74\u4E0A Shift+\u6EDA\u8F6E / \u6A2A\u5411\u6ED1\u52A8\uFF1A\u5E73\u79FB\u8BE5\u8F74\uFF08\u6BCF\u901A\u9053\uFF09",
+    helpAxisAlt: "\u6CE2\u5F62\u56FE\u4E0A Alt+\u6EDA\u8F6E\uFF1A\u7F29\u653E\u8BE5\u901A\u9053\u632F\u5E45",
+    helpAxisScaleMenu: "\u9891\u7387\u8F74\u53F3\u952E\uFF1A\u8BBE\u7F6E\u8BE5\u901A\u9053\u523B\u5EA6\u7C7B\u578B",
+    helpAxisReset: "\u5750\u6807\u8F74\u53CC\u51FB\uFF1A\u6062\u590D\u8BE5\u901A\u9053\u9ED8\u8BA4"
   };
 
   // src/webview/i18n/locales/zh-TW.ts
@@ -3927,6 +4163,10 @@
     minDb: "\u6700\u5C0F dB (\u4EAE\u5EA6)",
     maxDb: "\u6700\u5927 dB (\u4EAE\u5EA6)",
     autoBrightness: "\u81EA\u52D5\u4EAE\u5EA6",
+    amplitudeRange: "\u632F\u5E45\u7BC4\u570D\uFF08\u6CE2\u5F62\uFF09",
+    minAmplitude: "\u6700\u5C0F\u632F\u5E45",
+    maxAmplitude: "\u6700\u5927\u632F\u5E45",
+    amplitudeAuto: "\u81EA\u9069\u61C9\uFF08\u6BCF\u901A\u9053\u8CBC\u5408\uFF09",
     channel: "\u8072\u9053",
     timeZoom: "\u6642\u9593\u7E2E\u653E",
     timePosition: "\u6642\u9593\u4F4D\u7F6E",
@@ -4066,7 +4306,15 @@
     panLeft: "\u5DE6",
     panRight: "\u53F3",
     panCenter: "\u4E2D",
-    doubleClickReset: "\u96D9\u64CA\u91CD\u8A2D"
+    doubleClickReset: "\u96D9\u64CA\u91CD\u8A2D",
+    freqScaleMenuTitle: "\u8A72\u901A\u9053\u983B\u7387\u523B\u5EA6",
+    restoreChannelDefault: "\u6062\u5FA9\u8A72\u901A\u9053\u9810\u8A2D",
+    helpAxisGroup: "\u7E31\u5411\u5EA7\u6A19\u8EF8",
+    helpAxisZoom: "\u5EA7\u6A19\u8EF8\u4E0A Ctrl+\u6EFE\u8F2A / \u634F\u5408\uFF1A\u7E2E\u653E\u8A72\u8EF8\uFF08\u6BCF\u901A\u9053\uFF09",
+    helpAxisPan: "\u5EA7\u6A19\u8EF8\u4E0A Shift+\u6EFE\u8F2A / \u6A6B\u5411\u6ED1\u52D5\uFF1A\u5E73\u79FB\u8A72\u8EF8\uFF08\u6BCF\u901A\u9053\uFF09",
+    helpAxisAlt: "\u6CE2\u5F62\u5716\u4E0A Alt+\u6EFE\u8F2A\uFF1A\u7E2E\u653E\u8A72\u901A\u9053\u632F\u5E45",
+    helpAxisScaleMenu: "\u983B\u7387\u8EF8\u53F3\u9375\uFF1A\u8A2D\u5B9A\u8A72\u901A\u9053\u523B\u5EA6\u985E\u578B",
+    helpAxisReset: "\u5EA7\u6A19\u8EF8\u96D9\u64CA\uFF1A\u6062\u5FA9\u8A72\u901A\u9053\u9810\u8A2D"
   };
 
   // src/webview/i18n/index.ts
@@ -4368,6 +4616,14 @@
                 <div class="helpSectionTitle" data-i18n="helpGainGroup">Gain & pan</div>
                 <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpGainReset">Double-click a channel's gain or pan slider to reset it</span></div>
               </section>
+              <section class="helpSection">
+                <div class="helpSectionTitle" data-i18n="helpAxisGroup">Vertical axis</div>
+                <div class="helpRow"><span><kbd data-command-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisZoom"></span></div>
+                <div class="helpRow"><span><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisPan"></span></div>
+                <div class="helpRow"><span><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></span><span data-i18n="helpAxisAlt"></span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpRightClick">Right click</span></span><span data-i18n="helpAxisScaleMenu"></span></div>
+                <div class="helpRow"><span><span class="helpGesture" data-i18n="helpDoubleClick">Double click</span></span><span data-i18n="helpAxisReset"></span></div>
+              </section>
             </div>
           </details>
           <button id="settingsToggle" class="iconButton secondaryIcon" data-i18n-title="settings" data-i18n-aria="settings" data-i18n-tooltip="settings" title="Settings" aria-label="Settings" data-tooltip="Settings"><span class="settingsGlyph">\u2699</span></button>
@@ -4542,6 +4798,21 @@
           </label>
         </div>
         <div class="settingsSubsection">
+          <strong data-i18n="amplitudeRange">Amplitude range (waveform)</strong>
+          <label class="checkboxLabel">
+            <input id="amplitudeAuto" type="checkbox" checked />
+            <span data-i18n="amplitudeAuto">Auto (fit each channel)</span>
+          </label>
+          <label>
+            <span data-i18n="minAmplitude">Min amplitude</span>
+            <input id="amplitudeMinInput" type="number" step="0.1" value="-1" />
+          </label>
+          <label>
+            <span data-i18n="maxAmplitude">Max amplitude</span>
+            <input id="amplitudeMaxInput" type="number" step="0.1" value="1" />
+          </label>
+        </div>
+        <div class="settingsSubsection">
           <strong data-i18n="spectrogramAppearance">Spectrogram appearance</strong>
           <label>
             <span data-i18n="palette">Palette</span>
@@ -4584,11 +4855,6 @@
             <span data-i18n="timePosition">Time position</span>
             <input id="timeOffset" type="range" min="0" max="1" step="0.001" value="0" />
             <small class="wheelHint"><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
-          </label>
-          <label>
-            <span data-i18n="amplitudeZoom">Amplitude zoom</span>
-            <input id="amplitudeZoom" type="range" min="0.25" max="32" step="0.25" value="1" />
-            <small class="wheelHint"><kbd data-amplitude-zoom-modifier>Alt</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
           </label>
           <button id="resetView" class="secondary" data-i18n="resetView">Reset view</button>
           <button id="analyze" class="primary" data-i18n="refreshSpectrogram">Refresh spectrogram</button>
@@ -4769,6 +5035,7 @@
             <button type="button" role="menuitem" data-action="download-selection" data-i18n="downloadSelectionWav">Download selection as WAV</button>
             <button type="button" role="menuitem" data-action="clear-selection" data-i18n="clearSelection">Clear selection</button>
           </div>
+          <div id="freqScaleMenu" class="contextMenu freqScaleMenu" role="menu" hidden></div>
           <div id="floatingTooltip" class="floatingTooltip" hidden></div>
         </section>
       </section>
@@ -4820,13 +5087,15 @@
       wavPcmStatus: query("#wavPcmStatus", HTMLSpanElement),
       timeZoom: query("#timeZoom", HTMLInputElement),
       timeOffset: query("#timeOffset", HTMLInputElement),
-      amplitudeZoom: query("#amplitudeZoom", HTMLInputElement),
       minDb: query("#minDb", HTMLInputElement),
       maxDb: query("#maxDb", HTMLInputElement),
       spectrogramMinHz: query("#spectrogramMinHz", HTMLInputElement),
       spectrogramMaxHz: query("#spectrogramMaxHz", HTMLInputElement),
       spectrogramMaxFollowsNyquist: query("#spectrogramMaxFollowsNyquist", HTMLInputElement),
       autoBrightness: query("#autoBrightness", HTMLInputElement),
+      amplitudeAuto: query("#amplitudeAuto", HTMLInputElement),
+      amplitudeMinInput: query("#amplitudeMinInput", HTMLInputElement),
+      amplitudeMaxInput: query("#amplitudeMaxInput", HTMLInputElement),
       frequencyScale: query("#frequencyScale", HTMLSelectElement),
       palette: query("#palette", HTMLSelectElement),
       analyze: query("#analyze", HTMLButtonElement),
@@ -4856,6 +5125,7 @@
       spectrogram: query("#spectrogram", HTMLCanvasElement),
       selectionBox: query("#selectionBox", HTMLDivElement),
       selectionContextMenu: query("#selectionContextMenu", HTMLDivElement),
+      freqScaleMenu: query("#freqScaleMenu", HTMLDivElement),
       floatingTooltip: query("#floatingTooltip", HTMLDivElement)
     };
   }
@@ -4891,9 +5161,8 @@
   var ENCODED_DECODE_TIMEOUT_MS = 8e3;
   var SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
   var PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
-  var TRACK_AXIS_WIDTH = 96;
+  var TRACK_AXIS_WIDTH = 78;
   var AXIS_FONT_SIZE = 13;
-  var WAVEFORM_AMPLITUDE_SCALE = 0.45;
   var PLOT_HEIGHT_LIMITS = { waveformMin: 160, waveformMax: 520, spectrogramMin: 220, spectrogramMax: 860 };
   var TRACK_ROW_DEFAULT_H = 280;
   var TRACK_ROW_MIN_H = 132;
@@ -6147,6 +6416,7 @@
     spectrogramRangeCache = /* @__PURE__ */ new Map();
     lastSpectrogramByChannel = /* @__PURE__ */ new Map();
     waveformCache = /* @__PURE__ */ new Map();
+    channelPeakCache = /* @__PURE__ */ new Map();
     pcmStatusStates = /* @__PURE__ */ new WeakMap();
     worker = createAnalysisWorker();
     selectionWorker = createAnalysisWorker();
@@ -6171,7 +6441,9 @@
       spectrogramMaxHz: 8e3,
       spectrogramMaxFollowsNyquist: true,
       autoBrightness: true,
-      amplitudeZoom: 1,
+      amplitudeAuto: true,
+      amplitudeMin: -1,
+      amplitudeMax: 1,
       timeZoom: 1,
       timeOffset: 0,
       frequencyScale: "linear",
@@ -6297,6 +6569,7 @@
       this.spectrogramRangeCache.clear();
       this.lastSpectrogramByChannel.clear();
       this.waveformCache.clear();
+      this.channelPeakCache.clear();
       this.pendingAnalysisKeys.clear();
       this.pendingAnalysisTargets.clear();
       this.trackViews = [];
@@ -6368,7 +6641,6 @@
         }
       }
       this.settings.channel = 0;
-      this.applyAutoAmplitudeZoom();
       this.spectrogramCache.clear();
       this.spectrogramBitmapCache.clear();
       this.spectrogramRangeCache.clear();
@@ -6658,6 +6930,27 @@
         }
         this.savePreferencesSoon();
       });
+      this.elements.amplitudeAuto.addEventListener("change", () => {
+        this.settings.amplitudeAuto = this.elements.amplitudeAuto.checked;
+        this.savePreferencesSoon();
+        this.updateResetViewButtonState();
+        this.redrawVisuals();
+      });
+      const onAmplitudeRange = () => {
+        const lo = Number(this.elements.amplitudeMinInput.value);
+        const hi = Number(this.elements.amplitudeMaxInput.value);
+        if (Number.isFinite(lo) && Number.isFinite(hi) && hi > lo) {
+          this.settings.amplitudeMin = lo;
+          this.settings.amplitudeMax = hi;
+          this.settings.amplitudeAuto = false;
+          this.elements.amplitudeAuto.checked = false;
+          this.savePreferencesSoon();
+          this.updateResetViewButtonState();
+          this.redrawVisuals();
+        }
+      };
+      this.elements.amplitudeMinInput.addEventListener("change", onAmplitudeRange);
+      this.elements.amplitudeMaxInput.addEventListener("change", onAmplitudeRange);
       for (const input of this.analysisInputs()) {
         input.addEventListener("input", () => this.updateAnalysisSettings());
       }
@@ -6907,6 +7200,10 @@
       return target instanceof HTMLElement && target.closest(".trackSidebar") !== null;
     }
     handleEscape() {
+      if (!this.elements.freqScaleMenu.hidden) {
+        this.hideFreqScaleMenu();
+        return;
+      }
       if (!this.elements.selectionContextMenu.hidden) {
         this.hideSelectionContextMenu();
         return;
@@ -6971,6 +7268,9 @@
       }
       if (!this.elements.selectionContextMenu.hidden && !this.elements.selectionContextMenu.contains(target)) {
         this.hideSelectionContextMenu();
+      }
+      if (!this.elements.freqScaleMenu.hidden && !this.elements.freqScaleMenu.contains(target)) {
+        this.hideFreqScaleMenu();
       }
       if (!this.elements.headerInfoPanel.hidden && !this.elements.headerInfoPanel.contains(target) && !this.elements.headerInfo.contains(target)) {
         this.hideHeaderInfoPanel();
@@ -7271,7 +7571,6 @@
       this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
       this.elements.timeZoom.value = String(this.settings.timeZoom);
       this.elements.timeOffset.value = String(this.settings.timeOffset);
-      this.elements.amplitudeZoom.value = String(this.settings.amplitudeZoom);
       this.elements.minDb.value = String(this.settings.minDb);
       this.elements.maxDb.value = String(this.settings.maxDb);
       const frequencyRange = this.spectrogramFrequencyRange();
@@ -7279,6 +7578,9 @@
       this.elements.spectrogramMaxHz.value = String(Math.round(frequencyRange.maxHz));
       this.elements.spectrogramMaxFollowsNyquist.checked = this.settings.spectrogramMaxFollowsNyquist;
       this.elements.autoBrightness.checked = this.settings.autoBrightness;
+      this.elements.amplitudeAuto.checked = this.settings.amplitudeAuto;
+      this.elements.amplitudeMinInput.value = String(this.settings.amplitudeMin);
+      this.elements.amplitudeMaxInput.value = String(this.settings.amplitudeMax);
       this.elements.frequencyScale.value = this.settings.frequencyScale;
       this.elements.palette.value = this.settings.palette;
       this.updateResetViewButtonState();
@@ -7287,7 +7589,6 @@
       return [
         this.elements.timeZoom,
         this.elements.timeOffset,
-        this.elements.amplitudeZoom,
         this.elements.minDb,
         this.elements.maxDb
       ];
@@ -7295,7 +7596,6 @@
     updateAnalysisSettings() {
       this.settings.timeZoom = clamp2(Number(this.elements.timeZoom.value), 1, 64);
       this.settings.timeOffset = clamp2(Number(this.elements.timeOffset.value), 0, 1);
-      this.settings.amplitudeZoom = clamp2(Number(this.elements.amplitudeZoom.value), 0.25, 32);
       const minDbStr = this.elements.minDb.value;
       const maxDbStr = this.elements.maxDb.value;
       if (!minDbStr || !maxDbStr) {
@@ -7386,6 +7686,15 @@
       if (preferences.autoBrightness !== void 0) {
         this.settings.autoBrightness = preferences.autoBrightness;
       }
+      if (preferences.amplitudeAuto !== void 0) {
+        this.settings.amplitudeAuto = preferences.amplitudeAuto;
+      }
+      if (preferences.amplitudeMin !== void 0) {
+        this.settings.amplitudeMin = preferences.amplitudeMin;
+      }
+      if (preferences.amplitudeMax !== void 0) {
+        this.settings.amplitudeMax = preferences.amplitudeMax;
+      }
       if (preferences.waveformHeight !== void 0) {
         this.setPlotHeight("--waveform-height", preferences.waveformHeight, PLOT_HEIGHT_LIMITS.waveformMin, PLOT_HEIGHT_LIMITS.waveformMax);
       }
@@ -7429,6 +7738,9 @@
         spectrogramMaxHz: this.settings.spectrogramMaxHz,
         spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
         autoBrightness: this.settings.autoBrightness,
+        amplitudeAuto: this.settings.amplitudeAuto,
+        amplitudeMin: this.settings.amplitudeMin,
+        amplitudeMax: this.settings.amplitudeMax,
         defaultTrackRowHeight: this.settings.defaultTrackRowHeight,
         defaultTrackWaveFr: this.settings.defaultTrackWaveFr,
         defaultTrackSpecFr: this.settings.defaultTrackSpecFr,
@@ -7482,32 +7794,13 @@
       const peakDb = amplitudeToDb(peak);
       return normalizeDbRange(rmsDb - 72, peakDb - 27);
     }
-    applyAutoAmplitudeZoom() {
-      const peak = this.computeAudioPeak();
-      if (peak <= 1e-6) {
-        this.settings.amplitudeZoom = 1;
-        return;
-      }
-      const target = peak < 0.95 ? 0.95 : 1.05;
-      this.settings.amplitudeZoom = clamp2(target / peak, 0.25, 32);
-    }
-    computeAudioPeak() {
-      if (!this.audioBuffer) {
-        return 0;
-      }
-      let peak = 0;
-      for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
-        const samples = this.audioBuffer.getChannelData(channel);
-        for (let index = 0; index < samples.length; index += 1) {
-          peak = Math.max(peak, Math.abs(samples[index] ?? 0));
-        }
-      }
-      return peak;
-    }
     resetView() {
       this.settings.timeZoom = 1;
       this.settings.timeOffset = 0;
-      this.applyAutoAmplitudeZoom();
+      this.settings.amplitudeAuto = true;
+      for (const view of this.trackViews) {
+        view.ampRangeOverride = void 0;
+      }
       this.selection = void 0;
       this.selectionPlaybackEnd = void 0;
       this.hideSelectionBox();
@@ -7628,7 +7921,6 @@
       this.sourceSampleRate = decoded.sampleRate;
       await audioContext.close();
       this.settings.channel = 0;
-      this.applyAutoAmplitudeZoom();
       this.spectrogramCache.clear();
       this.spectrogramBitmapCache.clear();
       this.spectrogramRangeCache.clear();
@@ -8406,9 +8698,11 @@
       context.fillStyle = canvasBackgroundColor();
       context.fillRect(0, 0, canvas.width, canvas.height);
       this.drawPlotFrame(context, rect);
-      this.drawWaveformAxis(context, rect);
+      this.drawWaveformAxis(context, rect, channel);
       const peaks = this.getWaveformPeaks(channel, range.startSample, range.endSample, Math.max(1, Math.floor(rect.width)));
-      const mid = rect.top + rect.height / 2;
+      const channelRange = this.effectiveAmplitudeRange(channel);
+      const span = Math.max(1e-6, channelRange.max - channelRange.min);
+      const yOf = (v) => clamp2(rect.bottom - (v - channelRange.min) / span * rect.height, rect.top, rect.bottom);
       context.strokeStyle = "#8cc8ff";
       context.lineWidth = deviceLineWidth();
       context.beginPath();
@@ -8416,8 +8710,8 @@
         const min = peaks.min[i] ?? 0;
         const max = peaks.max[i] ?? 0;
         const x = rect.left + i;
-        context.moveTo(x, clamp2(mid - min * this.settings.amplitudeZoom * rect.height * WAVEFORM_AMPLITUDE_SCALE, rect.top, rect.bottom));
-        context.lineTo(x, clamp2(mid - max * this.settings.amplitudeZoom * rect.height * WAVEFORM_AMPLITUDE_SCALE, rect.top, rect.bottom));
+        context.moveTo(x, yOf(min));
+        context.lineTo(x, yOf(max));
       }
       context.stroke();
       this.drawSelectionOverlay(context, rect, range);
@@ -8430,7 +8724,7 @@
       context.fillStyle = canvasBackgroundColor();
       context.fillRect(0, 0, canvas.width, canvas.height);
       this.drawPlotFrame(context, rect);
-      this.drawFrequencyAxis(context, rect);
+      this.drawFrequencyAxis(context, rect, Number(canvas.dataset.channel ?? 0));
     }
     scheduleAnalyze(delay = 80) {
       if (this.analysisTimer !== void 0) {
@@ -8470,7 +8764,7 @@
       const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
       const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
       const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, outputBins, targetFrames);
-      const frequencyRange = this.spectrogramFrequencyRange();
+      const frequencyRange = this.effectiveFrequencyRange(view.channel);
       const cached = this.spectrogramCache.get(cacheKey);
       if (cached) {
         this.drawSpectrogramCanvas(view.spectrogram, cached);
@@ -8514,7 +8808,7 @@
             maxDb: this.settings.maxDb,
             minFrequencyHz: frequencyRange.minHz,
             maxFrequencyHz: frequencyRange.maxHz,
-            frequencyScale: this.settings.frequencyScale,
+            frequencyScale: this.effectiveFrequencyScale(view.channel),
             palette: this.settings.palette,
             profile: this.shouldProfileSpectrogram()
           }
@@ -8529,7 +8823,7 @@
       const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
       const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));
       const { startSample, endSample } = this.visibleRange();
-      const frequencyRange = this.spectrogramFrequencyRange();
+      const frequencyRange = this.effectiveFrequencyRange(channel);
       return createAnalysisCacheKey({
         channel,
         startSample,
@@ -8544,7 +8838,7 @@
         maxDb: this.settings.maxDb,
         spectrogramMinHz: frequencyRange.minHz,
         spectrogramMaxHz: frequencyRange.maxHz,
-        frequencyScale: this.settings.frequencyScale,
+        frequencyScale: this.effectiveFrequencyScale(channel),
         palette: this.settings.palette
       });
     }
@@ -8593,7 +8887,7 @@
       this.drawSpectrogramBitmap(context, bitmap, rect, result);
       const drawEnd = profile ? performance.now() : 0;
       this.drawPlotFrame(context, rect);
-      this.drawFrequencyAxis(context, rect);
+      this.drawFrequencyAxis(context, rect, Number(canvas.dataset.channel ?? 0));
       const range = this.visibleRange();
       this.drawSelectionOverlay(context, rect, range);
       this.drawPlayheadOverlay(context, rect, range);
@@ -8741,7 +9035,7 @@
       return !(!message || message === this.messages.initializing || message === this.messages.ready || message === this.messages.audioLoaded);
     }
     updateResetViewButtonState() {
-      const isDirty = Math.abs(this.settings.timeZoom - 1) > 1e-6 || Math.abs(this.settings.timeOffset) > 1e-6 || Math.abs(this.settings.amplitudeZoom - 1) > 1e-6 || Boolean(this.selection);
+      const isDirty = Math.abs(this.settings.timeZoom - 1) > 1e-6 || Math.abs(this.settings.timeOffset) > 1e-6 || !this.settings.amplitudeAuto || this.trackViews.some((v) => v.ampRangeOverride) || Boolean(this.selection);
       this.elements.resetView.classList.toggle("isProminent", isDirty);
     }
     ensurePlaybackGraph() {
@@ -8878,6 +9172,12 @@
         this.drawTimeline();
       };
       canvas.addEventListener("contextmenu", (event) => {
+        const gutterRect = this.getPlotRect(canvas);
+        if (canvas.classList.contains("trackSpectrogram") && this.canvasClientX(canvas, event.clientX) < gutterRect.left) {
+          event.preventDefault();
+          this.showFreqScaleMenu(Number(canvas.dataset.channel ?? 0), event.clientX, event.clientY);
+          return;
+        }
         event.preventDefault();
         if (this.selection) {
           if (this.isPointerInsideSelection(canvas, event.clientX)) {
@@ -8888,6 +9188,25 @@
           return;
         }
         this.resetView();
+      });
+      canvas.addEventListener("dblclick", (event) => {
+        const rect = this.getPlotRect(canvas);
+        if (this.canvasClientX(canvas, event.clientX) >= rect.left) {
+          return;
+        }
+        const channel = Number(canvas.dataset.channel ?? 0);
+        if (canvas.classList.contains("trackSpectrogram")) {
+          event.preventDefault();
+          this.resetChannelFreqOverrides(channel);
+        } else if (canvas.classList.contains("trackWaveform")) {
+          event.preventDefault();
+          const view = this.trackViews.find((v) => v.channel === channel);
+          if (view) {
+            view.ampRangeOverride = void 0;
+            this.updateResetViewButtonState();
+            this.redrawVisuals();
+          }
+        }
       });
       canvas.addEventListener(
         "wheel",
@@ -8923,6 +9242,50 @@
         return;
       }
       event.preventDefault();
+      const plotRect = this.getPlotRect(canvas);
+      if (this.canvasClientX(canvas, event.clientX) < plotRect.left) {
+        const channel = Number(canvas.dataset.channel ?? 0);
+        const view = this.trackViews.find((v) => v.channel === channel);
+        const isSpec = canvas.classList.contains("trackSpectrogram");
+        const isWave = canvas.classList.contains("trackWaveform");
+        const zoomIn = event.deltaY < 0;
+        if (view && (timeZoomModifier || trackpadPinchZoom)) {
+          if (isSpec) {
+            const nyquist = this.nyquistFrequency();
+            const anchor = this.axisFrequencyFromClientY(channel, canvas, event.clientY);
+            const r = this.effectiveFrequencyRange(channel);
+            const z = zoomRange({ min: r.minHz, max: r.maxHz }, anchor, zoomIn ? 0.8 : 1.25, 0, nyquist);
+            view.freqRangeOverride = { minHz: z.min, maxHz: z.max };
+            this.redrawVisuals();
+            this.scheduleAnalyze();
+          } else if (isWave) {
+            const bound = this.amplitudeBound(channel);
+            view.ampRangeOverride = zoomRange(this.effectiveAmplitudeRange(channel), this.axisAmplitudeFromClientY(channel, canvas, event.clientY), zoomIn ? 0.8 : 1.25, -bound, bound);
+            this.updateResetViewButtonState();
+            this.redrawVisuals();
+          }
+          return;
+        }
+        if (view && (event.shiftKey || horizontalPan)) {
+          const dir = event.shiftKey ? event.deltaY > 0 ? 1 : -1 : normalizeWheelDelta(event.deltaX, event.deltaMode) > 0 ? 1 : -1;
+          if (isSpec) {
+            const nyquist = this.nyquistFrequency();
+            const r = this.effectiveFrequencyRange(channel);
+            const p = panRange({ min: r.minHz, max: r.maxHz }, dir * (r.maxHz - r.minHz) * 0.1, 0, nyquist);
+            view.freqRangeOverride = { minHz: p.min, maxHz: p.max };
+            this.redrawVisuals();
+            this.scheduleAnalyze();
+          } else if (isWave) {
+            const bound = this.amplitudeBound(channel);
+            const r = this.effectiveAmplitudeRange(channel);
+            view.ampRangeOverride = panRange(r, dir * (r.max - r.min) * 0.1, -bound, bound);
+            this.updateResetViewButtonState();
+            this.redrawVisuals();
+          }
+          return;
+        }
+        return;
+      }
       if (timeZoomModifier || trackpadPinchZoom) {
         const ratio = this.canvasXRatio(canvas, event.clientX);
         const anchorTime = this.timeFromCanvasX(canvas, event.clientX);
@@ -8954,11 +9317,22 @@
         this.scheduleAnalyze();
         return;
       }
-      if (event.altKey) {
-        const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
-        this.settings.amplitudeZoom = clamp2(this.settings.amplitudeZoom * factor, 0.25, 32);
-        this.syncControls();
-        this.redrawVisuals();
+      if (event.altKey && canvas.classList.contains("trackWaveform")) {
+        event.preventDefault();
+        const channel = Number(canvas.dataset.channel ?? 0);
+        const view = this.trackViews.find((v) => v.channel === channel);
+        if (view) {
+          const b = this.amplitudeBound(channel);
+          const factor = event.deltaY < 0 ? 0.8 : 1.25;
+          view.ampRangeOverride = zoomRange(
+            this.effectiveAmplitudeRange(channel),
+            this.axisAmplitudeFromClientY(channel, canvas, event.clientY),
+            factor,
+            -b,
+            b
+          );
+          this.redrawVisuals();
+        }
       }
     }
     setPlayheadFromPointer(canvas, clientX) {
@@ -9304,6 +9678,137 @@
         this.nyquistFrequency()
       );
     }
+    effectiveFrequencyScale(channel) {
+      const view = this.trackViews.find((v) => v.channel === channel);
+      return view?.freqScaleOverride ?? this.settings.frequencyScale;
+    }
+    effectiveFrequencyRange(channel) {
+      const view = this.trackViews.find((v) => v.channel === channel);
+      if (view?.freqRangeOverride) {
+        return view.freqRangeOverride;
+      }
+      const range = this.spectrogramFrequencyRange();
+      return { minHz: range.minHz, maxHz: range.maxHz };
+    }
+    channelPeak(channel) {
+      const cached = this.channelPeakCache.get(channel);
+      if (cached !== void 0) {
+        return cached;
+      }
+      const samples = this.samplesForChannel(channel);
+      let peak = 0;
+      if (samples) {
+        const stride = Math.max(1, Math.ceil(samples.length / 1e6));
+        for (let i = 0; i < samples.length; i += stride) {
+          peak = Math.max(peak, Math.abs(samples[i] ?? 0));
+        }
+      }
+      this.channelPeakCache.set(channel, peak);
+      return peak;
+    }
+    autoAmplitudeRange(channel) {
+      const p = this.channelPeak(channel);
+      const m = clamp2(p <= 1e-6 ? 1 : p / 0.9, 1e-3, 1e6);
+      return { min: -m, max: m };
+    }
+    effectiveAmplitudeRange(channel) {
+      const view = this.trackViews.find((v) => v.channel === channel);
+      if (view?.ampRangeOverride) {
+        return view.ampRangeOverride;
+      }
+      if (this.settings.amplitudeAuto) {
+        return this.autoAmplitudeRange(channel);
+      }
+      return { min: this.settings.amplitudeMin, max: this.settings.amplitudeMax };
+    }
+    amplitudeBound(channel) {
+      return Math.max(1, this.channelPeak(channel) * 1.05);
+    }
+    axisAmplitudeFromClientY(channel, canvas, clientY) {
+      const rect = this.getPlotRect(canvas);
+      const bounds = canvas.getBoundingClientRect();
+      const y = (clientY - bounds.top) * (canvas.height / Math.max(1, bounds.height));
+      const ratio = clamp2((rect.bottom - y) / Math.max(1, rect.height), 0, 1);
+      const { min, max } = this.effectiveAmplitudeRange(channel);
+      return min + ratio * (max - min);
+    }
+    axisFrequencyFromClientY(channel, canvas, clientY) {
+      const rect = this.getPlotRect(canvas);
+      const bounds = canvas.getBoundingClientRect();
+      const y = (clientY - bounds.top) * (canvas.height / Math.max(1, bounds.height));
+      const ratio = clamp2((rect.bottom - y) / Math.max(1, rect.height), 0, 1);
+      const range = this.effectiveFrequencyRange(channel);
+      return frequencyFromRatio(ratio, this.effectiveFrequencyScale(channel), range.minHz, range.maxHz);
+    }
+    canvasClientX(canvas, clientX) {
+      const bounds = canvas.getBoundingClientRect();
+      return (clientX - bounds.left) * (canvas.width / Math.max(1, bounds.width));
+    }
+    showFreqScaleMenu(channel, clientX, clientY) {
+      const menu = this.elements.freqScaleMenu;
+      const current = this.effectiveFrequencyScale(channel);
+      const types = [
+        ["linear", "Linear"],
+        ["log", "Log"],
+        ["mel", "Mel"],
+        ["bark", "Bark"],
+        ["erb", "ERB"]
+      ];
+      menu.replaceChildren();
+      const title = document.createElement("div");
+      title.className = "contextMenuTitle";
+      title.textContent = this.messages.freqScaleMenuTitle;
+      menu.appendChild(title);
+      for (const [value, label] of types) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.setAttribute("role", "menuitemradio");
+        if (value === current) {
+          item.classList.add("isChecked");
+        }
+        item.textContent = label;
+        item.addEventListener("click", () => {
+          this.setChannelFreqScale(channel, value);
+          this.hideFreqScaleMenu();
+        });
+        menu.appendChild(item);
+      }
+      const reset = document.createElement("button");
+      reset.type = "button";
+      reset.setAttribute("role", "menuitem");
+      reset.textContent = this.messages.restoreChannelDefault;
+      reset.addEventListener("click", () => {
+        this.resetChannelFreqOverrides(channel);
+        this.hideFreqScaleMenu();
+      });
+      menu.appendChild(reset);
+      menu.hidden = false;
+      const margin = 8;
+      menu.style.left = `${Math.min(clientX, window.innerWidth - menu.offsetWidth - margin)}px`;
+      menu.style.top = `${Math.min(clientY, window.innerHeight - menu.offsetHeight - margin)}px`;
+    }
+    hideFreqScaleMenu() {
+      this.elements.freqScaleMenu.hidden = true;
+    }
+    setChannelFreqScale(channel, scale) {
+      const view = this.trackViews.find((v) => v.channel === channel);
+      if (!view) {
+        return;
+      }
+      view.freqScaleOverride = scale;
+      this.redrawVisuals();
+      this.analyze();
+    }
+    resetChannelFreqOverrides(channel) {
+      const view = this.trackViews.find((v) => v.channel === channel);
+      if (!view) {
+        return;
+      }
+      view.freqScaleOverride = void 0;
+      view.freqRangeOverride = void 0;
+      this.redrawVisuals();
+      this.analyze();
+    }
     getPlotRect(canvas) {
       if (canvas.classList.contains("trackWaveform") || canvas.classList.contains("trackSpectrogram")) {
         const ratio2 = window.devicePixelRatio || 1;
@@ -9334,37 +9839,37 @@
       context.lineWidth = deviceLineWidth();
       context.strokeRect(rect.left, rect.top, rect.width, rect.height);
     }
-    drawWaveformAxis(context, rect) {
+    drawWaveformAxis(context, rect, channel) {
       context.save();
       context.fillStyle = axisTextColor();
       context.strokeStyle = axisGridColor();
       context.font = axisFont();
       context.textAlign = "right";
-      const visibleAmplitude = 0.5 / Math.max(1e-6, this.settings.amplitudeZoom * WAVEFORM_AMPLITUDE_SCALE);
-      const mid = rect.top + rect.height / 2;
-      for (const { value, y } of [
-        { value: visibleAmplitude, y: rect.top },
-        { value: 0, y: mid },
-        { value: -visibleAmplitude, y: rect.bottom }
-      ]) {
+      const { min: lo, max: hi } = this.effectiveAmplitudeRange(channel);
+      const heightCss = rect.height / (window.devicePixelRatio || 1);
+      const intervals = computeAxisIntervals(heightCss, { even: true });
+      for (let index = 0; index <= intervals; index += 1) {
+        const ratio = index / intervals;
+        const value = hi - ratio * (hi - lo);
+        const y = rect.top + ratio * rect.height;
         context.beginPath();
         context.moveTo(rect.left, y);
         context.lineTo(rect.right, y);
         context.stroke();
-        if (value > 0) {
+        if (index === 0) {
           context.textBaseline = "top";
-          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), rect.top + devicePx(2));
-        } else if (value < 0) {
+          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(6), rect.top + devicePx(2));
+        } else if (index === intervals) {
           context.textBaseline = "bottom";
-          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), rect.bottom - devicePx(2));
+          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(6), rect.bottom - devicePx(2));
         } else {
           context.textBaseline = "middle";
-          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(8), y);
+          context.fillText(formatAmplitudeAxis(value), rect.left - devicePx(6), y);
         }
       }
       context.restore();
     }
-    drawFrequencyAxis(context, rect) {
+    drawFrequencyAxis(context, rect, channel) {
       if (!this.audioBuffer) {
         return;
       }
@@ -9373,11 +9878,12 @@
       context.strokeStyle = axisGridColor();
       context.font = axisFont();
       context.textAlign = "right";
-      const frequencyRange = this.spectrogramFrequencyRange();
-      const ticks = 5;
+      const frequencyRange = this.effectiveFrequencyRange(channel);
+      const heightCss = rect.height / (window.devicePixelRatio || 1);
+      const ticks = computeAxisIntervals(heightCss);
       for (let index = 0; index <= ticks; index += 1) {
         const ratio = index / ticks;
-        const frequency = frequencyFromRatio(ratio, this.settings.frequencyScale, frequencyRange.minHz, frequencyRange.maxHz);
+        const frequency = frequencyFromRatio(ratio, this.effectiveFrequencyScale(channel), frequencyRange.minHz, frequencyRange.maxHz);
         const y = rect.bottom - ratio * rect.height;
         context.beginPath();
         context.moveTo(rect.left, y);
@@ -9385,13 +9891,13 @@
         context.stroke();
         if (index === ticks) {
           context.textBaseline = "top";
-          context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), rect.top + devicePx(2));
+          context.fillText(formatAxisFrequency(frequency), rect.left - devicePx(6), rect.top + devicePx(2));
         } else if (index === 0) {
           context.textBaseline = "bottom";
-          context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), rect.bottom - devicePx(2));
+          context.fillText(formatAxisFrequency(frequency), rect.left - devicePx(6), rect.bottom - devicePx(2));
         } else {
           context.textBaseline = "middle";
-          context.fillText(formatAxisHz(frequency), rect.left - devicePx(10), y);
+          context.fillText(formatAxisFrequency(frequency), rect.left - devicePx(6), y);
         }
       }
       context.restore();
@@ -9711,9 +10217,6 @@
     if (value >= 1e3) {
       return `${(value / 1e3).toFixed(value >= 1e4 ? 1 : 2)} kHz`;
     }
-    return `${Math.round(value)} Hz`;
-  }
-  function formatAxisHz(value) {
     return `${Math.round(value)} Hz`;
   }
   function formatAmplitudeAxis(value) {
@@ -11200,6 +11703,19 @@
       color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
       background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
       outline: none;
+    }
+    .contextMenuTitle {
+      padding: 4px 10px 6px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      border-bottom: 1px solid var(--vscode-panel-border);
+      margin-bottom: 4px;
+    }
+    .freqScaleMenu button.isChecked::before {
+      content: "\u2713 ";
+    }
+    .freqScaleMenu button:not(.isChecked)::before {
+      content: "\\00a0\\00a0";
     }
     .selectionAnalysisPane {
       position: fixed;
