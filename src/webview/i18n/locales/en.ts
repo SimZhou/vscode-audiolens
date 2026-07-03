@@ -75,7 +75,6 @@ export const messages = {
   channel: "Channel",
   timeZoom: "Time zoom",
   timePosition: "Time position",
-  amplitudeZoom: "Amplitude zoom",
   mouseWheel: "Mouse wheel",
   refreshSpectrogram: "Refresh spectrogram",
   resetView: "Reset view",

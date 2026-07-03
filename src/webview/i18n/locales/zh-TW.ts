@@ -46,7 +46,6 @@ export const messages = {
   channel: "聲道",
   timeZoom: "時間縮放",
   timePosition: "時間位置",
-  amplitudeZoom: "振幅縮放",
   mouseWheel: "滑鼠滾輪",
   help: "說明",
   downloadAudio: "下載音訊",

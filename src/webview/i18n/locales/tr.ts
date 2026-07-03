@@ -46,7 +46,6 @@ export const messages = {
   channel: "Kanal",
   timeZoom: "Zaman zumu",
   timePosition: "Zaman konumu",
-  amplitudeZoom: "Genlik zumu",
   mouseWheel: "Fare tekeri",
   help: "Yardım",
   downloadAudio: "Sesi indir",

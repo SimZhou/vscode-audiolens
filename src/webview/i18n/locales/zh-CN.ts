@@ -75,7 +75,6 @@ export const messages = {
   channel: "声道",
   timeZoom: "时间缩放",
   timePosition: "时间位置",
-  amplitudeZoom: "幅度缩放",
   mouseWheel: "鼠标滚轮",
   refreshSpectrogram: "刷新频谱图",
   resetView: "重置视图",

@@ -75,7 +75,6 @@ export const messages = {
   channel: "チャンネル",
   timeZoom: "時間ズーム",
   timePosition: "時間位置",
-  amplitudeZoom: "振幅ズーム",
   mouseWheel: "マウスホイール",
   refreshSpectrogram: "スペクトログラムを更新",
   resetView: "表示をリセット",

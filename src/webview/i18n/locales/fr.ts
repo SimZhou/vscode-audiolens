@@ -46,7 +46,6 @@ export const messages = {
   channel: "Canal",
   timeZoom: "Zoom temporel",
   timePosition: "Position temporelle",
-  amplitudeZoom: "Zoom d'amplitude",
   mouseWheel: "molette",
   help: "Aide",
   downloadAudio: "Télécharger l'audio",

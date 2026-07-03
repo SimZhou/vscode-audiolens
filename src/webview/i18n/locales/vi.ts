@@ -46,7 +46,6 @@ export const messages = {
   channel: "Kênh",
   timeZoom: "Thu phóng thời gian",
   timePosition: "Vị trí thời gian",
-  amplitudeZoom: "Thu phóng biên độ",
   mouseWheel: "Con lăn chuột",
   help: "Trợ giúp",
   downloadAudio: "Tải âm thanh",

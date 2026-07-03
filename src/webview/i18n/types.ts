@@ -94,7 +94,6 @@ export interface LocaleMessages {
   channel: string;
   timeZoom: string;
   timePosition: string;
-  amplitudeZoom: string;
   mouseWheel: string;
   refreshSpectrogram: string;
   resetView: string;

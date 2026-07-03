@@ -46,7 +46,6 @@ export const messages = {
   channel: "Kanal",
   timeZoom: "Zoom waktu",
   timePosition: "Posisi waktu",
-  amplitudeZoom: "Zoom amplitudo",
   mouseWheel: "Roda mouse",
   help: "Bantuan",
   downloadAudio: "Unduh audio",

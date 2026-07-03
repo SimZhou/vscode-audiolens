@@ -46,7 +46,6 @@ export const messages = {
   channel: "채널",
   timeZoom: "시간 확대",
   timePosition: "시간 위치",
-  amplitudeZoom: "진폭 확대",
   mouseWheel: "마우스 휠",
   help: "도움말",
   downloadAudio: "오디오 다운로드",
