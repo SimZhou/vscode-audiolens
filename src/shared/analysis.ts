@@ -89,6 +89,7 @@ export function createAnalysisCacheKey(parts: {
   zeroPaddingFactor?: number;
   outputBins?: number;
   targetFrames?: number;
+  hopSize?: number;
   minDb: number;
   maxDb: number;
   spectrogramMinHz?: number;
@@ -106,6 +107,7 @@ export function createAnalysisCacheKey(parts: {
     parts.zeroPaddingFactor ?? 1,
     parts.outputBins ?? 0,
     parts.targetFrames ?? 0,
+    parts.hopSize ?? 0,
     parts.minDb,
     parts.maxDb,
     parts.spectrogramMinHz ?? 0,

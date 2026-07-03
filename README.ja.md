@@ -247,7 +247,7 @@ AudioLens は音声や信号確認に使いやすいスペクトログラム設�
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/config_menu.ja-JP.png" alt="AudioLens スペクトログラム設定メニュー" width="260">
 </p>
 
-重いスペクトログラム解析は Worker の境界の向こうで実行されるため、Webview の操作感を妨げにくくなっています。
+重いスペクトログラム解析は Worker の境界の向こうで実行され、マグニチュードキャッシュによりズーム・パンがリアルタイムに追従します。水平パンは計算済みの FFT 列を再利用し、周波数軸・パレット・dB の変更は FFT を再計算せずラスタライズのみで即座に反映されます。
 
 ## ショートカット
 

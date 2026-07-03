@@ -247,7 +247,7 @@ AudioLens 提供适合语音和信号检查的语谱图参数：
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/config_menu.zh-CN.png" alt="AudioLens 频谱图设置菜单" width="260">
 </p>
 
-耗时的语谱图分析会放到 Worker 后台执行，避免阻塞 Webview 主交互。
+耗时的语谱图分析在 Worker 后台执行，并带有幅值缓存——缩放和平移保持实时：横向平移复用已计算的 FFT 列，频率轴、调色板和 dB 变化只重新光栅化，不重算 FFT。
 
 ## 快捷键
 

@@ -4,12 +4,15 @@ export interface SpectrogramResult {
   width: number;
   height: number;
   pixels: ArrayBuffer;
+  prefetch?: boolean;
   profile?: {
     totalMs: number;
     setupMs: number;
     fftMs: number;
     rasterizeMs: number;
     frames: number;
+    computedFrames: number;
+    reusedFrames: number;
     bins: number;
     fftSize: number;
     windowSize: number;
@@ -29,80 +32,245 @@ export interface SelectionSpectrumResult {
 
 export type AnalysisWorkerResult = SpectrogramResult | SelectionSpectrumResult;
 
-export function createAnalysisWorker(): Worker {
-  const source = `
+// Worker 内核以源码字符串形式内联（Webview CSP 下用 Blob URL 加载），导出以便本地测试直接执行。
+export const analysisWorkerSource = `
+    // 常驻的每通道采样存储：loadSamples 一次性传入，analyze 只带范围，避免交互期反复拷贝大数组。
+    const channelSamples = new Map();
+    // 每通道最新请求代际：旧代际任务在分块让步点自行放弃，取代 Worker 销毁重建。
+    const latestGenerationByChannel = new Map();
+    const windowCache = new Map();
+    const fftTableCache = new Map();
+    const recombTableCache = new Map();
+    const paletteLutCache = new Map();
+    // 幅值瓦片缓存：按 (通道/采样率/FFT 参数/hop) 分组存幅度平方矩阵，
+    // 重叠请求按列复用，显示参数（频率范围/调色板/dB）变化只需重新光栅化。
+    const magTiles = [];
+    let magTileBytes = 0;
+    let magTileClock = 0;
+    const MAG_TILE_BYTE_CAP = 64 * 1024 * 1024;
+    const MAG_TILE_COUNT_CAP = 12;
+
     self.onmessage = (event) => {
       const message = event.data;
+      if (message.type === "loadSamples") {
+        channelSamples.set(message.channel, new Float32Array(message.samples));
+        return;
+      }
+      if (message.type === "clearSamples") {
+        channelSamples.clear();
+        latestGenerationByChannel.clear();
+        magTiles.length = 0;
+        magTileBytes = 0;
+        return;
+      }
       if (message.type === "selectionSpectrum") {
         analyzeSelectionSpectrum(message);
         return;
       }
       if (message.type !== "analyze") return;
-      const samples = new Float32Array(message.samples);
+      const generation = message.generation || 0;
+      const channel = message.channel || 0;
+      if (generation > (latestGenerationByChannel.get(channel) || 0)) {
+        latestGenerationByChannel.set(channel, generation);
+      }
+      void renderSpectrogram(message, channel, generation);
+    };
+
+    async function renderSpectrogram(message, channel, generation) {
+      // 突发合并：先让出一次事件循环，让同一突发中排队的更高代际请求先注册，
+      // 过期请求在这里直接退出，一列 FFT 都不算。
+      await yieldToQueue();
+      if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+      const stored = channelSamples.get(channel);
+      const fallback = message.samples ? new Float32Array(message.samples) : undefined;
+      const samples = stored || fallback;
+      if (!samples) return;
       const settings = message.settings;
       const profile = settings.profile === true;
       const totalStart = profile ? performance.now() : 0;
+      const start = Math.max(0, Math.min(samples.length, Math.floor(message.startSample || 0)));
+      const end = Math.max(start, Math.min(samples.length, Math.floor(message.endSample === undefined ? samples.length : message.endSample)));
+      const sampleCount = end - start;
       const windowSize = Math.max(8, Math.floor(settings.fftSize));
       const zeroPaddingFactor = Math.max(1, Math.floor(settings.zeroPaddingFactor || 1));
       const fftSize = nextPowerOfTwo(windowSize * zeroPaddingFactor);
       const sampleRate = Math.max(1, message.sampleRate || 1);
       const hopSize = Math.max(1, Math.floor(settings.hopSize));
       const bins = Math.max(1, Math.min(Math.floor(settings.outputBins || 384), fftSize / 2));
-      const frames = Math.max(1, Math.floor(Math.max(0, samples.length - windowSize) / hopSize) + 1);
-      const pixels = new Uint8ClampedArray(frames * bins * 4);
-      const window = createWindow(settings.windowFunction, windowSize);
-      const re = new Float32Array(fftSize);
-      const im = new Float32Array(fftSize);
+      const frames = Math.max(1, Math.floor(Math.max(0, sampleCount - windowSize) / hopSize) + 1);
+      const half = fftSize / 2;
       const nyquist = sampleRate / 2;
       const minFrequencyHz = Math.max(0, Math.min(Number(settings.minFrequencyHz) || 0, Math.max(0, nyquist - 1)));
       const maxFrequencyHz = Math.max(minFrequencyHz + 1, Math.min(Number(settings.maxFrequencyHz) || nyquist, nyquist));
       const setupEnd = profile ? performance.now() : 0;
-      let fftMs = 0;
-      let rasterizeMs = 0;
+      const CHUNK_FRAMES = 256;
 
-      for (let frame = 0; frame < frames; frame += 1) {
-        const offset = frame * hopSize;
-        re.fill(0);
-        im.fill(0);
-        for (let i = 0; i < windowSize; i += 1) {
-          re[i] = (samples[offset + i] || 0) * window[i];
+      // ---- 第一级：幅度平方矩阵（与显示参数无关，可跨请求按列复用） ----
+      const groupKey = [channel, sampleRate, windowSize, zeroPaddingFactor, settings.windowFunction, hopSize].join("|");
+      const fftStart = profile ? performance.now() : 0;
+      const mag = new Float32Array(frames * half);
+      const covered = new Uint8Array(frames);
+      let reusedFrames = 0;
+      for (const tile of magTiles) {
+        if (tile.groupKey !== groupKey || tile.half !== half) continue;
+        const delta = (start - tile.baseSample) / hopSize;
+        if (!Number.isInteger(delta)) continue;
+        const from = Math.max(0, -delta);
+        const to = Math.min(frames, tile.frames - delta);
+        if (to <= from) continue;
+        mag.set(tile.data.subarray((from + delta) * half, (to + delta) * half), from * half);
+        for (let i = from; i < to; i += 1) {
+          if (!covered[i]) {
+            covered[i] = 1;
+            reusedFrames += 1;
+          }
         }
-        const fftStart = profile ? performance.now() : 0;
-        fft(re, im);
-        if (profile) fftMs += performance.now() - fftStart;
-        const rasterizeStart = profile ? performance.now() : 0;
+        tile.lastUsed = ++magTileClock;
+      }
+
+      let computedFrames = 0;
+      if (reusedFrames < frames) {
+        const window = getWindow(settings.windowFunction, windowSize);
+        const tables = getFftTables(half);
+        const recomb = getRecombTables(fftSize);
+        const re = new Float32Array(half);
+        const im = new Float32Array(half);
+        let sinceYield = 0;
+        for (let frame = 0; frame < frames; frame += 1) {
+          if (covered[frame]) continue;
+          const offset = start + frame * hopSize;
+          re.fill(0);
+          im.fill(0);
+          // 实数序列打包成半长复数序列：z[m] = x[2m] + i*x[2m+1]。
+          const limit = Math.min(windowSize, samples.length - offset);
+          for (let i = 0; i < limit; i += 1) {
+            const value = samples[offset + i] * window[i];
+            if (i & 1) im[i >> 1] = value;
+            else re[i >> 1] = value;
+          }
+          fft(re, im, tables);
+          // 由半长复数谱重组出实数谱幅度平方（packed real FFT）。
+          const base = frame * half;
+          mag[base] = (re[0] + im[0]) * (re[0] + im[0]);
+          for (let k = 1; k < half; k += 1) {
+            const j = half - k;
+            const er = (re[k] + re[j]) * 0.5;
+            const ei = (im[k] - im[j]) * 0.5;
+            const or_ = (im[k] + im[j]) * 0.5;
+            const oi = (re[j] - re[k]) * 0.5;
+            const wr = recomb.cos[k];
+            const wi = recomb.sin[k];
+            const xr = er + wr * or_ - wi * oi;
+            const xi = ei + wr * oi + wi * or_;
+            mag[base + k] = xr * xr + xi * xi;
+          }
+          computedFrames += 1;
+          sinceYield += 1;
+          if (sinceYield >= CHUNK_FRAMES) {
+            sinceYield = 0;
+            await yieldToQueue();
+            if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+          }
+        }
+      }
+      storeMagTile(groupKey, start, frames, half, mag);
+      const fftEnd = profile ? performance.now() : 0;
+
+      // ---- 第二级：光栅化（行 -> bin 查找表 + 调色板 LUT，显示参数只影响这一级） ----
+      const binForRow = new Int32Array(bins);
+      for (let y = 0; y < bins; y += 1) {
+        const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
+        const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
+        binForRow[y] = Math.max(0, Math.min(half - 1, Math.round((freq / sampleRate) * fftSize)));
+      }
+      const paletteLut = getPaletteLut(settings.palette);
+      // db = 20*log10(max(sqrt(m2)/windowSize, 1e-12)) + 算法偏移，等价改写为 m2 域一次 log10。
+      const dbAdjust = adjustDbForAlgorithm(0, settings.algorithm) - 20 * Math.log10(windowSize);
+      const m2Floor = 1e-24 * windowSize * windowSize;
+      const dbSpan = Math.max(1e-6, settings.maxDb - settings.minDb);
+      const minDb = settings.minDb;
+      const lutScale = 255 / dbSpan;
+      const pixels = new Uint8ClampedArray(frames * bins * 4);
+      let sinceYield = 0;
+      for (let frame = 0; frame < frames; frame += 1) {
+        const base = frame * half;
         for (let y = 0; y < bins; y += 1) {
-          const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
-          const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
-          const bin = Math.max(0, Math.min((fftSize / 2) - 1, Math.round((freq / sampleRate) * fftSize)));
-          const mag = Math.sqrt(re[bin] * re[bin] + im[bin] * im[bin]) / windowSize;
-          const db = adjustDbForAlgorithm(20 * Math.log10(Math.max(mag, 1e-12)), settings.algorithm);
-          const color = colorize((db - settings.minDb) / (settings.maxDb - settings.minDb), settings.palette);
+          const m2 = mag[base + binForRow[y]];
+          const db = 10 * Math.log10(m2 > m2Floor ? m2 : m2Floor) + dbAdjust;
+          let level = (db - minDb) * lutScale;
+          if (level < 0) level = 0;
+          else if (level > 255) level = 255;
+          const lutIndex = (level + 0.5) | 0;
+          const colorIndex = lutIndex * 3;
           const index = (y * frames + frame) * 4;
-          pixels[index] = color[0];
-          pixels[index + 1] = color[1];
-          pixels[index + 2] = color[2];
+          pixels[index] = paletteLut[colorIndex];
+          pixels[index + 1] = paletteLut[colorIndex + 1];
+          pixels[index + 2] = paletteLut[colorIndex + 2];
           pixels[index + 3] = 255;
         }
-        if (profile) rasterizeMs += performance.now() - rasterizeStart;
+        sinceYield += 1;
+        if (sinceYield >= CHUNK_FRAMES * 2 && frame + 1 < frames) {
+          sinceYield = 0;
+          await yieldToQueue();
+          if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+        }
       }
+      const rasterizeEnd = profile ? performance.now() : 0;
+
       const result = { type: "spectrogram", requestId: message.requestId, width: frames, height: bins, pixels: pixels.buffer };
+      if (message.prefetch === true) result.prefetch = true;
       if (profile) {
         result.profile = {
           totalMs: performance.now() - totalStart,
           setupMs: setupEnd - totalStart,
-          fftMs,
-          rasterizeMs,
+          fftMs: fftEnd - fftStart,
+          rasterizeMs: rasterizeEnd - fftEnd,
           frames,
+          computedFrames,
+          reusedFrames,
           bins,
           fftSize,
           windowSize,
           hopSize,
-          sampleCount: samples.length
+          sampleCount
         };
       }
       self.postMessage(result, [pixels.buffer]);
-    };
+    }
+
+    function storeMagTile(groupKey, baseSample, frames, half, data) {
+      // 同组同范围的旧瓦片直接替换；否则追加并按字节上限淘汰最久未用的瓦片。
+      for (let i = 0; i < magTiles.length; i += 1) {
+        const tile = magTiles[i];
+        if (tile.groupKey === groupKey && tile.baseSample === baseSample && tile.frames === frames && tile.half === half) {
+          magTileBytes += data.byteLength - tile.data.byteLength;
+          magTiles[i] = { groupKey, baseSample, frames, half, data, lastUsed: ++magTileClock };
+          return;
+        }
+      }
+      magTiles.push({ groupKey, baseSample, frames, half, data, lastUsed: ++magTileClock });
+      magTileBytes += data.byteLength;
+      while (magTiles.length > MAG_TILE_COUNT_CAP || (magTileBytes > MAG_TILE_BYTE_CAP && magTiles.length > 1)) {
+        let oldestIndex = 0;
+        for (let i = 1; i < magTiles.length; i += 1) {
+          if (magTiles[i].lastUsed < magTiles[oldestIndex].lastUsed) oldestIndex = i;
+        }
+        magTileBytes -= magTiles[oldestIndex].data.byteLength;
+        magTiles.splice(oldestIndex, 1);
+      }
+    }
+
+    // 分块让步：用一次性 MessageChannel 产生 macrotask，让 onmessage 有机会接收更新的代际。
+    function yieldToQueue() {
+      return new Promise((resolve) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => {
+          channel.port1.close();
+          resolve();
+        };
+        channel.port2.postMessage(0);
+      });
+    }
 
     function analyzeSelectionSpectrum(message) {
       const samples = new Float32Array(message.samples);
@@ -125,7 +293,8 @@ export function createAnalysisWorker(): Worker {
 
       const re = new Float32Array(fftSize);
       const im = new Float32Array(fftSize);
-      const window = createWindow(message.windowFunction, fftSize);
+      const window = getWindow(message.windowFunction, fftSize);
+      const tables = getFftTables(fftSize);
       let dominantBin = 1;
       let dominantPower = 0;
       let totalPower = 0;
@@ -142,7 +311,7 @@ export function createAnalysisWorker(): Worker {
         for (let index = 0; index < fftSize; index += 1) {
           re[index] = (samples[relativeStart + index] ?? 0) * window[index];
         }
-        fft(re, im);
+        fft(re, im, tables);
         frames += 1;
 
         for (let bin = 1; bin < fftSize / 2; bin += 1) {
@@ -180,6 +349,16 @@ export function createAnalysisWorker(): Worker {
       });
     }
 
+    function getWindow(type, size) {
+      const key = type + ":" + size;
+      let values = windowCache.get(key);
+      if (!values) {
+        values = createWindow(type, size);
+        windowCache.set(key, values);
+      }
+      return values;
+    }
+
     function createWindow(type, size) {
       const values = new Float32Array(size);
       const denom = Math.max(1, size - 1);
@@ -201,6 +380,55 @@ export function createAnalysisWorker(): Worker {
       return values;
     }
 
+    function getFftTables(size) {
+      let tables = fftTableCache.get(size);
+      if (!tables) {
+        const halfSize = Math.max(1, size / 2);
+        const cos = new Float32Array(halfSize);
+        const sin = new Float32Array(halfSize);
+        for (let k = 0; k < halfSize; k += 1) {
+          const angle = (-2 * Math.PI * k) / size;
+          cos[k] = Math.cos(angle);
+          sin[k] = Math.sin(angle);
+        }
+        tables = { cos, sin };
+        fftTableCache.set(size, tables);
+      }
+      return tables;
+    }
+
+    function getRecombTables(fftSize) {
+      let tables = recombTableCache.get(fftSize);
+      if (!tables) {
+        const half = fftSize / 2;
+        const cos = new Float32Array(half);
+        const sin = new Float32Array(half);
+        for (let k = 0; k < half; k += 1) {
+          const angle = (-2 * Math.PI * k) / fftSize;
+          cos[k] = Math.cos(angle);
+          sin[k] = Math.sin(angle);
+        }
+        tables = { cos, sin };
+        recombTableCache.set(fftSize, tables);
+      }
+      return tables;
+    }
+
+    function getPaletteLut(palette) {
+      let lut = paletteLutCache.get(palette);
+      if (!lut) {
+        lut = new Uint8Array(256 * 3);
+        for (let i = 0; i < 256; i += 1) {
+          const color = colorize(i / 255, palette);
+          lut[i * 3] = color[0];
+          lut[i * 3 + 1] = color[1];
+          lut[i * 3 + 2] = color[2];
+        }
+        paletteLutCache.set(palette, lut);
+      }
+      return lut;
+    }
+
     function nextPowerOfTwo(value) {
       let size = 1;
       while (size < value) size <<= 1;
@@ -219,7 +447,7 @@ export function createAnalysisWorker(): Worker {
       return db;
     }
 
-    function fft(re, im) {
+    function fft(re, im, tables) {
       const n = re.length;
       for (let i = 1, j = 0; i < n; i += 1) {
         let bit = n >> 1;
@@ -230,25 +458,23 @@ export function createAnalysisWorker(): Worker {
           const ti = im[i]; im[i] = im[j]; im[j] = ti;
         }
       }
+      const cosTab = tables.cos;
+      const sinTab = tables.sin;
       for (let len = 2; len <= n; len <<= 1) {
-        const angle = (-2 * Math.PI) / len;
-        const wLenR = Math.cos(angle);
-        const wLenI = Math.sin(angle);
+        const half = len >> 1;
+        const step = n / len;
         for (let i = 0; i < n; i += len) {
-          let wr = 1;
-          let wi = 0;
-          for (let j = 0; j < len / 2; j += 1) {
+          for (let j = 0, tw = 0; j < half; j += 1, tw += step) {
+            const wr = cosTab[tw];
+            const wi = sinTab[tw];
+            const vR = re[i + j + half] * wr - im[i + j + half] * wi;
+            const vI = re[i + j + half] * wi + im[i + j + half] * wr;
             const uR = re[i + j];
             const uI = im[i + j];
-            const vR = re[i + j + len / 2] * wr - im[i + j + len / 2] * wi;
-            const vI = re[i + j + len / 2] * wi + im[i + j + len / 2] * wr;
             re[i + j] = uR + vR;
             im[i + j] = uI + vI;
-            re[i + j + len / 2] = uR - vR;
-            im[i + j + len / 2] = uI - vI;
-            const nextWr = wr * wLenR - wi * wLenI;
-            wi = wr * wLenI + wi * wLenR;
-            wr = nextWr;
+            re[i + j + half] = uR - vR;
+            im[i + j + half] = uI - vI;
           }
         }
       }
@@ -317,5 +543,7 @@ export function createAnalysisWorker(): Worker {
       ];
     }
   `;
-  return new Worker(URL.createObjectURL(new Blob([source], { type: "text/javascript" })));
+
+export function createAnalysisWorker(): Worker {
+  return new Worker(URL.createObjectURL(new Blob([analysisWorkerSource], { type: "text/javascript" })));
 }

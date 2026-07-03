@@ -247,7 +247,7 @@ The settings menu in the top-right corner keeps these controls close to the spec
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/config_menu.en-US.png" alt="AudioLens spectrogram settings menu" width="260">
 </p>
 
-Spectrogram work runs in a worker so expensive analysis does not block Webview interactions.
+Spectrogram analysis runs in a worker with a magnitude cache, so zoom and pan stay real time — horizontal pan reuses computed FFT columns, and frequency-axis, palette, and dB changes re-rasterize instantly without recomputing the FFT.
 
 ## Controls
 

@@ -48,6 +48,7 @@
       parts.zeroPaddingFactor ?? 1,
       parts.outputBins ?? 0,
       parts.targetFrames ?? 0,
+      parts.hopSize ?? 0,
       parts.minDb,
       parts.maxDb,
       parts.spectrogramMinHz ?? 0,
@@ -131,80 +132,244 @@
   }
 
   // src/webview/analysisWorker.ts
-  function createAnalysisWorker() {
-    const source = `
+  var analysisWorkerSource = `
+    // \u5E38\u9A7B\u7684\u6BCF\u901A\u9053\u91C7\u6837\u5B58\u50A8\uFF1AloadSamples \u4E00\u6B21\u6027\u4F20\u5165\uFF0Canalyze \u53EA\u5E26\u8303\u56F4\uFF0C\u907F\u514D\u4EA4\u4E92\u671F\u53CD\u590D\u62F7\u8D1D\u5927\u6570\u7EC4\u3002
+    const channelSamples = new Map();
+    // \u6BCF\u901A\u9053\u6700\u65B0\u8BF7\u6C42\u4EE3\u9645\uFF1A\u65E7\u4EE3\u9645\u4EFB\u52A1\u5728\u5206\u5757\u8BA9\u6B65\u70B9\u81EA\u884C\u653E\u5F03\uFF0C\u53D6\u4EE3 Worker \u9500\u6BC1\u91CD\u5EFA\u3002
+    const latestGenerationByChannel = new Map();
+    const windowCache = new Map();
+    const fftTableCache = new Map();
+    const recombTableCache = new Map();
+    const paletteLutCache = new Map();
+    // \u5E45\u503C\u74E6\u7247\u7F13\u5B58\uFF1A\u6309 (\u901A\u9053/\u91C7\u6837\u7387/FFT \u53C2\u6570/hop) \u5206\u7EC4\u5B58\u5E45\u5EA6\u5E73\u65B9\u77E9\u9635\uFF0C
+    // \u91CD\u53E0\u8BF7\u6C42\u6309\u5217\u590D\u7528\uFF0C\u663E\u793A\u53C2\u6570\uFF08\u9891\u7387\u8303\u56F4/\u8C03\u8272\u677F/dB\uFF09\u53D8\u5316\u53EA\u9700\u91CD\u65B0\u5149\u6805\u5316\u3002
+    const magTiles = [];
+    let magTileBytes = 0;
+    let magTileClock = 0;
+    const MAG_TILE_BYTE_CAP = 64 * 1024 * 1024;
+    const MAG_TILE_COUNT_CAP = 12;
+
     self.onmessage = (event) => {
       const message = event.data;
+      if (message.type === "loadSamples") {
+        channelSamples.set(message.channel, new Float32Array(message.samples));
+        return;
+      }
+      if (message.type === "clearSamples") {
+        channelSamples.clear();
+        latestGenerationByChannel.clear();
+        magTiles.length = 0;
+        magTileBytes = 0;
+        return;
+      }
       if (message.type === "selectionSpectrum") {
         analyzeSelectionSpectrum(message);
         return;
       }
       if (message.type !== "analyze") return;
-      const samples = new Float32Array(message.samples);
+      const generation = message.generation || 0;
+      const channel = message.channel || 0;
+      if (generation > (latestGenerationByChannel.get(channel) || 0)) {
+        latestGenerationByChannel.set(channel, generation);
+      }
+      void renderSpectrogram(message, channel, generation);
+    };
+
+    async function renderSpectrogram(message, channel, generation) {
+      // \u7A81\u53D1\u5408\u5E76\uFF1A\u5148\u8BA9\u51FA\u4E00\u6B21\u4E8B\u4EF6\u5FAA\u73AF\uFF0C\u8BA9\u540C\u4E00\u7A81\u53D1\u4E2D\u6392\u961F\u7684\u66F4\u9AD8\u4EE3\u9645\u8BF7\u6C42\u5148\u6CE8\u518C\uFF0C
+      // \u8FC7\u671F\u8BF7\u6C42\u5728\u8FD9\u91CC\u76F4\u63A5\u9000\u51FA\uFF0C\u4E00\u5217 FFT \u90FD\u4E0D\u7B97\u3002
+      await yieldToQueue();
+      if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+      const stored = channelSamples.get(channel);
+      const fallback = message.samples ? new Float32Array(message.samples) : undefined;
+      const samples = stored || fallback;
+      if (!samples) return;
       const settings = message.settings;
       const profile = settings.profile === true;
       const totalStart = profile ? performance.now() : 0;
+      const start = Math.max(0, Math.min(samples.length, Math.floor(message.startSample || 0)));
+      const end = Math.max(start, Math.min(samples.length, Math.floor(message.endSample === undefined ? samples.length : message.endSample)));
+      const sampleCount = end - start;
       const windowSize = Math.max(8, Math.floor(settings.fftSize));
       const zeroPaddingFactor = Math.max(1, Math.floor(settings.zeroPaddingFactor || 1));
       const fftSize = nextPowerOfTwo(windowSize * zeroPaddingFactor);
       const sampleRate = Math.max(1, message.sampleRate || 1);
       const hopSize = Math.max(1, Math.floor(settings.hopSize));
       const bins = Math.max(1, Math.min(Math.floor(settings.outputBins || 384), fftSize / 2));
-      const frames = Math.max(1, Math.floor(Math.max(0, samples.length - windowSize) / hopSize) + 1);
-      const pixels = new Uint8ClampedArray(frames * bins * 4);
-      const window = createWindow(settings.windowFunction, windowSize);
-      const re = new Float32Array(fftSize);
-      const im = new Float32Array(fftSize);
+      const frames = Math.max(1, Math.floor(Math.max(0, sampleCount - windowSize) / hopSize) + 1);
+      const half = fftSize / 2;
       const nyquist = sampleRate / 2;
       const minFrequencyHz = Math.max(0, Math.min(Number(settings.minFrequencyHz) || 0, Math.max(0, nyquist - 1)));
       const maxFrequencyHz = Math.max(minFrequencyHz + 1, Math.min(Number(settings.maxFrequencyHz) || nyquist, nyquist));
       const setupEnd = profile ? performance.now() : 0;
-      let fftMs = 0;
-      let rasterizeMs = 0;
+      const CHUNK_FRAMES = 256;
 
-      for (let frame = 0; frame < frames; frame += 1) {
-        const offset = frame * hopSize;
-        re.fill(0);
-        im.fill(0);
-        for (let i = 0; i < windowSize; i += 1) {
-          re[i] = (samples[offset + i] || 0) * window[i];
+      // ---- \u7B2C\u4E00\u7EA7\uFF1A\u5E45\u5EA6\u5E73\u65B9\u77E9\u9635\uFF08\u4E0E\u663E\u793A\u53C2\u6570\u65E0\u5173\uFF0C\u53EF\u8DE8\u8BF7\u6C42\u6309\u5217\u590D\u7528\uFF09 ----
+      const groupKey = [channel, sampleRate, windowSize, zeroPaddingFactor, settings.windowFunction, hopSize].join("|");
+      const fftStart = profile ? performance.now() : 0;
+      const mag = new Float32Array(frames * half);
+      const covered = new Uint8Array(frames);
+      let reusedFrames = 0;
+      for (const tile of magTiles) {
+        if (tile.groupKey !== groupKey || tile.half !== half) continue;
+        const delta = (start - tile.baseSample) / hopSize;
+        if (!Number.isInteger(delta)) continue;
+        const from = Math.max(0, -delta);
+        const to = Math.min(frames, tile.frames - delta);
+        if (to <= from) continue;
+        mag.set(tile.data.subarray((from + delta) * half, (to + delta) * half), from * half);
+        for (let i = from; i < to; i += 1) {
+          if (!covered[i]) {
+            covered[i] = 1;
+            reusedFrames += 1;
+          }
         }
-        const fftStart = profile ? performance.now() : 0;
-        fft(re, im);
-        if (profile) fftMs += performance.now() - fftStart;
-        const rasterizeStart = profile ? performance.now() : 0;
+        tile.lastUsed = ++magTileClock;
+      }
+
+      let computedFrames = 0;
+      if (reusedFrames < frames) {
+        const window = getWindow(settings.windowFunction, windowSize);
+        const tables = getFftTables(half);
+        const recomb = getRecombTables(fftSize);
+        const re = new Float32Array(half);
+        const im = new Float32Array(half);
+        let sinceYield = 0;
+        for (let frame = 0; frame < frames; frame += 1) {
+          if (covered[frame]) continue;
+          const offset = start + frame * hopSize;
+          re.fill(0);
+          im.fill(0);
+          // \u5B9E\u6570\u5E8F\u5217\u6253\u5305\u6210\u534A\u957F\u590D\u6570\u5E8F\u5217\uFF1Az[m] = x[2m] + i*x[2m+1]\u3002
+          const limit = Math.min(windowSize, samples.length - offset);
+          for (let i = 0; i < limit; i += 1) {
+            const value = samples[offset + i] * window[i];
+            if (i & 1) im[i >> 1] = value;
+            else re[i >> 1] = value;
+          }
+          fft(re, im, tables);
+          // \u7531\u534A\u957F\u590D\u6570\u8C31\u91CD\u7EC4\u51FA\u5B9E\u6570\u8C31\u5E45\u5EA6\u5E73\u65B9\uFF08packed real FFT\uFF09\u3002
+          const base = frame * half;
+          mag[base] = (re[0] + im[0]) * (re[0] + im[0]);
+          for (let k = 1; k < half; k += 1) {
+            const j = half - k;
+            const er = (re[k] + re[j]) * 0.5;
+            const ei = (im[k] - im[j]) * 0.5;
+            const or_ = (im[k] + im[j]) * 0.5;
+            const oi = (re[j] - re[k]) * 0.5;
+            const wr = recomb.cos[k];
+            const wi = recomb.sin[k];
+            const xr = er + wr * or_ - wi * oi;
+            const xi = ei + wr * oi + wi * or_;
+            mag[base + k] = xr * xr + xi * xi;
+          }
+          computedFrames += 1;
+          sinceYield += 1;
+          if (sinceYield >= CHUNK_FRAMES) {
+            sinceYield = 0;
+            await yieldToQueue();
+            if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+          }
+        }
+      }
+      storeMagTile(groupKey, start, frames, half, mag);
+      const fftEnd = profile ? performance.now() : 0;
+
+      // ---- \u7B2C\u4E8C\u7EA7\uFF1A\u5149\u6805\u5316\uFF08\u884C -> bin \u67E5\u627E\u8868 + \u8C03\u8272\u677F LUT\uFF0C\u663E\u793A\u53C2\u6570\u53EA\u5F71\u54CD\u8FD9\u4E00\u7EA7\uFF09 ----
+      const binForRow = new Int32Array(bins);
+      for (let y = 0; y < bins; y += 1) {
+        const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
+        const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
+        binForRow[y] = Math.max(0, Math.min(half - 1, Math.round((freq / sampleRate) * fftSize)));
+      }
+      const paletteLut = getPaletteLut(settings.palette);
+      // db = 20*log10(max(sqrt(m2)/windowSize, 1e-12)) + \u7B97\u6CD5\u504F\u79FB\uFF0C\u7B49\u4EF7\u6539\u5199\u4E3A m2 \u57DF\u4E00\u6B21 log10\u3002
+      const dbAdjust = adjustDbForAlgorithm(0, settings.algorithm) - 20 * Math.log10(windowSize);
+      const m2Floor = 1e-24 * windowSize * windowSize;
+      const dbSpan = Math.max(1e-6, settings.maxDb - settings.minDb);
+      const minDb = settings.minDb;
+      const lutScale = 255 / dbSpan;
+      const pixels = new Uint8ClampedArray(frames * bins * 4);
+      let sinceYield = 0;
+      for (let frame = 0; frame < frames; frame += 1) {
+        const base = frame * half;
         for (let y = 0; y < bins; y += 1) {
-          const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
-          const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
-          const bin = Math.max(0, Math.min((fftSize / 2) - 1, Math.round((freq / sampleRate) * fftSize)));
-          const mag = Math.sqrt(re[bin] * re[bin] + im[bin] * im[bin]) / windowSize;
-          const db = adjustDbForAlgorithm(20 * Math.log10(Math.max(mag, 1e-12)), settings.algorithm);
-          const color = colorize((db - settings.minDb) / (settings.maxDb - settings.minDb), settings.palette);
+          const m2 = mag[base + binForRow[y]];
+          const db = 10 * Math.log10(m2 > m2Floor ? m2 : m2Floor) + dbAdjust;
+          let level = (db - minDb) * lutScale;
+          if (level < 0) level = 0;
+          else if (level > 255) level = 255;
+          const lutIndex = (level + 0.5) | 0;
+          const colorIndex = lutIndex * 3;
           const index = (y * frames + frame) * 4;
-          pixels[index] = color[0];
-          pixels[index + 1] = color[1];
-          pixels[index + 2] = color[2];
+          pixels[index] = paletteLut[colorIndex];
+          pixels[index + 1] = paletteLut[colorIndex + 1];
+          pixels[index + 2] = paletteLut[colorIndex + 2];
           pixels[index + 3] = 255;
         }
-        if (profile) rasterizeMs += performance.now() - rasterizeStart;
+        sinceYield += 1;
+        if (sinceYield >= CHUNK_FRAMES * 2 && frame + 1 < frames) {
+          sinceYield = 0;
+          await yieldToQueue();
+          if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+        }
       }
+      const rasterizeEnd = profile ? performance.now() : 0;
+
       const result = { type: "spectrogram", requestId: message.requestId, width: frames, height: bins, pixels: pixels.buffer };
+      if (message.prefetch === true) result.prefetch = true;
       if (profile) {
         result.profile = {
           totalMs: performance.now() - totalStart,
           setupMs: setupEnd - totalStart,
-          fftMs,
-          rasterizeMs,
+          fftMs: fftEnd - fftStart,
+          rasterizeMs: rasterizeEnd - fftEnd,
           frames,
+          computedFrames,
+          reusedFrames,
           bins,
           fftSize,
           windowSize,
           hopSize,
-          sampleCount: samples.length
+          sampleCount
         };
       }
       self.postMessage(result, [pixels.buffer]);
-    };
+    }
+
+    function storeMagTile(groupKey, baseSample, frames, half, data) {
+      // \u540C\u7EC4\u540C\u8303\u56F4\u7684\u65E7\u74E6\u7247\u76F4\u63A5\u66FF\u6362\uFF1B\u5426\u5219\u8FFD\u52A0\u5E76\u6309\u5B57\u8282\u4E0A\u9650\u6DD8\u6C70\u6700\u4E45\u672A\u7528\u7684\u74E6\u7247\u3002
+      for (let i = 0; i < magTiles.length; i += 1) {
+        const tile = magTiles[i];
+        if (tile.groupKey === groupKey && tile.baseSample === baseSample && tile.frames === frames && tile.half === half) {
+          magTileBytes += data.byteLength - tile.data.byteLength;
+          magTiles[i] = { groupKey, baseSample, frames, half, data, lastUsed: ++magTileClock };
+          return;
+        }
+      }
+      magTiles.push({ groupKey, baseSample, frames, half, data, lastUsed: ++magTileClock });
+      magTileBytes += data.byteLength;
+      while (magTiles.length > MAG_TILE_COUNT_CAP || (magTileBytes > MAG_TILE_BYTE_CAP && magTiles.length > 1)) {
+        let oldestIndex = 0;
+        for (let i = 1; i < magTiles.length; i += 1) {
+          if (magTiles[i].lastUsed < magTiles[oldestIndex].lastUsed) oldestIndex = i;
+        }
+        magTileBytes -= magTiles[oldestIndex].data.byteLength;
+        magTiles.splice(oldestIndex, 1);
+      }
+    }
+
+    // \u5206\u5757\u8BA9\u6B65\uFF1A\u7528\u4E00\u6B21\u6027 MessageChannel \u4EA7\u751F macrotask\uFF0C\u8BA9 onmessage \u6709\u673A\u4F1A\u63A5\u6536\u66F4\u65B0\u7684\u4EE3\u9645\u3002
+    function yieldToQueue() {
+      return new Promise((resolve) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => {
+          channel.port1.close();
+          resolve();
+        };
+        channel.port2.postMessage(0);
+      });
+    }
 
     function analyzeSelectionSpectrum(message) {
       const samples = new Float32Array(message.samples);
@@ -227,7 +392,8 @@
 
       const re = new Float32Array(fftSize);
       const im = new Float32Array(fftSize);
-      const window = createWindow(message.windowFunction, fftSize);
+      const window = getWindow(message.windowFunction, fftSize);
+      const tables = getFftTables(fftSize);
       let dominantBin = 1;
       let dominantPower = 0;
       let totalPower = 0;
@@ -244,7 +410,7 @@
         for (let index = 0; index < fftSize; index += 1) {
           re[index] = (samples[relativeStart + index] ?? 0) * window[index];
         }
-        fft(re, im);
+        fft(re, im, tables);
         frames += 1;
 
         for (let bin = 1; bin < fftSize / 2; bin += 1) {
@@ -282,6 +448,16 @@
       });
     }
 
+    function getWindow(type, size) {
+      const key = type + ":" + size;
+      let values = windowCache.get(key);
+      if (!values) {
+        values = createWindow(type, size);
+        windowCache.set(key, values);
+      }
+      return values;
+    }
+
     function createWindow(type, size) {
       const values = new Float32Array(size);
       const denom = Math.max(1, size - 1);
@@ -303,6 +479,55 @@
       return values;
     }
 
+    function getFftTables(size) {
+      let tables = fftTableCache.get(size);
+      if (!tables) {
+        const halfSize = Math.max(1, size / 2);
+        const cos = new Float32Array(halfSize);
+        const sin = new Float32Array(halfSize);
+        for (let k = 0; k < halfSize; k += 1) {
+          const angle = (-2 * Math.PI * k) / size;
+          cos[k] = Math.cos(angle);
+          sin[k] = Math.sin(angle);
+        }
+        tables = { cos, sin };
+        fftTableCache.set(size, tables);
+      }
+      return tables;
+    }
+
+    function getRecombTables(fftSize) {
+      let tables = recombTableCache.get(fftSize);
+      if (!tables) {
+        const half = fftSize / 2;
+        const cos = new Float32Array(half);
+        const sin = new Float32Array(half);
+        for (let k = 0; k < half; k += 1) {
+          const angle = (-2 * Math.PI * k) / fftSize;
+          cos[k] = Math.cos(angle);
+          sin[k] = Math.sin(angle);
+        }
+        tables = { cos, sin };
+        recombTableCache.set(fftSize, tables);
+      }
+      return tables;
+    }
+
+    function getPaletteLut(palette) {
+      let lut = paletteLutCache.get(palette);
+      if (!lut) {
+        lut = new Uint8Array(256 * 3);
+        for (let i = 0; i < 256; i += 1) {
+          const color = colorize(i / 255, palette);
+          lut[i * 3] = color[0];
+          lut[i * 3 + 1] = color[1];
+          lut[i * 3 + 2] = color[2];
+        }
+        paletteLutCache.set(palette, lut);
+      }
+      return lut;
+    }
+
     function nextPowerOfTwo(value) {
       let size = 1;
       while (size < value) size <<= 1;
@@ -321,7 +546,7 @@
       return db;
     }
 
-    function fft(re, im) {
+    function fft(re, im, tables) {
       const n = re.length;
       for (let i = 1, j = 0; i < n; i += 1) {
         let bit = n >> 1;
@@ -332,25 +557,23 @@
           const ti = im[i]; im[i] = im[j]; im[j] = ti;
         }
       }
+      const cosTab = tables.cos;
+      const sinTab = tables.sin;
       for (let len = 2; len <= n; len <<= 1) {
-        const angle = (-2 * Math.PI) / len;
-        const wLenR = Math.cos(angle);
-        const wLenI = Math.sin(angle);
+        const half = len >> 1;
+        const step = n / len;
         for (let i = 0; i < n; i += len) {
-          let wr = 1;
-          let wi = 0;
-          for (let j = 0; j < len / 2; j += 1) {
+          for (let j = 0, tw = 0; j < half; j += 1, tw += step) {
+            const wr = cosTab[tw];
+            const wi = sinTab[tw];
+            const vR = re[i + j + half] * wr - im[i + j + half] * wi;
+            const vI = re[i + j + half] * wi + im[i + j + half] * wr;
             const uR = re[i + j];
             const uI = im[i + j];
-            const vR = re[i + j + len / 2] * wr - im[i + j + len / 2] * wi;
-            const vI = re[i + j + len / 2] * wi + im[i + j + len / 2] * wr;
             re[i + j] = uR + vR;
             im[i + j] = uI + vI;
-            re[i + j + len / 2] = uR - vR;
-            im[i + j + len / 2] = uI - vI;
-            const nextWr = wr * wLenR - wi * wLenI;
-            wi = wr * wLenI + wi * wLenR;
-            wr = nextWr;
+            re[i + j + half] = uR - vR;
+            im[i + j + half] = uI - vI;
           }
         }
       }
@@ -419,7 +642,8 @@
       ];
     }
   `;
-    return new Worker(URL.createObjectURL(new Blob([source], { type: "text/javascript" })));
+  function createAnalysisWorker() {
+    return new Worker(URL.createObjectURL(new Blob([analysisWorkerSource], { type: "text/javascript" })));
   }
 
   // src/webview/audioFacts.ts
@@ -5140,6 +5364,8 @@
   }
 
   // src/webview/app.ts
+  var SPECTROGRAM_CACHE_LIMIT = 16;
+  var SPECTROGRAM_PREFETCH_MAX_TRACKS = 3;
   var MIN_DRAG_PIXELS = 6;
   var ENCODED_DECODE_TIMEOUT_MS = 8e3;
   var SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
@@ -6371,6 +6597,10 @@
     objectUrl;
     requestSeq = 1;
     pendingAnalysisKeys = /* @__PURE__ */ new Set();
+    analysisGeneration = 0;
+    workerLoadedChannels = /* @__PURE__ */ new Set();
+    lastAnalyzeAt = 0;
+    prefetchTimer;
     playheadTime;
     dragPlayheadTime;
     sourceSampleRate;
@@ -6519,10 +6749,9 @@
       this.updateTrackLabels();
       this.redrawVisuals();
     }
-    resetAnalysisWorker() {
-      this.worker.terminate();
-      this.worker = createAnalysisWorker();
-      this.bindAnalysisWorker();
+    resetWorkerSampleStore() {
+      this.workerLoadedChannels.clear();
+      this.worker.postMessage({ type: "clearSamples" });
     }
     resetSelectionWorker() {
       this.selectionWorker.terminate();
@@ -6555,6 +6784,7 @@
       this.channelPeakCache.clear();
       this.pendingAnalysisKeys.clear();
       this.pendingAnalysisTargets.clear();
+      this.resetWorkerSampleStore();
       this.trackViews = [];
       this.elements.trackList.replaceChildren();
       this.elements.figures.classList.remove("isFirstTrackSelectedAtTop");
@@ -6629,6 +6859,7 @@
       this.spectrogramRangeCache.clear();
       this.lastSpectrogramByChannel.clear();
       this.waveformCache.clear();
+      this.resetWorkerSampleStore();
       this.selection = void 0;
       this.playheadTime = void 0;
       this.dragPlayheadTime = void 0;
@@ -7909,6 +8140,7 @@
       this.spectrogramRangeCache.clear();
       this.lastSpectrogramByChannel.clear();
       this.waveformCache.clear();
+      this.resetWorkerSampleStore();
       this.selection = void 0;
       this.selectionPlaybackEnd = void 0;
       this.playheadTime = void 0;
@@ -8652,19 +8884,50 @@
           this.drawChannelWaveform(view.waveform, view.channel);
         }
         if (view.mode !== "waveform") {
-          const cached = this.spectrogramCache.get(this.createSpectrogramCacheKey(view.channel, view.spectrogram));
-          if (cached) {
-            this.drawSpectrogramCanvas(view.spectrogram, cached);
-          } else {
-            const last = this.lastSpectrogramByChannel.get(view.channel);
-            if (last) {
-              this.drawSpectrogramCanvas(view.spectrogram, last);
-            } else {
-              this.drawEmptySpectrogram(view.spectrogram);
-            }
-          }
+          this.drawSpectrogramForView(view);
         }
       }
+    }
+    drawSpectrogramForView(view) {
+      const cached = this.spectrogramCache.get(this.createSpectrogramCacheKey(view.channel, view.spectrogram));
+      if (cached) {
+        return this.drawSpectrogramCanvas(view.spectrogram, cached);
+      }
+      const layers = this.compatibleSpectrogramLayers(view.channel);
+      if (layers.length > 0) {
+        return this.drawSpectrogramCanvas(view.spectrogram, layers[layers.length - 1], layers.slice(0, -1));
+      }
+      const last = this.lastSpectrogramByChannel.get(view.channel);
+      if (last) {
+        return this.drawSpectrogramCanvas(view.spectrogram, last);
+      }
+      this.drawEmptySpectrogram(view.spectrogram);
+      return void 0;
+    }
+    // 可参与合成的缓存结果：同通道、同调色板/dB/频率刻度且与可见时间范围有重叠；
+    // 按 hop 从粗到细排序，细层覆盖粗层。频率范围不要求一致，绘制时做纵向重映射。
+    compatibleSpectrogramLayers(channel) {
+      const range = this.visibleRange();
+      const scale = this.effectiveFrequencyScale(channel);
+      const layers = [];
+      for (const [key, result] of this.spectrogramCache) {
+        const meta = this.spectrogramRangeCache.get(key);
+        if (!meta || meta.channel !== channel) {
+          continue;
+        }
+        if (meta.palette !== this.settings.palette || meta.minDb !== this.settings.minDb || meta.maxDb !== this.settings.maxDb) {
+          continue;
+        }
+        if (meta.frequencyScale !== scale) {
+          continue;
+        }
+        if (meta.endSample <= range.startSample || meta.startSample >= range.endSample) {
+          continue;
+        }
+        layers.push({ result, hop: meta.hopSize });
+      }
+      layers.sort((a, b) => b.hop - a.hop);
+      return layers.map((layer) => layer.result);
     }
     drawChannelWaveform(canvas, channel) {
       if (!this.audioBuffer) {
@@ -8709,14 +8972,21 @@
       this.drawPlotFrame(context, rect);
       this.drawFrequencyAxis(context, rect, Number(canvas.dataset.channel ?? 0));
     }
-    scheduleAnalyze(delay = 80) {
+    // 前沿节流（不是尾沿防抖）：连续快速交互时保持每 delay 一次的稳定重算节奏，
+    // 已排定的定时器不重置，避免滚动过快时重算被无限推迟。
+    scheduleAnalyze(delay = 40) {
       if (this.analysisTimer !== void 0) {
-        window.clearTimeout(this.analysisTimer);
+        return;
+      }
+      const wait = Math.max(0, delay - (performance.now() - this.lastAnalyzeAt));
+      if (wait === 0) {
+        this.analyze();
+        return;
       }
       this.analysisTimer = window.setTimeout(() => {
         this.analysisTimer = void 0;
         this.analyze();
-      }, delay);
+      }, wait);
     }
     analyze() {
       if (!this.audioBuffer) {
@@ -8726,11 +8996,10 @@
         window.clearTimeout(this.analysisTimer);
         this.analysisTimer = void 0;
       }
-      if (this.pendingAnalysisKeys.size > 0) {
-        this.resetAnalysisWorker();
-        this.pendingAnalysisKeys.clear();
-        this.pendingAnalysisTargets.clear();
-        this.pendingAnalysisProfiles.clear();
+      this.lastAnalyzeAt = performance.now();
+      if (this.prefetchTimer !== void 0) {
+        window.clearTimeout(this.prefetchTimer);
+        this.prefetchTimer = void 0;
       }
       const visibleTracks = this.trackViews.filter((view) => view.mode !== "waveform");
       if (visibleTracks.length === 0) {
@@ -8739,84 +9008,184 @@
       for (const view of visibleTracks) {
         this.analyzeChannel(view);
       }
+      if (this.pendingAnalysisKeys.size === 0) {
+        this.schedulePrefetch();
+      }
+    }
+    spectrogramRequestPlan(canvas, visible) {
+      resizeCanvas(canvas);
+      const rect = this.getPlotRect(canvas);
+      const ratio = window.devicePixelRatio || 1;
+      const targetFrames = Math.max(360, Math.min(1800, Math.floor(rect.width / ratio)));
+      const outputBins = Math.max(192, Math.min(900, Math.floor(rect.height / ratio)));
+      const { startSample, endSample } = visible ?? this.visibleRange();
+      const totalSamples = this.audioBuffer?.length ?? 0;
+      const span = Math.max(1, endSample - startSample);
+      let block = 1;
+      while (block < span) block <<= 1;
+      const grid = Math.max(1, block >> 2);
+      const alignedStart = Math.floor(startSample / grid) * grid - grid;
+      const requestStart = Math.max(0, alignedStart);
+      const requestEnd = Math.max(requestStart, Math.min(totalSamples, alignedStart + block + 3 * grid));
+      const idealHop = Math.max(1, (block + 3 * grid) / targetFrames);
+      let hopSize = 1;
+      while (hopSize * 2 <= idealHop) hopSize <<= 1;
+      return { startSample: requestStart, endSample: requestEnd, hopSize, outputBins, targetFrames };
+    }
+    ensureWorkerSamples(channel, samples) {
+      if (this.workerLoadedChannels.has(channel)) {
+        return;
+      }
+      const copy = samples.slice();
+      this.worker.postMessage({ type: "loadSamples", channel, samples: copy.buffer }, [copy.buffer]);
+      this.workerLoadedChannels.add(channel);
     }
     analyzeChannel(view) {
-      const { startSample, endSample } = this.visibleRange();
-      resizeCanvas(view.spectrogram);
-      const spectrogramRect = this.getPlotRect(view.spectrogram);
-      const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
-      const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
-      const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, outputBins, targetFrames);
-      const frequencyRange = this.effectiveFrequencyRange(view.channel);
+      const plan = this.spectrogramRequestPlan(view.spectrogram);
+      const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, plan);
       const cached = this.spectrogramCache.get(cacheKey);
       if (cached) {
+        this.touchSpectrogramCacheKey(cacheKey);
         this.drawSpectrogramCanvas(view.spectrogram, cached);
         return;
       }
-      const samples = this.samplesForChannel(view.channel);
-      if (!samples) {
+      if (this.pendingAnalysisKeys.has(cacheKey)) {
         return;
       }
-      const source = samples.slice(startSample, endSample);
-      const windowSize = Math.min(this.settings.fftSize, Math.max(1, source.length));
-      const hopSize = Math.max(1, Math.floor(Math.max(1, source.length - windowSize) / targetFrames));
+      this.analysisGeneration += 1;
+      for (const [key, channel] of Array.from(this.pendingAnalysisTargets)) {
+        if (channel === view.channel) {
+          this.pendingAnalysisKeys.delete(key);
+          this.pendingAnalysisTargets.delete(key);
+          this.pendingAnalysisProfiles.delete(key);
+        }
+      }
+      if (!this.postSpectrogramRequest(view, plan, cacheKey, false)) {
+        return;
+      }
+      this.setStatus(this.messages.analyzingSpectrogram);
+      this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} \xB7 ${formatWindowFunction(this.settings.windowFunction, this.messages)} \xB7 ${this.settings.fftSize} \xB7 ${this.messages.pad} ${this.settings.zeroPaddingFactor} \xB7 ${this.settings.frequencyScale} \xB7 ${this.messages.hop} ${plan.hopSize}`;
+    }
+    // prefetch=true 时使用当前代际（不作废在途请求）、不改状态栏；结果只入缓存不上屏。
+    postSpectrogramRequest(view, plan, cacheKey, prefetch) {
+      const samples = this.samplesForChannel(view.channel);
+      if (!samples) {
+        return false;
+      }
+      this.ensureWorkerSamples(view.channel, samples);
       this.pendingAnalysisKeys.add(cacheKey);
       this.pendingAnalysisTargets.set(cacheKey, view.channel);
-      if (this.shouldProfileSpectrogram()) {
+      if (!prefetch && this.shouldProfileSpectrogram()) {
         this.pendingAnalysisProfiles.set(cacheKey, {
           channel: view.channel,
           startedAt: performance.now(),
-          startSample,
-          endSample,
-          targetFrames,
-          outputBins
+          startSample: plan.startSample,
+          endSample: plan.endSample,
+          targetFrames: plan.targetFrames,
+          outputBins: plan.outputBins
         });
       }
-      this.spectrogramRangeCache.set(cacheKey, { startSample, endSample });
-      this.setStatus(this.messages.analyzingSpectrogram);
-      this.worker.postMessage(
-        {
-          type: "analyze",
-          requestId: cacheKey,
-          samples: source.buffer,
-          sampleRate: this.analysisSampleRate(),
-          settings: {
-            algorithm: this.settings.algorithm,
-            windowFunction: this.settings.windowFunction,
-            fftSize: this.settings.fftSize,
-            zeroPaddingFactor: this.settings.zeroPaddingFactor,
-            outputBins,
-            hopSize,
-            minDb: this.settings.minDb,
-            maxDb: this.settings.maxDb,
-            minFrequencyHz: frequencyRange.minHz,
-            maxFrequencyHz: frequencyRange.maxHz,
-            frequencyScale: this.effectiveFrequencyScale(view.channel),
-            palette: this.settings.palette,
-            profile: this.shouldProfileSpectrogram()
-          }
-        },
-        [source.buffer]
-      );
-      this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} \xB7 ${formatWindowFunction(this.settings.windowFunction, this.messages)} \xB7 ${this.settings.fftSize} \xB7 ${this.messages.pad} ${this.settings.zeroPaddingFactor} \xB7 ${this.settings.frequencyScale} \xB7 ${this.messages.hop} ${hopSize}`;
+      const frequencyRange = this.effectiveFrequencyRange(view.channel);
+      const frequencyScale = this.effectiveFrequencyScale(view.channel);
+      this.spectrogramRangeCache.set(cacheKey, {
+        startSample: plan.startSample,
+        endSample: plan.endSample,
+        channel: view.channel,
+        hopSize: plan.hopSize,
+        minHz: frequencyRange.minHz,
+        maxHz: frequencyRange.maxHz,
+        frequencyScale,
+        palette: this.settings.palette,
+        minDb: this.settings.minDb,
+        maxDb: this.settings.maxDb
+      });
+      this.worker.postMessage({
+        type: "analyze",
+        requestId: cacheKey,
+        generation: this.analysisGeneration,
+        channel: view.channel,
+        prefetch,
+        startSample: plan.startSample,
+        endSample: plan.endSample,
+        sampleRate: this.analysisSampleRate(),
+        settings: {
+          algorithm: this.settings.algorithm,
+          windowFunction: this.settings.windowFunction,
+          fftSize: this.settings.fftSize,
+          zeroPaddingFactor: this.settings.zeroPaddingFactor,
+          outputBins: plan.outputBins,
+          hopSize: plan.hopSize,
+          minDb: this.settings.minDb,
+          maxDb: this.settings.maxDb,
+          minFrequencyHz: frequencyRange.minHz,
+          maxFrequencyHz: frequencyRange.maxHz,
+          frequencyScale,
+          palette: this.settings.palette,
+          profile: !prefetch && this.shouldProfileSpectrogram()
+        }
+      });
+      return true;
     }
-    createSpectrogramCacheKey(channel, canvas, outputBins, targetFrames) {
-      resizeCanvas(canvas);
-      const rect = this.getPlotRect(canvas);
-      const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
-      const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));
-      const { startSample, endSample } = this.visibleRange();
+    // 空闲预取：交互停下后为每个频谱轨道补齐左右平移单元和上下一级缩放层，
+    // 让下一次跨缓存边界的交互直接命中缓存。
+    schedulePrefetch() {
+      if (this.prefetchTimer !== void 0) {
+        window.clearTimeout(this.prefetchTimer);
+      }
+      this.prefetchTimer = window.setTimeout(() => {
+        this.prefetchTimer = void 0;
+        this.prefetchSpectrogramNeighbors();
+      }, 160);
+    }
+    prefetchSpectrogramNeighbors() {
+      if (!this.audioBuffer) {
+        return;
+      }
+      const views = this.trackViews.filter((view) => view.mode !== "waveform");
+      if (views.length === 0 || views.length > SPECTROGRAM_PREFETCH_MAX_TRACKS) {
+        return;
+      }
+      const range = this.visibleRange();
+      const span = Math.max(1, range.endSample - range.startSample);
+      const total = this.audioBuffer.length;
+      const shift = Math.round(span * 0.5);
+      const quarter = Math.round(span * 0.25);
+      const candidates = [
+        { startSample: range.startSample - shift, endSample: range.endSample - shift },
+        { startSample: range.startSample + shift, endSample: range.endSample + shift },
+        { startSample: range.startSample + quarter, endSample: range.endSample - quarter },
+        { startSample: range.startSample - shift, endSample: range.endSample + shift }
+      ];
+      for (const view of views) {
+        for (const candidate of candidates) {
+          const startSample = clamp2(candidate.startSample, 0, total);
+          const endSample = clamp2(candidate.endSample, 0, total);
+          if (endSample - startSample < 2) {
+            continue;
+          }
+          const plan = this.spectrogramRequestPlan(view.spectrogram, { startSample, endSample });
+          const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, plan);
+          if (this.spectrogramCache.has(cacheKey) || this.pendingAnalysisKeys.has(cacheKey)) {
+            continue;
+          }
+          this.postSpectrogramRequest(view, plan, cacheKey, true);
+        }
+      }
+    }
+    createSpectrogramCacheKey(channel, canvas, plan) {
+      const requestPlan = plan ?? this.spectrogramRequestPlan(canvas);
       const frequencyRange = this.effectiveFrequencyRange(channel);
       return createAnalysisCacheKey({
         channel,
-        startSample,
-        endSample,
+        startSample: requestPlan.startSample,
+        endSample: requestPlan.endSample,
         fftSize: this.settings.fftSize,
         windowFunction: this.settings.windowFunction,
         algorithm: this.settings.algorithm,
         zeroPaddingFactor: this.settings.zeroPaddingFactor,
-        outputBins: bins,
-        targetFrames: frames,
+        outputBins: requestPlan.outputBins,
+        targetFrames: requestPlan.targetFrames,
+        hopSize: requestPlan.hopSize,
         minDb: this.settings.minDb,
         maxDb: this.settings.maxDb,
         spectrogramMinHz: frequencyRange.minHz,
@@ -8825,11 +9194,42 @@
         palette: this.settings.palette
       });
     }
+    touchSpectrogramCacheKey(key) {
+      const result = this.spectrogramCache.get(key);
+      if (result) {
+        this.spectrogramCache.delete(key);
+        this.spectrogramCache.set(key, result);
+      }
+      const bitmap = this.spectrogramBitmapCache.get(key);
+      if (bitmap) {
+        this.spectrogramBitmapCache.delete(key);
+        this.spectrogramBitmapCache.set(key, bitmap);
+      }
+    }
+    pruneSpectrogramCaches() {
+      while (this.spectrogramCache.size > SPECTROGRAM_CACHE_LIMIT) {
+        const oldest = this.spectrogramCache.keys().next().value;
+        if (oldest === void 0) {
+          break;
+        }
+        this.spectrogramCache.delete(oldest);
+        this.spectrogramBitmapCache.delete(oldest);
+      }
+      while (this.spectrogramBitmapCache.size > SPECTROGRAM_CACHE_LIMIT) {
+        const oldest = this.spectrogramBitmapCache.keys().next().value;
+        if (oldest === void 0) {
+          break;
+        }
+        this.spectrogramBitmapCache.delete(oldest);
+      }
+    }
     drawSpectrogramResult(result) {
       if (!this.pendingAnalysisKeys.has(result.requestId) && !this.spectrogramCache.has(result.requestId)) {
         return;
       }
+      this.spectrogramCache.delete(result.requestId);
       this.spectrogramCache.set(result.requestId, result);
+      this.pruneSpectrogramCaches();
       this.pendingAnalysisKeys.delete(result.requestId);
       const targetChannel = this.pendingAnalysisTargets.get(result.requestId);
       this.pendingAnalysisTargets.delete(result.requestId);
@@ -8837,19 +9237,25 @@
       this.pendingAnalysisProfiles.delete(result.requestId);
       for (const view of this.trackViews) {
         const key = this.createSpectrogramCacheKey(view.channel, view.spectrogram);
-        if (key === result.requestId || view.channel === targetChannel) {
-          this.lastSpectrogramByChannel.set(view.channel, result);
-          if (view.mode !== "waveform") {
-            const drawProfile = this.drawSpectrogramCanvas(view.spectrogram, result);
-            this.logSpectrogramProfile(result, drawProfile, requestProfile);
-          }
+        const isCurrent = key === result.requestId;
+        if (result.prefetch && !isCurrent) {
+          continue;
+        }
+        if (!isCurrent && view.channel !== targetChannel) {
+          continue;
+        }
+        this.lastSpectrogramByChannel.set(view.channel, result);
+        if (view.mode !== "waveform") {
+          const drawProfile = isCurrent ? this.drawSpectrogramCanvas(view.spectrogram, result) : this.drawSpectrogramForView(view);
+          this.logSpectrogramProfile(result, drawProfile, requestProfile);
         }
       }
       if (this.pendingAnalysisKeys.size === 0) {
         this.setStatus(this.messages.ready);
+        this.schedulePrefetch();
       }
     }
-    drawSpectrogramCanvas(canvas, result) {
+    drawSpectrogramCanvas(canvas, result, underlays) {
       const profile = this.shouldProfileSpectrogram();
       const start = profile ? performance.now() : 0;
       const context = resizeCanvas(canvas);
@@ -8862,15 +9268,22 @@
       if (!bitmap) {
         return void 0;
       }
+      const channel = Number(canvas.dataset.channel ?? 0);
       context.imageSmoothingEnabled = false;
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.fillStyle = canvasBackgroundColor();
       context.fillRect(0, 0, canvas.width, canvas.height);
       const drawStart = profile ? performance.now() : 0;
-      this.drawSpectrogramBitmap(context, bitmap, rect, result);
+      for (const underlay of underlays ?? []) {
+        const underlayBitmap = this.spectrogramBitmapForResult(underlay);
+        if (underlayBitmap) {
+          this.drawSpectrogramBitmap(context, underlayBitmap, rect, underlay, channel);
+        }
+      }
+      this.drawSpectrogramBitmap(context, bitmap, rect, result, channel);
       const drawEnd = profile ? performance.now() : 0;
       this.drawPlotFrame(context, rect);
-      this.drawFrequencyAxis(context, rect, Number(canvas.dataset.channel ?? 0));
+      this.drawFrequencyAxis(context, rect, channel);
       const range = this.visibleRange();
       this.drawSelectionOverlay(context, rect, range);
       this.drawPlayheadOverlay(context, rect, range);
@@ -8922,26 +9335,49 @@
       });
       console.groupEnd();
     }
-    drawSpectrogramBitmap(context, bitmap, rect, result) {
-      const sourceRange = this.spectrogramRangeCache.get(result.requestId);
+    drawSpectrogramBitmap(context, bitmap, rect, result, channel) {
+      const meta = this.spectrogramRangeCache.get(result.requestId);
       const currentRange = this.visibleRange();
-      if (!sourceRange) {
+      if (!meta) {
         context.drawImage(bitmap, rect.left, rect.top, rect.width, rect.height);
         return;
       }
-      const sourceDuration = Math.max(1, sourceRange.endSample - sourceRange.startSample);
+      const sourceDuration = Math.max(1, meta.endSample - meta.startSample);
       const currentDuration = Math.max(1, currentRange.endSample - currentRange.startSample);
-      const overlapStart = Math.max(sourceRange.startSample, currentRange.startSample);
-      const overlapEnd = Math.min(sourceRange.endSample, currentRange.endSample);
+      const overlapStart = Math.max(meta.startSample, currentRange.startSample);
+      const overlapEnd = Math.min(meta.endSample, currentRange.endSample);
       if (overlapEnd <= overlapStart) {
-        context.drawImage(bitmap, rect.left, rect.top, rect.width, rect.height);
         return;
       }
-      const sourceX = (overlapStart - sourceRange.startSample) / sourceDuration * bitmap.width;
+      const sourceX = (overlapStart - meta.startSample) / sourceDuration * bitmap.width;
       const sourceWidth = Math.max(1, (overlapEnd - overlapStart) / sourceDuration * bitmap.width);
       const targetX = rect.left + (overlapStart - currentRange.startSample) / currentDuration * rect.width;
       const targetWidth = Math.max(1, (overlapEnd - overlapStart) / currentDuration * rect.width);
-      context.drawImage(bitmap, sourceX, 0, sourceWidth, bitmap.height, targetX, rect.top, targetWidth, rect.height);
+      let sourceY = 0;
+      let sourceHeight = bitmap.height;
+      let targetY = rect.top;
+      let targetHeight = rect.height;
+      const freq = this.effectiveFrequencyRange(channel);
+      const scale = this.effectiveFrequencyScale(channel);
+      if ((meta.minHz !== freq.minHz || meta.maxHz !== freq.maxHz) && meta.frequencyScale === scale) {
+        const topRatio = ratioFromFrequency(freq.maxHz, scale, meta.minHz, meta.maxHz);
+        const bottomRatio = ratioFromFrequency(freq.minHz, scale, meta.minHz, meta.maxHz);
+        const rawTop = (1 - topRatio) * bitmap.height;
+        const rawBottom = (1 - bottomRatio) * bitmap.height;
+        if (rawBottom - rawTop < 1e-3) {
+          return;
+        }
+        const scaleY = rect.height / (rawBottom - rawTop);
+        sourceY = clamp2(rawTop, 0, bitmap.height);
+        const sourceBottom = clamp2(rawBottom, 0, bitmap.height);
+        sourceHeight = sourceBottom - sourceY;
+        if (sourceHeight <= 0) {
+          return;
+        }
+        targetY = rect.top + (sourceY - rawTop) * scaleY;
+        targetHeight = sourceHeight * scaleY;
+      }
+      context.drawImage(bitmap, sourceX, sourceY, sourceWidth, sourceHeight, targetX, targetY, targetWidth, targetHeight);
     }
     spectrogramBitmapForResult(result) {
       const cached = this.spectrogramBitmapCache.get(result.requestId);
@@ -8958,6 +9394,7 @@
       const image = new ImageData(new Uint8ClampedArray(result.pixels), result.width, result.height);
       bitmapContext.putImageData(image, 0, 0);
       this.spectrogramBitmapCache.set(result.requestId, bitmap);
+      this.pruneSpectrogramCaches();
       return bitmap;
     }
     visibleRange() {
@@ -10357,6 +10794,29 @@
       return erbToHz(minErb + r * (hzToErb(top) - minErb));
     }
     return bottom + r * (top - bottom);
+  }
+  function ratioFromFrequency(freq, scale, minHz, maxHz) {
+    const bottom = Math.max(0, Math.min(minHz, maxHz - 1));
+    const top = Math.max(bottom + 1, maxHz);
+    if (scale === "log") {
+      if (top <= 20) {
+        return (freq - bottom) / (top - bottom);
+      }
+      const low = 20;
+      const minCoord = bottom <= 0 ? 0 : Math.log(Math.max(low, bottom) / low) / Math.log(top / low);
+      const coord = Math.log(Math.max(freq, 1e-3) / low) / Math.log(top / low);
+      return (coord - minCoord) / Math.max(1e-9, 1 - minCoord);
+    }
+    if (scale === "mel") {
+      return (hzToMel(freq) - hzToMel(bottom)) / Math.max(1e-9, hzToMel(top) - hzToMel(bottom));
+    }
+    if (scale === "bark") {
+      return (hzToBark(freq) - hzToBark(bottom)) / Math.max(1e-9, hzToBark(top) - hzToBark(bottom));
+    }
+    if (scale === "erb") {
+      return (hzToErb(freq) - hzToErb(bottom)) / Math.max(1e-9, hzToErb(top) - hzToErb(bottom));
+    }
+    return (freq - bottom) / (top - bottom);
   }
   function normalizeFrequencyRange(minHz, maxHz, followsNyquist, nyquist) {
     const top = Math.max(1, Math.floor(nyquist));

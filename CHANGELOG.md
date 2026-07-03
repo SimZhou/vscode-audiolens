@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0
+
+Real-time spectrogram zoom and pan.
+
+- Spectrogram zoom and pan now respond in real time. Horizontal panning reuses already-computed FFT columns, and frequency-axis zoom/pan, palette, and dB changes no longer recompute the FFT — they only re-rasterize (typically a few milliseconds).
+- During continuous zoom or pan the latest request always wins: a leading-edge throttle keeps analysis on a steady cadence instead of delaying it, and superseded requests are cancelled before doing any FFT work.
+- When zooming crosses a cache boundary, the view stays continuous by compositing cached results (coarse layers underneath, finer on top) with horizontal time clipping and vertical frequency remapping, instead of showing a blank gap while recomputing. After interaction settles, neighboring pan and zoom ranges are prefetched so the next cross-boundary step hits the cache directly.
+- Under the hood: the worker keeps per-channel samples resident and uses a real FFT with cached twiddle tables; a magnitude cache separates FFT output from display parameters so display-only changes are cheap.
+
 ## 1.7.0
 
 Vertical axis and per-channel frequency/amplitude controls.

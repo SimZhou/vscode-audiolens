@@ -90,10 +90,35 @@ interface TimeSelectionState {
   end: number;
 }
 
+// 频谱请求元数据：时间范围用于横向裁剪，频率范围/刻度用于纵向重映射，
+// 其余显示参数用于判断缓存结果能否参与跨边界合成绘制。
 interface SpectrogramRangeState {
   startSample: number;
   endSample: number;
+  channel: number;
+  hopSize: number;
+  minHz: number;
+  maxHz: number;
+  frequencyScale: FrequencyScale;
+  palette: SpectrogramPalette;
+  minDb: number;
+  maxDb: number;
 }
+
+// 频谱请求规划：量化后的采样范围与 hop，保证相邻缩放/平移步进落在同一缓存 key 上。
+interface SpectrogramRequestPlan {
+  startSample: number;
+  endSample: number;
+  hopSize: number;
+  outputBins: number;
+  targetFrames: number;
+}
+
+// 频谱结果/位图 LRU 上限：overscan 结果单个可达数 MB，超限按插入序淘汰。
+// 上限需容纳每个可见频谱轨道的当前结果 + 空闲预取的 4 个邻域（左右平移、上下一级缩放）。
+const SPECTROGRAM_CACHE_LIMIT = 16;
+// 超过该数量的频谱轨道时跳过空闲预取，避免缓存互相挤占。
+const SPECTROGRAM_PREFETCH_MAX_TRACKS = 3;
 
 type SpectrogramRequestProfile = {
   channel: number;
@@ -1399,6 +1424,10 @@ export class AudioLensApp {
   private objectUrl: string | undefined;
   private requestSeq = 1;
   private pendingAnalysisKeys = new Set<string>();
+  private analysisGeneration = 0;
+  private readonly workerLoadedChannels = new Set<number>();
+  private lastAnalyzeAt = 0;
+  private prefetchTimer: number | undefined;
   private playheadTime: number | undefined;
   private dragPlayheadTime: number | undefined;
   private sourceSampleRate: number | undefined;
@@ -1567,10 +1596,9 @@ export class AudioLensApp {
     this.redrawVisuals();
   }
 
-  private resetAnalysisWorker(): void {
-    this.worker.terminate();
-    this.worker = createAnalysisWorker();
-    this.bindAnalysisWorker();
+  private resetWorkerSampleStore(): void {
+    this.workerLoadedChannels.clear();
+    this.worker.postMessage({ type: "clearSamples" });
   }
 
   private resetSelectionWorker(): void {
@@ -1606,6 +1634,7 @@ export class AudioLensApp {
     this.channelPeakCache.clear();
     this.pendingAnalysisKeys.clear();
     this.pendingAnalysisTargets.clear();
+    this.resetWorkerSampleStore();
     this.trackViews = [];
     this.elements.trackList.replaceChildren();
     this.elements.figures.classList.remove("isFirstTrackSelectedAtTop");
@@ -1686,6 +1715,7 @@ export class AudioLensApp {
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
     this.waveformCache.clear();
+    this.resetWorkerSampleStore();
     this.selection = undefined;
     this.playheadTime = undefined;
     this.dragPlayheadTime = undefined;
@@ -3055,6 +3085,7 @@ export class AudioLensApp {
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
     this.waveformCache.clear();
+    this.resetWorkerSampleStore();
     this.selection = undefined;
     this.selectionPlaybackEnd = undefined;
     this.playheadTime = undefined;
@@ -3875,19 +3906,53 @@ export class AudioLensApp {
         this.drawChannelWaveform(view.waveform, view.channel);
       }
       if (view.mode !== "waveform") {
-        const cached = this.spectrogramCache.get(this.createSpectrogramCacheKey(view.channel, view.spectrogram));
-        if (cached) {
-          this.drawSpectrogramCanvas(view.spectrogram, cached);
-        } else {
-          const last = this.lastSpectrogramByChannel.get(view.channel);
-          if (last) {
-            this.drawSpectrogramCanvas(view.spectrogram, last);
-          } else {
-            this.drawEmptySpectrogram(view.spectrogram);
-          }
-        }
+        this.drawSpectrogramForView(view);
       }
     }
+  }
+
+  private drawSpectrogramForView(view: TrackView): SpectrogramDrawProfile | undefined {
+    const cached = this.spectrogramCache.get(this.createSpectrogramCacheKey(view.channel, view.spectrogram));
+    if (cached) {
+      return this.drawSpectrogramCanvas(view.spectrogram, cached);
+    }
+    // 精确结果未就绪：把缓存里所有兼容结果按粗到细合成绘制，跨缓存边界时不露白。
+    const layers = this.compatibleSpectrogramLayers(view.channel);
+    if (layers.length > 0) {
+      return this.drawSpectrogramCanvas(view.spectrogram, layers[layers.length - 1], layers.slice(0, -1));
+    }
+    const last = this.lastSpectrogramByChannel.get(view.channel);
+    if (last) {
+      return this.drawSpectrogramCanvas(view.spectrogram, last);
+    }
+    this.drawEmptySpectrogram(view.spectrogram);
+    return undefined;
+  }
+
+  // 可参与合成的缓存结果：同通道、同调色板/dB/频率刻度且与可见时间范围有重叠；
+  // 按 hop 从粗到细排序，细层覆盖粗层。频率范围不要求一致，绘制时做纵向重映射。
+  private compatibleSpectrogramLayers(channel: number): SpectrogramResult[] {
+    const range = this.visibleRange();
+    const scale = this.effectiveFrequencyScale(channel);
+    const layers: Array<{ result: SpectrogramResult; hop: number }> = [];
+    for (const [key, result] of this.spectrogramCache) {
+      const meta = this.spectrogramRangeCache.get(key);
+      if (!meta || meta.channel !== channel) {
+        continue;
+      }
+      if (meta.palette !== this.settings.palette || meta.minDb !== this.settings.minDb || meta.maxDb !== this.settings.maxDb) {
+        continue;
+      }
+      if (meta.frequencyScale !== scale) {
+        continue;
+      }
+      if (meta.endSample <= range.startSample || meta.startSample >= range.endSample) {
+        continue;
+      }
+      layers.push({ result, hop: meta.hopSize });
+    }
+    layers.sort((a, b) => b.hop - a.hop);
+    return layers.map((layer) => layer.result);
   }
 
   private drawChannelWaveform(canvas: HTMLCanvasElement, channel: number): void {
@@ -3935,14 +4000,21 @@ export class AudioLensApp {
     this.drawFrequencyAxis(context, rect, Number(canvas.dataset.channel ?? 0));
   }
 
-  private scheduleAnalyze(delay = 80): void {
+  // 前沿节流（不是尾沿防抖）：连续快速交互时保持每 delay 一次的稳定重算节奏，
+  // 已排定的定时器不重置，避免滚动过快时重算被无限推迟。
+  private scheduleAnalyze(delay = 40): void {
     if (this.analysisTimer !== undefined) {
-      window.clearTimeout(this.analysisTimer);
+      return;
+    }
+    const wait = Math.max(0, delay - (performance.now() - this.lastAnalyzeAt));
+    if (wait === 0) {
+      this.analyze();
+      return;
     }
     this.analysisTimer = window.setTimeout(() => {
       this.analysisTimer = undefined;
       this.analyze();
-    }, delay);
+    }, wait);
   }
 
   private analyze(): void {
@@ -3954,11 +4026,10 @@ export class AudioLensApp {
       window.clearTimeout(this.analysisTimer);
       this.analysisTimer = undefined;
     }
-    if (this.pendingAnalysisKeys.size > 0) {
-      this.resetAnalysisWorker();
-      this.pendingAnalysisKeys.clear();
-      this.pendingAnalysisTargets.clear();
-      this.pendingAnalysisProfiles.clear();
+    this.lastAnalyzeAt = performance.now();
+    if (this.prefetchTimer !== undefined) {
+      window.clearTimeout(this.prefetchTimer);
+      this.prefetchTimer = undefined;
     }
 
     const visibleTracks = this.trackViews.filter((view) => view.mode !== "waveform");
@@ -3968,87 +4039,197 @@ export class AudioLensApp {
     for (const view of visibleTracks) {
       this.analyzeChannel(view);
     }
+    // 全部命中缓存时不会有结果回调，在这里补上空闲预取的排期。
+    if (this.pendingAnalysisKeys.size === 0) {
+      this.schedulePrefetch();
+    }
+  }
+
+  private spectrogramRequestPlan(canvas: HTMLCanvasElement, visible?: { startSample: number; endSample: number }): SpectrogramRequestPlan {
+    resizeCanvas(canvas);
+    const rect = this.getPlotRect(canvas);
+    const ratio = window.devicePixelRatio || 1;
+    const targetFrames = Math.max(360, Math.min(1800, Math.floor(rect.width / ratio)));
+    const outputBins = Math.max(192, Math.min(900, Math.floor(rect.height / ratio)));
+    const { startSample, endSample } = visible ?? this.visibleRange();
+    const totalSamples = this.audioBuffer?.length ?? 0;
+    const span = Math.max(1, endSample - startSample);
+    // 量化 overscan 请求：B 为不小于可见跨度的最小 2 的幂，G = B/4 为对齐网格，
+    // 请求范围 = [对齐起点 - G, 起点 + B + 3G)。同一 B 内的缩放步进和 G 内的平移命中
+    // 同一缓存 key（drawSpectrogramBitmap 负责裁剪），跨 G 才重算且左右各留 ≥G 余量。
+    let block = 1;
+    while (block < span) block <<= 1;
+    const grid = Math.max(1, block >> 2);
+    const alignedStart = Math.floor(startSample / grid) * grid - grid;
+    const requestStart = Math.max(0, alignedStart);
+    const requestEnd = Math.max(requestStart, Math.min(totalSamples, alignedStart + block + 3 * grid));
+    // hop 取不超过理想值的最大 2 的幂：B 不变则 hop 不变，帧数约为目标帧数的 1~2 倍。
+    const idealHop = Math.max(1, (block + 3 * grid) / targetFrames);
+    let hopSize = 1;
+    while (hopSize * 2 <= idealHop) hopSize <<= 1;
+    return { startSample: requestStart, endSample: requestEnd, hopSize, outputBins, targetFrames };
+  }
+
+  private ensureWorkerSamples(channel: number, samples: Float32Array): void {
+    if (this.workerLoadedChannels.has(channel)) {
+      return;
+    }
+    const copy = samples.slice();
+    this.worker.postMessage({ type: "loadSamples", channel, samples: copy.buffer }, [copy.buffer]);
+    this.workerLoadedChannels.add(channel);
   }
 
   private analyzeChannel(view: TrackView): void {
-    const { startSample, endSample } = this.visibleRange();
-    resizeCanvas(view.spectrogram);
-    const spectrogramRect = this.getPlotRect(view.spectrogram);
-    const targetFrames = Math.max(360, Math.min(1800, Math.floor(spectrogramRect.width / (window.devicePixelRatio || 1))));
-    const outputBins = Math.max(192, Math.min(900, Math.floor(spectrogramRect.height / (window.devicePixelRatio || 1))));
-    const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, outputBins, targetFrames);
-    const frequencyRange = this.effectiveFrequencyRange(view.channel);
+    const plan = this.spectrogramRequestPlan(view.spectrogram);
+    const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, plan);
     const cached = this.spectrogramCache.get(cacheKey);
     if (cached) {
+      this.touchSpectrogramCacheKey(cacheKey);
       this.drawSpectrogramCanvas(view.spectrogram, cached);
       return;
     }
-
-    const samples = this.samplesForChannel(view.channel);
-    if (!samples) {
+    if (this.pendingAnalysisKeys.has(cacheKey)) {
       return;
     }
-    const source = samples.slice(startSample, endSample);
-    const windowSize = Math.min(this.settings.fftSize, Math.max(1, source.length));
-    const hopSize = Math.max(1, Math.floor(Math.max(1, source.length - windowSize) / targetFrames));
+    // 同通道旧请求作废：worker 按代际在分块让步点放弃计算，主线程同步清理 pending 记录。
+    this.analysisGeneration += 1;
+    for (const [key, channel] of Array.from(this.pendingAnalysisTargets)) {
+      if (channel === view.channel) {
+        this.pendingAnalysisKeys.delete(key);
+        this.pendingAnalysisTargets.delete(key);
+        this.pendingAnalysisProfiles.delete(key);
+      }
+    }
+    if (!this.postSpectrogramRequest(view, plan, cacheKey, false)) {
+      return;
+    }
+    this.setStatus(this.messages.analyzingSpectrogram);
+    this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} · ${formatWindowFunction(this.settings.windowFunction, this.messages)} · ${this.settings.fftSize} · ${this.messages.pad} ${this.settings.zeroPaddingFactor} · ${this.settings.frequencyScale} · ${this.messages.hop} ${plan.hopSize}`;
+  }
+
+  // prefetch=true 时使用当前代际（不作废在途请求）、不改状态栏；结果只入缓存不上屏。
+  private postSpectrogramRequest(view: TrackView, plan: SpectrogramRequestPlan, cacheKey: string, prefetch: boolean): boolean {
+    const samples = this.samplesForChannel(view.channel);
+    if (!samples) {
+      return false;
+    }
+    this.ensureWorkerSamples(view.channel, samples);
     this.pendingAnalysisKeys.add(cacheKey);
     this.pendingAnalysisTargets.set(cacheKey, view.channel);
-    if (this.shouldProfileSpectrogram()) {
+    if (!prefetch && this.shouldProfileSpectrogram()) {
       this.pendingAnalysisProfiles.set(cacheKey, {
         channel: view.channel,
         startedAt: performance.now(),
-        startSample,
-        endSample,
-        targetFrames,
-        outputBins
+        startSample: plan.startSample,
+        endSample: plan.endSample,
+        targetFrames: plan.targetFrames,
+        outputBins: plan.outputBins
       });
     }
-    this.spectrogramRangeCache.set(cacheKey, { startSample, endSample });
-    this.setStatus(this.messages.analyzingSpectrogram);
-    this.worker.postMessage(
-      {
-        type: "analyze",
-        requestId: cacheKey,
-        samples: source.buffer,
-        sampleRate: this.analysisSampleRate(),
-        settings: {
-          algorithm: this.settings.algorithm,
-          windowFunction: this.settings.windowFunction,
-          fftSize: this.settings.fftSize,
-          zeroPaddingFactor: this.settings.zeroPaddingFactor,
-          outputBins,
-          hopSize,
-          minDb: this.settings.minDb,
-          maxDb: this.settings.maxDb,
-          minFrequencyHz: frequencyRange.minHz,
-          maxFrequencyHz: frequencyRange.maxHz,
-          frequencyScale: this.effectiveFrequencyScale(view.channel),
-          palette: this.settings.palette,
-          profile: this.shouldProfileSpectrogram()
-        }
-      },
-      [source.buffer]
-    );
-    this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} · ${formatWindowFunction(this.settings.windowFunction, this.messages)} · ${this.settings.fftSize} · ${this.messages.pad} ${this.settings.zeroPaddingFactor} · ${this.settings.frequencyScale} · ${this.messages.hop} ${hopSize}`;
+    const frequencyRange = this.effectiveFrequencyRange(view.channel);
+    const frequencyScale = this.effectiveFrequencyScale(view.channel);
+    this.spectrogramRangeCache.set(cacheKey, {
+      startSample: plan.startSample,
+      endSample: plan.endSample,
+      channel: view.channel,
+      hopSize: plan.hopSize,
+      minHz: frequencyRange.minHz,
+      maxHz: frequencyRange.maxHz,
+      frequencyScale,
+      palette: this.settings.palette,
+      minDb: this.settings.minDb,
+      maxDb: this.settings.maxDb
+    });
+    this.worker.postMessage({
+      type: "analyze",
+      requestId: cacheKey,
+      generation: this.analysisGeneration,
+      channel: view.channel,
+      prefetch,
+      startSample: plan.startSample,
+      endSample: plan.endSample,
+      sampleRate: this.analysisSampleRate(),
+      settings: {
+        algorithm: this.settings.algorithm,
+        windowFunction: this.settings.windowFunction,
+        fftSize: this.settings.fftSize,
+        zeroPaddingFactor: this.settings.zeroPaddingFactor,
+        outputBins: plan.outputBins,
+        hopSize: plan.hopSize,
+        minDb: this.settings.minDb,
+        maxDb: this.settings.maxDb,
+        minFrequencyHz: frequencyRange.minHz,
+        maxFrequencyHz: frequencyRange.maxHz,
+        frequencyScale,
+        palette: this.settings.palette,
+        profile: !prefetch && this.shouldProfileSpectrogram()
+      }
+    });
+    return true;
   }
 
-  private createSpectrogramCacheKey(channel: number, canvas: HTMLCanvasElement, outputBins?: number, targetFrames?: number): string {
-    resizeCanvas(canvas);
-    const rect = this.getPlotRect(canvas);
-    const bins = outputBins ?? Math.max(192, Math.min(900, Math.floor(rect.height / (window.devicePixelRatio || 1))));
-    const frames = targetFrames ?? Math.max(360, Math.min(1800, Math.floor(rect.width / (window.devicePixelRatio || 1))));
-    const { startSample, endSample } = this.visibleRange();
+  // 空闲预取：交互停下后为每个频谱轨道补齐左右平移单元和上下一级缩放层，
+  // 让下一次跨缓存边界的交互直接命中缓存。
+  private schedulePrefetch(): void {
+    if (this.prefetchTimer !== undefined) {
+      window.clearTimeout(this.prefetchTimer);
+    }
+    this.prefetchTimer = window.setTimeout(() => {
+      this.prefetchTimer = undefined;
+      this.prefetchSpectrogramNeighbors();
+    }, 160);
+  }
+
+  private prefetchSpectrogramNeighbors(): void {
+    if (!this.audioBuffer) {
+      return;
+    }
+    const views = this.trackViews.filter((view) => view.mode !== "waveform");
+    if (views.length === 0 || views.length > SPECTROGRAM_PREFETCH_MAX_TRACKS) {
+      return;
+    }
+    const range = this.visibleRange();
+    const span = Math.max(1, range.endSample - range.startSample);
+    const total = this.audioBuffer.length;
+    const shift = Math.round(span * 0.5);
+    const quarter = Math.round(span * 0.25);
+    const candidates = [
+      { startSample: range.startSample - shift, endSample: range.endSample - shift },
+      { startSample: range.startSample + shift, endSample: range.endSample + shift },
+      { startSample: range.startSample + quarter, endSample: range.endSample - quarter },
+      { startSample: range.startSample - shift, endSample: range.endSample + shift }
+    ];
+    for (const view of views) {
+      for (const candidate of candidates) {
+        const startSample = clamp(candidate.startSample, 0, total);
+        const endSample = clamp(candidate.endSample, 0, total);
+        if (endSample - startSample < 2) {
+          continue;
+        }
+        const plan = this.spectrogramRequestPlan(view.spectrogram, { startSample, endSample });
+        const cacheKey = this.createSpectrogramCacheKey(view.channel, view.spectrogram, plan);
+        if (this.spectrogramCache.has(cacheKey) || this.pendingAnalysisKeys.has(cacheKey)) {
+          continue;
+        }
+        this.postSpectrogramRequest(view, plan, cacheKey, true);
+      }
+    }
+  }
+
+  private createSpectrogramCacheKey(channel: number, canvas: HTMLCanvasElement, plan?: SpectrogramRequestPlan): string {
+    const requestPlan = plan ?? this.spectrogramRequestPlan(canvas);
     const frequencyRange = this.effectiveFrequencyRange(channel);
     return createAnalysisCacheKey({
       channel,
-      startSample,
-      endSample,
+      startSample: requestPlan.startSample,
+      endSample: requestPlan.endSample,
       fftSize: this.settings.fftSize,
       windowFunction: this.settings.windowFunction,
       algorithm: this.settings.algorithm,
       zeroPaddingFactor: this.settings.zeroPaddingFactor,
-      outputBins: bins,
-      targetFrames: frames,
+      outputBins: requestPlan.outputBins,
+      targetFrames: requestPlan.targetFrames,
+      hopSize: requestPlan.hopSize,
       minDb: this.settings.minDb,
       maxDb: this.settings.maxDb,
       spectrogramMinHz: frequencyRange.minHz,
@@ -4058,11 +4239,44 @@ export class AudioLensApp {
     });
   }
 
+  private touchSpectrogramCacheKey(key: string): void {
+    const result = this.spectrogramCache.get(key);
+    if (result) {
+      this.spectrogramCache.delete(key);
+      this.spectrogramCache.set(key, result);
+    }
+    const bitmap = this.spectrogramBitmapCache.get(key);
+    if (bitmap) {
+      this.spectrogramBitmapCache.delete(key);
+      this.spectrogramBitmapCache.set(key, bitmap);
+    }
+  }
+
+  private pruneSpectrogramCaches(): void {
+    while (this.spectrogramCache.size > SPECTROGRAM_CACHE_LIMIT) {
+      const oldest = this.spectrogramCache.keys().next().value;
+      if (oldest === undefined) {
+        break;
+      }
+      this.spectrogramCache.delete(oldest);
+      this.spectrogramBitmapCache.delete(oldest);
+    }
+    while (this.spectrogramBitmapCache.size > SPECTROGRAM_CACHE_LIMIT) {
+      const oldest = this.spectrogramBitmapCache.keys().next().value;
+      if (oldest === undefined) {
+        break;
+      }
+      this.spectrogramBitmapCache.delete(oldest);
+    }
+  }
+
   private drawSpectrogramResult(result: SpectrogramResult): void {
     if (!this.pendingAnalysisKeys.has(result.requestId) && !this.spectrogramCache.has(result.requestId)) {
       return;
     }
+    this.spectrogramCache.delete(result.requestId);
     this.spectrogramCache.set(result.requestId, result);
+    this.pruneSpectrogramCaches();
     this.pendingAnalysisKeys.delete(result.requestId);
     const targetChannel = this.pendingAnalysisTargets.get(result.requestId);
     this.pendingAnalysisTargets.delete(result.requestId);
@@ -4070,20 +4284,30 @@ export class AudioLensApp {
     this.pendingAnalysisProfiles.delete(result.requestId);
     for (const view of this.trackViews) {
       const key = this.createSpectrogramCacheKey(view.channel, view.spectrogram);
-      if (key === result.requestId || view.channel === targetChannel) {
-        this.lastSpectrogramByChannel.set(view.channel, result);
-        if (view.mode !== "waveform") {
-          const drawProfile = this.drawSpectrogramCanvas(view.spectrogram, result);
-          this.logSpectrogramProfile(result, drawProfile, requestProfile);
-        }
+      const isCurrent = key === result.requestId;
+      // 预取结果只入缓存；除非用户恰好已经移动到了预取范围（key 正好匹配当前视图）。
+      if (result.prefetch && !isCurrent) {
+        continue;
+      }
+      if (!isCurrent && view.channel !== targetChannel) {
+        continue;
+      }
+      this.lastSpectrogramByChannel.set(view.channel, result);
+      if (view.mode !== "waveform") {
+        // 视图已经移开时按合成回退重绘，避免把过期范围整幅画上去。
+        const drawProfile = isCurrent
+          ? this.drawSpectrogramCanvas(view.spectrogram, result)
+          : this.drawSpectrogramForView(view);
+        this.logSpectrogramProfile(result, drawProfile, requestProfile);
       }
     }
     if (this.pendingAnalysisKeys.size === 0) {
       this.setStatus(this.messages.ready);
+      this.schedulePrefetch();
     }
   }
 
-  private drawSpectrogramCanvas(canvas: HTMLCanvasElement, result: SpectrogramResult): SpectrogramDrawProfile | undefined {
+  private drawSpectrogramCanvas(canvas: HTMLCanvasElement, result: SpectrogramResult, underlays?: SpectrogramResult[]): SpectrogramDrawProfile | undefined {
     const profile = this.shouldProfileSpectrogram();
     const start = profile ? performance.now() : 0;
     const context = resizeCanvas(canvas);
@@ -4096,15 +4320,22 @@ export class AudioLensApp {
     if (!bitmap) {
       return undefined;
     }
+    const channel = Number(canvas.dataset.channel ?? 0);
     context.imageSmoothingEnabled = false;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = canvasBackgroundColor();
     context.fillRect(0, 0, canvas.width, canvas.height);
     const drawStart = profile ? performance.now() : 0;
-    this.drawSpectrogramBitmap(context, bitmap, rect, result);
+    for (const underlay of underlays ?? []) {
+      const underlayBitmap = this.spectrogramBitmapForResult(underlay);
+      if (underlayBitmap) {
+        this.drawSpectrogramBitmap(context, underlayBitmap, rect, underlay, channel);
+      }
+    }
+    this.drawSpectrogramBitmap(context, bitmap, rect, result, channel);
     const drawEnd = profile ? performance.now() : 0;
     this.drawPlotFrame(context, rect);
-    this.drawFrequencyAxis(context, rect, Number(canvas.dataset.channel ?? 0));
+    this.drawFrequencyAxis(context, rect, channel);
     const range = this.visibleRange();
     this.drawSelectionOverlay(context, rect, range);
     this.drawPlayheadOverlay(context, rect, range);
@@ -4159,26 +4390,54 @@ export class AudioLensApp {
     console.groupEnd();
   }
 
-  private drawSpectrogramBitmap(context: CanvasRenderingContext2D, bitmap: HTMLCanvasElement, rect: PlotRect, result: SpectrogramResult): void {
-    const sourceRange = this.spectrogramRangeCache.get(result.requestId);
+  private drawSpectrogramBitmap(context: CanvasRenderingContext2D, bitmap: HTMLCanvasElement, rect: PlotRect, result: SpectrogramResult, channel: number): void {
+    const meta = this.spectrogramRangeCache.get(result.requestId);
     const currentRange = this.visibleRange();
-    if (!sourceRange) {
+    if (!meta) {
       context.drawImage(bitmap, rect.left, rect.top, rect.width, rect.height);
       return;
     }
-    const sourceDuration = Math.max(1, sourceRange.endSample - sourceRange.startSample);
+    // 横向：按时间范围重叠裁剪；无重叠则不绘制，交给背景或其他合成层。
+    const sourceDuration = Math.max(1, meta.endSample - meta.startSample);
     const currentDuration = Math.max(1, currentRange.endSample - currentRange.startSample);
-    const overlapStart = Math.max(sourceRange.startSample, currentRange.startSample);
-    const overlapEnd = Math.min(sourceRange.endSample, currentRange.endSample);
+    const overlapStart = Math.max(meta.startSample, currentRange.startSample);
+    const overlapEnd = Math.min(meta.endSample, currentRange.endSample);
     if (overlapEnd <= overlapStart) {
-      context.drawImage(bitmap, rect.left, rect.top, rect.width, rect.height);
       return;
     }
-    const sourceX = ((overlapStart - sourceRange.startSample) / sourceDuration) * bitmap.width;
+    const sourceX = ((overlapStart - meta.startSample) / sourceDuration) * bitmap.width;
     const sourceWidth = Math.max(1, ((overlapEnd - overlapStart) / sourceDuration) * bitmap.width);
     const targetX = rect.left + ((overlapStart - currentRange.startSample) / currentDuration) * rect.width;
     const targetWidth = Math.max(1, ((overlapEnd - overlapStart) / currentDuration) * rect.width);
-    context.drawImage(bitmap, sourceX, 0, sourceWidth, bitmap.height, targetX, rect.top, targetWidth, rect.height);
+
+    // 纵向：显示频率范围与结果不一致时在同一刻度域内做仿射裁剪（同刻度类型下数学上精确），
+    // 让频率轴缩放/平移立即跟手；刻度类型不同则退回整幅拉伸。
+    let sourceY = 0;
+    let sourceHeight = bitmap.height;
+    let targetY = rect.top;
+    let targetHeight = rect.height;
+    const freq = this.effectiveFrequencyRange(channel);
+    const scale = this.effectiveFrequencyScale(channel);
+    if ((meta.minHz !== freq.minHz || meta.maxHz !== freq.maxHz) && meta.frequencyScale === scale) {
+      // bitmap 第 0 行对应 meta.maxHz（ratio = 1），底行对应 meta.minHz。
+      const topRatio = ratioFromFrequency(freq.maxHz, scale, meta.minHz, meta.maxHz);
+      const bottomRatio = ratioFromFrequency(freq.minHz, scale, meta.minHz, meta.maxHz);
+      const rawTop = (1 - topRatio) * bitmap.height;
+      const rawBottom = (1 - bottomRatio) * bitmap.height;
+      if (rawBottom - rawTop < 1e-3) {
+        return;
+      }
+      const scaleY = rect.height / (rawBottom - rawTop);
+      sourceY = clamp(rawTop, 0, bitmap.height);
+      const sourceBottom = clamp(rawBottom, 0, bitmap.height);
+      sourceHeight = sourceBottom - sourceY;
+      if (sourceHeight <= 0) {
+        return;
+      }
+      targetY = rect.top + (sourceY - rawTop) * scaleY;
+      targetHeight = sourceHeight * scaleY;
+    }
+    context.drawImage(bitmap, sourceX, sourceY, sourceWidth, sourceHeight, targetX, targetY, targetWidth, targetHeight);
   }
 
   private spectrogramBitmapForResult(result: SpectrogramResult): HTMLCanvasElement | undefined {
@@ -4196,6 +4455,7 @@ export class AudioLensApp {
     const image = new ImageData(new Uint8ClampedArray(result.pixels), result.width, result.height);
     bitmapContext.putImageData(image, 0, 0);
     this.spectrogramBitmapCache.set(result.requestId, bitmap);
+    this.pruneSpectrogramCaches();
     return bitmap;
   }
 
@@ -5759,6 +6019,31 @@ function frequencyFromRatio(ratio: number, scale: FrequencyScale, minHz: number,
     return erbToHz(minErb + r * (hzToErb(top) - minErb));
   }
   return bottom + r * (top - bottom);
+}
+
+// frequencyFromRatio 的逆映射。结果不夹取到 [0, 1]：越界值用于纵向裁剪计算。
+function ratioFromFrequency(freq: number, scale: FrequencyScale, minHz: number, maxHz: number): number {
+  const bottom = Math.max(0, Math.min(minHz, maxHz - 1));
+  const top = Math.max(bottom + 1, maxHz);
+  if (scale === "log") {
+    if (top <= 20) {
+      return (freq - bottom) / (top - bottom);
+    }
+    const low = 20;
+    const minCoord = bottom <= 0 ? 0 : Math.log(Math.max(low, bottom) / low) / Math.log(top / low);
+    const coord = Math.log(Math.max(freq, 1e-3) / low) / Math.log(top / low);
+    return (coord - minCoord) / Math.max(1e-9, 1 - minCoord);
+  }
+  if (scale === "mel") {
+    return (hzToMel(freq) - hzToMel(bottom)) / Math.max(1e-9, hzToMel(top) - hzToMel(bottom));
+  }
+  if (scale === "bark") {
+    return (hzToBark(freq) - hzToBark(bottom)) / Math.max(1e-9, hzToBark(top) - hzToBark(bottom));
+  }
+  if (scale === "erb") {
+    return (hzToErb(freq) - hzToErb(bottom)) / Math.max(1e-9, hzToErb(top) - hzToErb(bottom));
+  }
+  return (freq - bottom) / (top - bottom);
 }
 
 function normalizeFrequencyRange(minHz: number, maxHz: number, followsNyquist: boolean, nyquist: number): { minHz: number; maxHz: number; storedMaxHz: number } {
