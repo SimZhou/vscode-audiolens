@@ -5,7 +5,8 @@ const watch = process.argv.includes("--watch");
 const shared = {
   bundle: true,
   sourcemap: watch,
-  minify: false,
+  // 发布构建压缩；watch 模式保留可读性便于调试
+  minify: !watch,
   logLevel: "info"
 };
 

@@ -9,13 +9,13 @@
 </p>
 
 <p align="center">
-  <a href="#feature-multichannel">Waveform</a> ·
-  <a href="#feature-multichannel">Spectrogram</a> ·
-  <a href="#feature-multichannel">Multi-channel tracks</a> ·
-  <a href="#feature-selection">Selection analysis</a> ·
-  <a href="#feature-pcm-raw">Raw PCM</a> ·
-  <a href="#feature-kaldi-ark">Kaldi WAV Ark</a> ·
-  <a href="#remote-ssh">Remote SSH</a>
+  <a href="#user-content-feature-multichannel">Waveform</a> ·
+  <a href="#user-content-feature-multichannel">Spectrogram</a> ·
+  <a href="#user-content-feature-multichannel">Multi-channel tracks</a> ·
+  <a href="#user-content-feature-selection">Selection analysis</a> ·
+  <a href="#user-content-feature-pcm-raw">Raw PCM</a> ·
+  <a href="#user-content-feature-kaldi-ark">Kaldi WAV Ark</a> ·
+  <a href="#user-content-remote-ssh">Remote SSH</a>
 </p>
 
 <p align="center">
@@ -27,11 +27,11 @@
 </p>
 
 <p align="center">
-  <a href="#feature-multichannel"><img src="https://img.shields.io/badge/Multi--channel-tracks-2ea44f" alt="Multi-channel tracks"></a>
-  <a href="#feature-selection"><img src="https://img.shields.io/badge/Spectrogram-analysis-7c3aed" alt="Spectrogram analysis"></a>
-  <a href="#feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-supported-f97316" alt="Raw PCM supported"></a>
-  <a href="#feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-supported-0ea5e9" alt="Kaldi WAV Ark supported"></a>
-  <a href="#remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-ready-2563eb" alt="Remote SSH ready"></a>
+  <a href="#user-content-feature-multichannel"><img src="https://img.shields.io/badge/Multi--channel-tracks-2ea44f" alt="Multi-channel tracks"></a>
+  <a href="#user-content-feature-selection"><img src="https://img.shields.io/badge/Spectrogram-analysis-7c3aed" alt="Spectrogram analysis"></a>
+  <a href="#user-content-feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-supported-f97316" alt="Raw PCM supported"></a>
+  <a href="#user-content-feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-supported-0ea5e9" alt="Kaldi WAV Ark supported"></a>
+  <a href="#user-content-remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-ready-2563eb" alt="Remote SSH ready"></a>
 </p>
 
 <p align="center">
@@ -103,7 +103,7 @@ code --install-extension audiolens-<version>.vsix
 
 ## Feature Demos
 
-<a id="feature-multichannel" name="feature-multichannel"></a>
+<a id="user-content-feature-multichannel" name="user-content-feature-multichannel"></a>
 
 ### 1. Multi-Channel Tracks and Multi-View
 
@@ -111,7 +111,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.en-US.gif" alt="Multi-channel tracks and multi-view demo" width="920">
 </p>
 
-<a id="feature-selection" name="feature-selection"></a>
+<a id="user-content-feature-selection" name="user-content-feature-selection"></a>
 
 ### 2. Selection Playback and Analysis
 
@@ -119,7 +119,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.en-US.gif" alt="Selection playback and analysis demo" width="920">
 </p>
 
-<a id="feature-pcm-raw" name="feature-pcm-raw"></a>
+<a id="user-content-feature-pcm-raw" name="user-content-feature-pcm-raw"></a>
 
 ### 3. Open PCM / RAW Files
 
@@ -139,7 +139,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.en-US.gif" alt="Open audio paths from any file demo" width="920">
 </p>
 
-<a id="feature-kaldi-ark" name="feature-kaldi-ark"></a>
+<a id="user-content-feature-kaldi-ark" name="user-content-feature-kaldi-ark"></a>
 
 ### 6. Open Kaldi WAV Ark Directly
 
@@ -275,7 +275,7 @@ Simplified Chinese, Traditional Chinese, English, Japanese, Korean, French, Germ
 
 New interface strings fall back to English until a locale has a complete translation.
 
-<a id="remote-ssh" name="remote-ssh"></a>
+<a id="user-content-remote-ssh" name="user-content-remote-ssh"></a>
 
 ## Use With Remote SSH
 

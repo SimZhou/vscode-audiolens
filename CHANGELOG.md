@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.2
+
+Fix: playback would not restart after a track finished; README feature badges now jump to their sections.
+
+- When a decoded track (Web Audio buffer playback) reached the end with no selection, the playhead and seek bar stayed stuck at the end and pressing Space/Play did nothing, because playback tried to resume from the very end. The whole-track end now resets playback to the start (same as pressing Esc), so Space replays from the beginning. Selection playback is unchanged and still stops at the selection end.
+- The feature badges and quick links at the top of the README now jump to their sections on the VS Code Marketplace website, GitHub, and the in-editor marketplace. The anchors and links were aligned to the `user-content-` id convention that all three renderers share, instead of relying on renderer-specific slug rules.
+
 ## 1.8.1
 
 Fix: multi-channel PCM spectrograms on first open.

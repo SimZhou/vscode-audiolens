@@ -9,13 +9,13 @@
 </p>
 
 <p align="center">
-  <a href="#feature-multichannel">波形图</a> ·
-  <a href="#feature-multichannel">语谱图</a> ·
-  <a href="#feature-multichannel">多通道音轨</a> ·
-  <a href="#feature-selection">选区分析</a> ·
-  <a href="#feature-pcm-raw">Raw PCM</a> ·
-  <a href="#feature-kaldi-ark">Kaldi WAV Ark</a> ·
-  <a href="#remote-ssh">Remote SSH</a>
+  <a href="#user-content-feature-multichannel">波形图</a> ·
+  <a href="#user-content-feature-multichannel">语谱图</a> ·
+  <a href="#user-content-feature-multichannel">多通道音轨</a> ·
+  <a href="#user-content-feature-selection">选区分析</a> ·
+  <a href="#user-content-feature-pcm-raw">Raw PCM</a> ·
+  <a href="#user-content-feature-kaldi-ark">Kaldi WAV Ark</a> ·
+  <a href="#user-content-remote-ssh">Remote SSH</a>
 </p>
 
 <p align="center">
@@ -27,11 +27,11 @@
 </p>
 
 <p align="center">
-  <a href="#feature-multichannel"><img src="https://img.shields.io/badge/多通道-音轨-2ea44f" alt="多通道音轨"></a>
-  <a href="#feature-selection"><img src="https://img.shields.io/badge/语谱图-分析-7c3aed" alt="语谱图分析"></a>
-  <a href="#feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-支持-f97316" alt="支持 Raw PCM"></a>
-  <a href="#feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-支持-0ea5e9" alt="支持 Kaldi WAV Ark"></a>
-  <a href="#remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-支持-2563eb" alt="支持 Remote SSH"></a>
+  <a href="#user-content-feature-multichannel"><img src="https://img.shields.io/badge/多通道-音轨-2ea44f" alt="多通道音轨"></a>
+  <a href="#user-content-feature-selection"><img src="https://img.shields.io/badge/语谱图-分析-7c3aed" alt="语谱图分析"></a>
+  <a href="#user-content-feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-支持-f97316" alt="支持 Raw PCM"></a>
+  <a href="#user-content-feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-支持-0ea5e9" alt="支持 Kaldi WAV Ark"></a>
+  <a href="#user-content-remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-支持-2563eb" alt="支持 Remote SSH"></a>
 </p>
 
 <p align="center">
@@ -103,7 +103,7 @@ code --install-extension audiolens-<version>.vsix
 
 ## 功能演示
 
-<a id="feature-multichannel" name="feature-multichannel"></a>
+<a id="user-content-feature-multichannel" name="user-content-feature-multichannel"></a>
 
 ### 1. 多通道音轨与多视图
 
@@ -111,7 +111,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.zh-CN.gif" alt="多通道音轨与多视图演示" width="920">
 </p>
 
-<a id="feature-selection" name="feature-selection"></a>
+<a id="user-content-feature-selection" name="user-content-feature-selection"></a>
 
 ### 2. 选区播放与分析
 
@@ -119,7 +119,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.zh-CN.gif" alt="选区播放与分析演示" width="920">
 </p>
 
-<a id="feature-pcm-raw" name="feature-pcm-raw"></a>
+<a id="user-content-feature-pcm-raw" name="user-content-feature-pcm-raw"></a>
 
 ### 3. 打开 PCM / RAW 文件
 
@@ -139,7 +139,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.zh-CN.gif" alt="从任意文件中打开音频路径演示" width="920">
 </p>
 
-<a id="feature-kaldi-ark" name="feature-kaldi-ark"></a>
+<a id="user-content-feature-kaldi-ark" name="user-content-feature-kaldi-ark"></a>
 
 ### 6. 直接打开 Kaldi WAV Ark
 
@@ -275,7 +275,7 @@ AudioLens 默认跟随 VS Code 显示语言。也可以通过 `audiolens.languag
 
 新增界面文案会在对应语种未补齐前回退到英语。
 
-<a id="remote-ssh" name="remote-ssh"></a>
+<a id="user-content-remote-ssh" name="user-content-remote-ssh"></a>
 
 ## 在 Remote SSH 中使用
 

@@ -2166,15 +2166,27 @@ export class AudioLensApp {
       return;
     }
     const endTime = this.selectionPlaybackEnd ?? this.audioBuffer.duration;
+    const stoppedAtSelectionEnd = this.selectionPlaybackEnd !== undefined;
     this.playbackBufferSourceNode = undefined;
     this.playbackSourceNode = undefined;
     this.bufferPlaybackPaused = true;
     this.selectionPlaybackEnd = undefined;
-    this.bufferPlaybackOffset = clamp(endTime, 0, this.audioBuffer.duration);
-    this.playheadTime = this.bufferPlaybackOffset;
     this.elements.play.textContent = "▶";
     this.stopPlaybackTicker();
-    this.syncPlaybackState({ redraw: true });
+    if (stoppedAtSelectionEnd) {
+      // 选区播放结束：停在选区结尾，便于反复试听
+      this.bufferPlaybackOffset = clamp(endTime, 0, this.audioBuffer.duration);
+      this.playheadTime = this.bufferPlaybackOffset;
+      this.syncPlaybackState({ redraw: true });
+      return;
+    }
+    // 整体播放自然结束：重置到开头，等价于按 ESC 退出，避免下次无法从头播放
+    this.bufferPlaybackOffset = 0;
+    this.playheadTime = undefined;
+    this.dragPlayheadTime = undefined;
+    this.elements.seek.value = "0";
+    this.updateClock();
+    this.redrawVisuals();
   }
 
   private stopBufferSource(): void {

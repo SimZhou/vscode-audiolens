@@ -9,13 +9,13 @@
 </p>
 
 <p align="center">
-  <a href="#feature-multichannel">波形</a> ·
-  <a href="#feature-multichannel">スペクトログラム</a> ·
-  <a href="#feature-multichannel">マルチチャンネル</a> ·
-  <a href="#feature-selection">選択範囲解析</a> ·
-  <a href="#feature-pcm-raw">Raw PCM</a> ·
-  <a href="#feature-kaldi-ark">Kaldi WAV Ark</a> ·
-  <a href="#remote-ssh">Remote SSH</a>
+  <a href="#user-content-feature-multichannel">波形</a> ·
+  <a href="#user-content-feature-multichannel">スペクトログラム</a> ·
+  <a href="#user-content-feature-multichannel">マルチチャンネル</a> ·
+  <a href="#user-content-feature-selection">選択範囲解析</a> ·
+  <a href="#user-content-feature-pcm-raw">Raw PCM</a> ·
+  <a href="#user-content-feature-kaldi-ark">Kaldi WAV Ark</a> ·
+  <a href="#user-content-remote-ssh">Remote SSH</a>
 </p>
 
 <p align="center">
@@ -27,11 +27,11 @@
 </p>
 
 <p align="center">
-  <a href="#feature-multichannel"><img src="https://img.shields.io/badge/%E3%83%9E%E3%83%AB%E3%83%81%E3%83%81%E3%83%A3%E3%83%B3%E3%83%8D%E3%83%AB-%E9%9F%B3%E5%A3%B0%E3%83%88%E3%83%A9%E3%83%83%E3%82%AF-2ea44f" alt="マルチチャンネル音声トラック"></a>
-  <a href="#feature-selection"><img src="https://img.shields.io/badge/%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0-%E8%A7%A3%E6%9E%90-7c3aed" alt="スペクトログラム解析"></a>
-  <a href="#feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-%E5%AF%BE%E5%BF%9C-f97316" alt="Raw PCM 対応"></a>
-  <a href="#feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-%E5%AF%BE%E5%BF%9C-0ea5e9" alt="Kaldi WAV Ark 対応"></a>
-  <a href="#remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-%E5%AF%BE%E5%BF%9C-2563eb" alt="Remote SSH 対応"></a>
+  <a href="#user-content-feature-multichannel"><img src="https://img.shields.io/badge/%E3%83%9E%E3%83%AB%E3%83%81%E3%83%81%E3%83%A3%E3%83%B3%E3%83%8D%E3%83%AB-%E9%9F%B3%E5%A3%B0%E3%83%88%E3%83%A9%E3%83%83%E3%82%AF-2ea44f" alt="マルチチャンネル音声トラック"></a>
+  <a href="#user-content-feature-selection"><img src="https://img.shields.io/badge/%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0-%E8%A7%A3%E6%9E%90-7c3aed" alt="スペクトログラム解析"></a>
+  <a href="#user-content-feature-pcm-raw"><img src="https://img.shields.io/badge/Raw%20PCM-%E5%AF%BE%E5%BF%9C-f97316" alt="Raw PCM 対応"></a>
+  <a href="#user-content-feature-kaldi-ark"><img src="https://img.shields.io/badge/Kaldi%20WAV%20Ark-%E5%AF%BE%E5%BF%9C-0ea5e9" alt="Kaldi WAV Ark 対応"></a>
+  <a href="#user-content-remote-ssh"><img src="https://img.shields.io/badge/Remote%20SSH-%E5%AF%BE%E5%BF%9C-2563eb" alt="Remote SSH 対応"></a>
 </p>
 
 <p align="center">
@@ -103,7 +103,7 @@ code --install-extension audiolens-<version>.vsix
 
 ## デモ
 
-<a id="feature-multichannel" name="feature-multichannel"></a>
+<a id="user-content-feature-multichannel" name="user-content-feature-multichannel"></a>
 
 ### 1. マルチチャンネルトラックと複合表示
 
@@ -111,7 +111,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/1.multi-channel_tracks_and_multi-view.ja-JP.gif" alt="マルチチャンネルトラックと複合表示のデモ" width="920">
 </p>
 
-<a id="feature-selection" name="feature-selection"></a>
+<a id="user-content-feature-selection" name="user-content-feature-selection"></a>
 
 ### 2. 選択範囲の再生と解析
 
@@ -119,7 +119,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/2.selection_playback_and_analysis.ja-JP.gif" alt="選択範囲の再生と解析のデモ" width="920">
 </p>
 
-<a id="feature-pcm-raw" name="feature-pcm-raw"></a>
+<a id="user-content-feature-pcm-raw" name="user-content-feature-pcm-raw"></a>
 
 ### 3. PCM / RAW ファイルを開く
 
@@ -139,7 +139,7 @@ code --install-extension audiolens-<version>.vsix
   <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/docs/assets/readme/5.open_audio_paths_from_any_file.ja-JP.gif" alt="任意のファイルから音声パスを開くデモ" width="920">
 </p>
 
-<a id="feature-kaldi-ark" name="feature-kaldi-ark"></a>
+<a id="user-content-feature-kaldi-ark" name="user-content-feature-kaldi-ark"></a>
 
 ### 6. Kaldi WAV Ark を直接開く
 
@@ -275,7 +275,7 @@ AudioLens は既定で VS Code の表示言語に従います。`audiolens.langu
 
 新しい UI 文字列は、各ロケールの翻訳がそろうまで英語へフォールバックします。
 
-<a id="remote-ssh" name="remote-ssh"></a>
+<a id="user-content-remote-ssh" name="user-content-remote-ssh"></a>
 
 ## Remote SSH で使う
 
