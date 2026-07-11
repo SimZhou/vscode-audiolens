@@ -16,7 +16,14 @@ import { formatBytes, getNonce } from "./util";
 const PREFERENCES_KEY = "audiolens.preferences.v1";
 const ARK_OFFSET_QUERY_KEY = "arkOffset";
 const MAX_MESSAGE_TEXT_LENGTH = 1024;
+const MAX_SELECTION_WAV_CHUNK_BYTES = 1024 * 1024;
 const FFMPEG_TIMEOUT_MS = 60_000;
+const WINDOW_FUNCTIONS = ["rectangular", "bartlett", "hamming", "hann", "blackman", "blackmanHarris", "welch", "gaussian25", "gaussian35", "gaussian45"] as const;
+const FFT_SIZES = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768] as const;
+const ZERO_PADDING_FACTORS = [1, 2, 4, 8, 16, 32, 64, 128] as const;
+const TRACK_MODES = ["both", "waveform", "spectrogram"] as const;
+const FREQUENCY_SCALES = ["linear", "log", "mel", "bark", "erb"] as const;
+const SPECTROGRAM_PALETTES = ["rose", "classic", "grayscale", "inverseGrayscale"] as const;
 
 interface ExtensionMessages {
   arkOffsetTitle: string;
@@ -61,6 +68,8 @@ class AudioLensDocument implements vscode.CustomDocument {
   private readonly changeEmitter = new vscode.EventEmitter<vscode.Uri>();
   private readonly disposeEmitter = new vscode.EventEmitter<void>();
   private readonly watcher: vscode.FileSystemWatcher;
+  private refreshTimer: NodeJS.Timeout | undefined;
+  private nonFileBytes: Uint8Array | undefined;
 
   public readonly onDidChange = this.changeEmitter.event;
   public readonly onDidDispose = this.disposeEmitter.event;
@@ -69,11 +78,15 @@ class AudioLensDocument implements vscode.CustomDocument {
     public readonly uri: vscode.Uri,
     private source: AudioLensDocumentSource
   ) {
-    this.watcher = vscode.workspace.createFileSystemWatcher(this.source.uri.fsPath, true, false, true);
-    this.watcher.onDidChange(async () => {
-      this.source = await AudioLensDocument.refreshSource(this.source);
-      this.changeEmitter.fire(this.uri);
+    const parentUri = this.source.uri.with({
+      path: path.posix.dirname(this.source.uri.path),
+      query: "",
+      fragment: ""
     });
+    this.watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(parentUri, "*"));
+    this.watcher.onDidCreate((uri) => this.scheduleRefresh(uri));
+    this.watcher.onDidChange((uri) => this.scheduleRefresh(uri));
+    this.watcher.onDidDelete((uri) => this.scheduleRefresh(uri));
   }
 
   public get size(): number {
@@ -105,10 +118,12 @@ class AudioLensDocument implements vscode.CustomDocument {
   }
 
   public async setArkOffset(offset: number): Promise<void> {
+    this.nonFileBytes = undefined;
     this.source = await AudioLensDocument.resolveSource(withArkOffset(this.source.uri, offset));
   }
 
   public async refresh(): Promise<void> {
+    this.nonFileBytes = undefined;
     this.source = await AudioLensDocument.refreshSource(this.source);
   }
 
@@ -131,15 +146,38 @@ class AudioLensDocument implements vscode.CustomDocument {
       }
     }
 
-    const data = await vscode.workspace.fs.readFile(this.source.uri);
+    const data = this.nonFileBytes ?? await vscode.workspace.fs.readFile(this.source.uri);
+    this.nonFileBytes = data;
     return data.slice(sourceOffset, sourceOffset + safeLength);
   }
 
   public dispose(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = undefined;
+    }
+    this.nonFileBytes = undefined;
     this.watcher.dispose();
     this.changeEmitter.dispose();
     this.disposeEmitter.fire();
     this.disposeEmitter.dispose();
+  }
+
+  private scheduleRefresh(uri: vscode.Uri): void {
+    if (
+      uri.with({ query: "", fragment: "" }).toString() !==
+      this.source.uri.with({ query: "", fragment: "" }).toString()
+    ) {
+      return;
+    }
+    this.nonFileBytes = undefined;
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = undefined;
+      this.changeEmitter.fire(this.uri);
+    }, 80);
   }
 
   private static async stat(uri: vscode.Uri): Promise<number> {
@@ -204,6 +242,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
   private readonly pendingSelectionWavDestinations = new WeakMap<vscode.Webview, Map<number, vscode.Uri>>();
   private readonly pendingSelectionWavWrites = new WeakMap<vscode.Webview, Map<number, PendingSelectionWavWrite>>();
   private readonly activeTranscodes = new WeakSet<AudioLensDocument>();
+  private activeTranscodeCount = 0;
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
     const provider = new AudioLensEditorProvider(context);
@@ -266,14 +305,19 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
 
     const subscriptions: vscode.Disposable[] = [
       document.onDidChange(async () => {
-        await document.refresh();
-        this.postMessage(webviewPanel.webview, {
-          type: "fileChanged",
-          metadata: this.createMetadata(document)
-        });
+        try {
+          await document.refresh();
+          this.postMessage(webviewPanel.webview, {
+            type: "fileChanged",
+            metadata: this.createMetadata(document)
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.postMessage(webviewPanel.webview, { type: "error", message });
+        }
       }),
       vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("audiolens.language") || event.affectsConfiguration("audiolens.profileSpectrogram")) {
+        if (event.affectsConfiguration("audiolens")) {
           this.postMessage(webviewPanel.webview, {
             type: "configChanged",
             config: this.readConfig()
@@ -309,15 +353,20 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
           await postBootstrap();
           break;
         case "readChunk": {
-          this.assertTransferAllowed(document);
-          const bytes = await document.readRange(message.offset, message.length);
-          this.postMessage(webview, {
-            type: "chunk",
-            requestId: message.requestId,
-            offset: message.offset,
-            total: document.size,
-            bytes: toArrayBuffer(bytes)
-          });
+          try {
+            this.assertTransferAllowed(document);
+            const bytes = await document.readRange(message.offset, message.length);
+            this.postMessage(webview, {
+              type: "chunk",
+              requestId: message.requestId,
+              offset: message.offset,
+              total: document.size,
+              bytes: toArrayBuffer(bytes)
+            });
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.postMessage(webview, { type: "chunkError", requestId: message.requestId, message: errorMessage });
+          }
           break;
         }
         case "updatePreferences":
@@ -466,7 +515,11 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       if (this.activeTranscodes.has(document)) {
         throw new Error("AudioLens is already transcoding this audio file.");
       }
+      if (this.activeTranscodeCount >= 1) {
+        throw new Error("AudioLens is already transcoding another audio file.");
+      }
       this.activeTranscodes.add(document);
+      this.activeTranscodeCount += 1;
       transcodeStarted = true;
       const bytes = await this.transcodeDocumentToWav(document);
       this.postMessage(webview, { type: "transcodedAudio", requestId, bytes: toArrayBuffer(bytes) });
@@ -476,6 +529,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     } finally {
       if (transcodeStarted) {
         this.activeTranscodes.delete(document);
+        this.activeTranscodeCount = Math.max(0, this.activeTranscodeCount - 1);
       }
     }
   }
@@ -502,27 +556,26 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
 
   private normalizePreferences(value: AudioLensPreferences): AudioLensPreferences {
     return {
-      algorithm: value.algorithm,
-      windowFunction: value.windowFunction,
-      fftSize: value.fftSize,
-      zeroPaddingFactor: value.zeroPaddingFactor,
-      defaultTrackMode: value.defaultTrackMode,
-      defaultTrackRowHeight: value.defaultTrackRowHeight,
-      defaultTrackWaveFr: value.defaultTrackWaveFr,
-      defaultTrackSpecFr: value.defaultTrackSpecFr,
-      frequencyScale: value.frequencyScale,
-      palette: value.palette,
-      minDb: value.minDb,
-      maxDb: value.maxDb,
-      spectrogramMinHz: value.spectrogramMinHz,
-      spectrogramMaxHz: value.spectrogramMaxHz,
-      spectrogramMaxFollowsNyquist: value.spectrogramMaxFollowsNyquist,
-      autoBrightness: value.autoBrightness,
-      amplitudeAuto: value.amplitudeAuto,
-      amplitudeMin: value.amplitudeMin,
-      amplitudeMax: value.amplitudeMax,
-      waveformHeight: value.waveformHeight,
-      spectrogramHeight: value.spectrogramHeight,
+      windowFunction: oneOf(value.windowFunction, WINDOW_FUNCTIONS),
+      fftSize: oneOf(value.fftSize, FFT_SIZES),
+      zeroPaddingFactor: oneOf(value.zeroPaddingFactor, ZERO_PADDING_FACTORS),
+      defaultTrackMode: oneOf(value.defaultTrackMode, TRACK_MODES),
+      defaultTrackRowHeight: finiteNumber(value.defaultTrackRowHeight),
+      defaultTrackWaveFr: finiteNumber(value.defaultTrackWaveFr),
+      defaultTrackSpecFr: finiteNumber(value.defaultTrackSpecFr),
+      frequencyScale: oneOf(value.frequencyScale, FREQUENCY_SCALES),
+      palette: oneOf(value.palette, SPECTROGRAM_PALETTES),
+      minDb: finiteNumber(value.minDb),
+      maxDb: finiteNumber(value.maxDb),
+      spectrogramMinHz: finiteNumber(value.spectrogramMinHz),
+      spectrogramMaxHz: finiteNumber(value.spectrogramMaxHz),
+      spectrogramMaxFollowsNyquist: booleanValue(value.spectrogramMaxFollowsNyquist),
+      autoBrightness: booleanValue(value.autoBrightness),
+      amplitudeAuto: booleanValue(value.amplitudeAuto),
+      amplitudeMin: finiteNumber(value.amplitudeMin),
+      amplitudeMax: finiteNumber(value.amplitudeMax),
+      waveformHeight: finiteNumber(value.waveformHeight),
+      spectrogramHeight: finiteNumber(value.spectrogramHeight),
       defaultPcmFormat: value.defaultPcmFormat
     };
   }
@@ -863,6 +916,9 @@ function normalizeLocale(locale: string): string {
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  if (bytes.byteOffset === 0 && bytes.buffer instanceof ArrayBuffer && bytes.byteLength === bytes.buffer.byteLength) {
+    return bytes.buffer;
+  }
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
@@ -1060,8 +1116,9 @@ async function runFfmpegToWav(inputPath: string, maxOutputBytes: number): Promis
       clearTimeout(timeout);
       if (code === 0) {
         const output = Buffer.concat(stdout);
+        stdout.length = 0;
         normalizePipedWavSizes(output);
-        resolve(new Uint8Array(output));
+        resolve(output);
         return;
       }
       const detail = Buffer.concat(stderr).toString("utf8").trim();
@@ -1110,7 +1167,7 @@ function parseWebviewMessage(value: unknown, maxTransferBytes: number): WebviewM
         isSafeRequestId(value.requestId) &&
         isBoundedString(value.fileName) &&
         isSafeChunkIndex(value.chunkIndex) &&
-        isBase64Payload(value.bytesBase64, maxTransferBytes)
+        isBase64Payload(value.bytesBase64, Math.min(maxTransferBytes, MAX_SELECTION_WAV_CHUNK_BYTES))
       ) {
         return {
           type: "writeSelectionWavChunk",
@@ -1139,6 +1196,18 @@ function parseWebviewMessage(value: unknown, maxTransferBytes: number): WebviewM
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function oneOf<T extends string | number>(value: unknown, allowed: readonly T[]): T | undefined {
+  return allowed.includes(value as T) ? value as T : undefined;
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function booleanValue(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
 }
 
 function isSafeRequestId(value: unknown): value is number {

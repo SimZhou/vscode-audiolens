@@ -56,10 +56,7 @@ export interface LocaleMessages {
   playbackPosition: string;
   closeSettings: string;
   spectrogramDisplay: string;
-  algorithm: string;
   algorithmFrequency: string;
-  algorithmReassignment: string;
-  algorithmPitchEac: string;
   windowSize: string;
   windowType: string;
   windowRectangular: string;

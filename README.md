@@ -73,7 +73,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 | --- | --- |
 | Playback | Keyboard-ready `Space` play/pause, seek, selection playback, playback gain, per-channel mute and solo. |
 | Visualization | Waveform, spectrogram, combined view, shared timeline, draggable per-track height and waveform/spectrogram split, zoom, pan, and reset. |
-| Spectrogram analysis | Frequency, reassignment, and pitch (EAC) algorithms; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, and auto brightness. |
+| Spectrogram analysis | Frequency-domain STFT analysis; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, and auto brightness. |
 | File inspection | Structured header inspector for WAV/RIFF, FLAC, Ogg, MP4/M4A, AAC/ADTS, and MP3/MPEG frames. |
 | Dataset navigation | Hover/status-bar/command entry points for audio paths in ordinary text files without generating thousands of inline links. |
 | Persistence | Saves default track view, spectrogram settings, playback gain, PCM defaults, and language preference. |
@@ -232,10 +232,10 @@ Tooltips next to the metrics describe how each value is calculated and when it i
 
 AudioLens includes practical spectrogram controls for speech and signal inspection:
 
-- algorithms: Frequency, Reassignment, Pitch (EAC)
+- algorithm: Frequency-domain STFT
 - FFT sizes from `8` to `32768`
 - window functions: Rectangular, Bartlett, Hamming, Hann, Blackman, Blackman-Harris, Welch, and Gaussian variants
-- zero padding factors from `1` to `128`
+- zero padding factors from `1` to `128` (the padded FFT is capped at `131072` to bound memory use)
 - frequency scales: Linear, Log, Mel, Bark, ERB
 - configurable display-only frequency range, with an optional Nyquist-following maximum
 - palettes: Rose, Classic, Grayscale, Inverse Grayscale

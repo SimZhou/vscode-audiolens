@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.3
+
+- Aligned the timeline with track plots on platforms that reserve a visible scrollbar gutter, addressing the layout reported in #5.
+- Made selection playback stop at the exact Web Audio boundary and serialized file reloads so stale audio cannot leak into a newer document state.
+- Added bounded spectrogram and waveform caches, FFT/magnitude memory limits, chunk timeouts and validation, PCM parameter limits, and runtime validation for persisted Webview preferences.
+- Fixed create/change/delete watching for local and remote files, cached non-file reads to avoid repeated whole-file I/O, and limited FFmpeg fallback to one active transcode.
+- Removed the placeholder Reassignment and Pitch (EAC) options, which did not implement those algorithms, and updated the documentation to describe the actual STFT analysis.
+- Updated esbuild to 0.28.1 to resolve GHSA-67mh-4wv8-2f99 in the development dependency tree.
+
 ## 1.8.2
 
 Fix: playback would not restart after a track finished; README feature badges now jump to their sections.

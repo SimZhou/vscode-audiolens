@@ -3,7 +3,6 @@ import {
   ExtensionMessage,
   AudioLensConfig,
   AudioLensPreferences,
-  SpectrogramAlgorithm,
   WebviewMessage,
   WindowFunction
 } from "../shared/protocol";
@@ -23,12 +22,13 @@ import {
 } from "../shared/analysis";
 import { AnalysisWorkerResult, createAnalysisWorker, SelectionSpectrumResult, SpectrogramResult } from "./analysisWorker";
 import { AudioHeaderInfo, readAudioFileFacts, readAudioHeaderInfo } from "./audioFacts";
-import { clamp, formatBytes, formatTime, guessMime, resizeCanvas } from "./dom";
+import { clamp, formatBytes, formatTime, resizeCanvas } from "./dom";
 import { getMessages, resolveLocale } from "./i18n";
 import { LocaleCode, LocaleMessages, LocaleSetting } from "./i18n/types";
 import {
   createAudioBufferFromChannels,
   decodePcm,
+  isSupportedPcmSampleRate,
   pcmEncodingToFormat,
   pcmFormatToEncoding,
   PcmEncoding,
@@ -46,7 +46,6 @@ interface VsCodeApi {
 }
 
 interface AnalysisSettings {
-  algorithm: SpectrogramAlgorithm;
   defaultTrackMode: "both" | "waveform" | "spectrogram";
   windowFunction: WindowFunction;
   fftSize: number;
@@ -185,7 +184,13 @@ interface TrackView {
 
 const MIN_DRAG_PIXELS = 6;
 const ENCODED_DECODE_TIMEOUT_MS = 8000;
+const CHUNK_REQUEST_TIMEOUT_MS = 30_000;
 const SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
+const MAX_PADDED_FFT_SIZE = 131_072;
+const SPECTROGRAM_MAG_BYTE_BUDGET = 64 * 1024 * 1024;
+const WAVEFORM_CACHE_BYTE_BUDGET = 64 * 1024 * 1024;
+const WAVEFORM_CACHE_ENTRY_LIMIT = 256;
+const SUPPORTED_FFT_SIZES = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768] as const;
 const PLOT_MARGIN = { left: 78, top: 18, right: 18, bottom: 40 };
 const TRACK_AXIS_WIDTH = 78;
 const AXIS_FONT_SIZE = 13;
@@ -1421,7 +1426,6 @@ export class AudioLensApp {
   private defaultPcmFormat: PcmFormat | undefined;
   private currentFileName = "";
   private currentSourceLabel = "";
-  private objectUrl: string | undefined;
   private requestSeq = 1;
   private pendingAnalysisKeys = new Set<string>();
   private analysisGeneration = 0;
@@ -1447,7 +1451,11 @@ export class AudioLensApp {
   private playbackSplitterNode: ChannelSplitterNode | undefined;
   private playbackMergerNode: ChannelMergerNode | undefined;
   private playbackChannelGains: Array<{ left: GainNode; right: GainNode }> = [];
-  private readonly pendingChunks = new Map<number, (message: Extract<ExtensionMessage, { type: "chunk" }>) => void>();
+  private readonly pendingChunks = new Map<number, {
+    resolve: (message: Extract<ExtensionMessage, { type: "chunk" }>) => void;
+    reject: (error: Error) => void;
+    timeoutId: number;
+  }>();
   private readonly pendingTranscodes = new Map<number, {
     resolve: (message: Extract<ExtensionMessage, { type: "transcodedAudio" }>) => void;
     reject: (error: Error) => void;
@@ -1459,6 +1467,7 @@ export class AudioLensApp {
   private readonly spectrogramRangeCache = new Map<string, SpectrogramRangeState>();
   private readonly lastSpectrogramByChannel = new Map<number, SpectrogramResult>();
   private readonly waveformCache = new Map<string, WaveformPeaks>();
+  private waveformCacheBytes = 0;
   private readonly channelPeakCache = new Map<number, number>();
   private readonly pcmStatusStates = new WeakMap<HTMLElement, PcmStatusState>();
   private worker = createAnalysisWorker();
@@ -1469,10 +1478,10 @@ export class AudioLensApp {
   private selectionSpectrumRunning = false;
   private selectionWavDownloadRequestSeq = 0;
   private readonly pendingSelectionWavDownloads = new Map<number, PendingSelectionWavDownload>();
+  private loadQueue: Promise<void> = Promise.resolve();
   private currentLocale: LocaleCode = "en";
   private messages = getMessages("en");
   private readonly settings: AnalysisSettings = {
-    algorithm: "frequency",
     defaultTrackMode: "both",
     windowFunction: "hamming",
     fftSize: 512,
@@ -1513,24 +1522,36 @@ export class AudioLensApp {
         this.config = message.config;
         this.applyLanguage(message.config);
         this.settings.windowFunction = message.config.analysis.windowFunction;
-        this.settings.fftSize = message.config.analysis.fftSize;
-        this.settings.zeroPaddingFactor = message.config.analysis.zeroPaddingFactor;
+        this.settings.fftSize = normalizeFftSize(message.config.analysis.fftSize);
+        this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
+          this.settings.fftSize,
+          message.config.analysis.zeroPaddingFactor
+        );
         this.applyPreferences(message.preferences);
         this.syncControls();
-        await this.load(message.metadata);
+        await this.enqueueLoad(message.metadata);
         break;
       case "configChanged":
         this.config = message.config;
+        this.settings.windowFunction = message.config.analysis.windowFunction;
+        this.settings.fftSize = normalizeFftSize(message.config.analysis.fftSize);
+        this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
+          this.settings.fftSize,
+          message.config.analysis.zeroPaddingFactor
+        );
         this.applyLanguage(message.config);
         this.syncControls();
         this.updateSelectionAnalysis();
         this.redrawVisuals();
         break;
       case "fileChanged":
-        await this.load(message.metadata);
+        await this.enqueueLoad(message.metadata);
         break;
       case "chunk":
         this.resolveChunk(message);
+        break;
+      case "chunkError":
+        this.rejectChunk(message);
         break;
       case "transcodedAudio":
         this.resolveTranscode(message);
@@ -1556,6 +1577,13 @@ export class AudioLensApp {
         this.drawSpectrogramResult(event.data);
       }
     });
+    this.worker.addEventListener("error", (event) => {
+      event.preventDefault();
+      this.recoverAnalysisWorker(event.message || "Analysis Worker failed.");
+    });
+    this.worker.addEventListener("messageerror", () => {
+      this.recoverAnalysisWorker("Analysis Worker returned an invalid message.");
+    });
   }
 
   private bindSelectionWorker(): void {
@@ -1564,6 +1592,32 @@ export class AudioLensApp {
         this.applySelectionSpectrumResult(event.data);
       }
     });
+    this.selectionWorker.addEventListener("error", (event) => {
+      event.preventDefault();
+      this.selectionSpectrumRunning = false;
+      this.resetSelectionWorker();
+      this.setStatus(event.message || "Selection analysis failed.", "error");
+    }, { once: true });
+  }
+
+  private enqueueLoad(metadata: AudioFileMetadata): Promise<void> {
+    const next = this.loadQueue.then(() => this.load(metadata));
+    this.loadQueue = next.catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      this.setStatus(message, "error");
+    });
+    return this.loadQueue;
+  }
+
+  private recoverAnalysisWorker(message: string): void {
+    this.worker.terminate();
+    this.worker = createAnalysisWorker();
+    this.bindAnalysisWorker();
+    this.workerLoadedChannels.clear();
+    this.pendingAnalysisKeys.clear();
+    this.pendingAnalysisTargets.clear();
+    this.pendingAnalysisProfiles.clear();
+    this.setStatus(message, "error");
   }
 
   private syncPlatformShortcuts(): void {
@@ -1630,7 +1684,7 @@ export class AudioLensApp {
     this.spectrogramBitmapCache.clear();
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
-    this.waveformCache.clear();
+    this.clearWaveformCache();
     this.channelPeakCache.clear();
     this.pendingAnalysisKeys.clear();
     this.pendingAnalysisTargets.clear();
@@ -1644,16 +1698,14 @@ export class AudioLensApp {
 
   private clearAudioElement(): void {
     this.stopBufferSource();
+    this.stopPlaybackTicker();
     this.bufferPlaybackPaused = true;
     this.bufferPlaybackOffset = 0;
     this.bufferPlaybackStartedAt = 0;
     this.elements.audio.pause();
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-      this.objectUrl = undefined;
-    }
     this.elements.audio.removeAttribute("src");
     this.elements.audio.load();
+    this.elements.play.textContent = "▶";
   }
 
   private async load(metadata: AudioFileMetadata): Promise<void> {
@@ -1662,6 +1714,10 @@ export class AudioLensApp {
     const fileMetaText = `${metadata.fileName} · ${formatBytes(metadata.size)}${this.currentSourceLabel}`;
     this.elements.fileMeta.textContent = fileMetaText;
     this.elements.fileMeta.title = fileMetaText;
+    this.audioBytes = undefined;
+    this.stopPlaybackTicker();
+    this.clearDecodedAudio();
+    this.elements.play.textContent = "▶";
 
     if (!metadata.trusted) {
       this.setStatus(this.messages.workspaceNotTrusted);
@@ -1690,10 +1746,6 @@ export class AudioLensApp {
     this.elements.headerInfoPanel.hidden = true;
     this.elements.wavPcmPanel.hidden = true;
 
-    this.stopPlaybackTicker();
-    // 在解码前清掉上一份文件的 worker 采样，保证后续 loadSamples/analyze 不会撞上迟到的 clearSamples。
-    // 不能放在 loadPcm/loadEncoded 之后：PCM 路径下 loadPcm 内部已 decode+analyze，事后清采样会让在途分析读空。
-    this.resetWorkerSampleStore();
     if (metadata.kind === "pcm") {
       const loaded = await this.loadPcm(metadata);
       if (!loaded) {
@@ -1717,7 +1769,7 @@ export class AudioLensApp {
     this.spectrogramBitmapCache.clear();
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
-    this.waveformCache.clear();
+    this.clearWaveformCache();
     this.selection = undefined;
     this.playheadTime = undefined;
     this.dragPlayheadTime = undefined;
@@ -1746,11 +1798,13 @@ export class AudioLensApp {
       return;
     }
 
-    const audioContext = facts.sampleRate ? new AudioContext({ sampleRate: facts.sampleRate }) : new AudioContext();
+    const audioContext = isSupportedPcmSampleRate(facts.sampleRate)
+      ? new AudioContext({ sampleRate: facts.sampleRate })
+      : new AudioContext();
     try {
       this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, this.audioBytes, ENCODED_DECODE_TIMEOUT_MS);
       this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
-      this.installAudioElementFromBytes(fileName);
+      this.installAudioElementFromBuffer(fileName);
     } catch (error) {
       console.warn("AudioLens encoded decode fallback:", error);
       await audioContext.close().catch(() => undefined);
@@ -1927,11 +1981,6 @@ export class AudioLensApp {
     document.addEventListener("pointerdown", (event) => {
       this.closeFloatingMenusFromPointer(event);
     });
-    this.elements.algorithm.addEventListener("change", () => {
-      this.settings.algorithm = this.elements.algorithm.value as SpectrogramAlgorithm;
-      this.savePreferencesSoon();
-      this.analyze();
-    });
     this.elements.defaultTrackMode.addEventListener("change", () => {
       this.settings.defaultTrackMode = this.elements.defaultTrackMode.value as TrackViewMode;
       this.applyDefaultTrackModeToCurrentTracks();
@@ -1945,18 +1994,27 @@ export class AudioLensApp {
     });
     this.elements.fftSize.addEventListener("change", () => {
       this.settings.fftSize = Number(this.elements.fftSize.value);
+      this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
+        this.settings.fftSize,
+        this.settings.zeroPaddingFactor
+      );
+      this.syncControls();
       this.savePreferencesSoon();
       this.analyze();
       this.updateSelectionAnalysis();
     });
     this.elements.zeroPaddingFactor.addEventListener("change", () => {
-      this.settings.zeroPaddingFactor = Number(this.elements.zeroPaddingFactor.value);
+      this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
+        this.settings.fftSize,
+        Number(this.elements.zeroPaddingFactor.value)
+      );
+      this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
       this.savePreferencesSoon();
       this.analyze();
     });
     this.elements.channel.addEventListener("change", () => {
       this.settings.channel = Number(this.elements.channel.value);
-      this.waveformCache.clear();
+      this.clearWaveformCache();
       this.analyze();
       this.updateSelectionAnalysis();
       this.redrawVisuals();
@@ -2115,7 +2173,9 @@ export class AudioLensApp {
       this.redrawVisuals();
       return;
     }
-    const nextTime = this.playheadTime === undefined ? 0 : clamp(this.playheadTime, 0, this.audioBuffer.duration);
+    const requestedTime = this.playheadTime === undefined ? 0 : clamp(this.playheadTime, 0, this.audioBuffer.duration);
+    const lastPlayableTime = Math.max(0, this.audioBuffer.duration - 1 / this.audioBuffer.sampleRate);
+    const nextTime = requestedTime >= lastPlayableTime ? 0 : requestedTime;
     this.playheadTime = nextTime;
     this.bufferPlaybackOffset = nextTime;
     this.redrawVisuals();
@@ -2145,7 +2205,12 @@ export class AudioLensApp {
     this.bufferPlaybackStartedAt = this.playbackAudioContext.currentTime;
     this.bufferPlaybackPaused = false;
     this.ensurePlaybackGraph();
-    source.start(0, this.bufferPlaybackOffset);
+    if (this.selectionPlaybackEnd !== undefined) {
+      const duration = Math.max(0, this.selectionPlaybackEnd - this.bufferPlaybackOffset);
+      source.start(0, this.bufferPlaybackOffset, duration);
+    } else {
+      source.start(0, this.bufferPlaybackOffset);
+    }
     this.elements.play.textContent = "⏸";
     this.startPlaybackTicker();
   }
@@ -2718,7 +2783,6 @@ export class AudioLensApp {
   }
 
   private syncControls(): void {
-    this.elements.algorithm.value = this.settings.algorithm;
     this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
     this.elements.windowFunction.value = this.settings.windowFunction;
     this.elements.fftSize.value = String(this.settings.fftSize);
@@ -2807,9 +2871,6 @@ export class AudioLensApp {
   }
 
   private applyPreferences(preferences: AudioLensPreferences): void {
-    if (preferences.algorithm) {
-      this.settings.algorithm = preferences.algorithm as SpectrogramAlgorithm;
-    }
     if (preferences.defaultTrackMode) {
       this.settings.defaultTrackMode = preferences.defaultTrackMode;
     }
@@ -2817,10 +2878,13 @@ export class AudioLensApp {
       this.settings.windowFunction = preferences.windowFunction as WindowFunction;
     }
     if (preferences.fftSize) {
-      this.settings.fftSize = preferences.fftSize;
+      this.settings.fftSize = normalizeFftSize(preferences.fftSize);
     }
     if (preferences.zeroPaddingFactor) {
-      this.settings.zeroPaddingFactor = preferences.zeroPaddingFactor;
+      this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
+        this.settings.fftSize,
+        preferences.zeroPaddingFactor
+      );
     }
     if (preferences.frequencyScale) {
       this.settings.frequencyScale = preferences.frequencyScale as FrequencyScale;
@@ -2872,6 +2936,10 @@ export class AudioLensApp {
     if (preferences.defaultPcmFormat) {
       this.defaultPcmFormat = preferences.defaultPcmFormat as PcmFormat;
     }
+    this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
+      this.settings.fftSize,
+      this.settings.zeroPaddingFactor
+    );
   }
 
   private savePreferencesSoon(): void {
@@ -2886,7 +2954,6 @@ export class AudioLensApp {
 
   private collectPreferences(): AudioLensPreferences {
     return {
-      algorithm: this.settings.algorithm,
       defaultTrackMode: this.settings.defaultTrackMode,
       windowFunction: this.settings.windowFunction,
       fftSize: this.settings.fftSize,
@@ -2985,12 +3052,23 @@ export class AudioLensApp {
   }
 
   private resolveChunk(message: Extract<ExtensionMessage, { type: "chunk" }>): void {
-    const resolve = this.pendingChunks.get(message.requestId);
-    if (!resolve) {
+    const pending = this.pendingChunks.get(message.requestId);
+    if (!pending) {
       return;
     }
     this.pendingChunks.delete(message.requestId);
-    resolve(message);
+    window.clearTimeout(pending.timeoutId);
+    pending.resolve(message);
+  }
+
+  private rejectChunk(message: Extract<ExtensionMessage, { type: "chunkError" }>): void {
+    const pending = this.pendingChunks.get(message.requestId);
+    if (!pending) {
+      return;
+    }
+    this.pendingChunks.delete(message.requestId);
+    window.clearTimeout(pending.timeoutId);
+    pending.reject(new Error(message.message));
   }
 
   private resolveTranscode(message: Extract<ExtensionMessage, { type: "transcodedAudio" }>): void {
@@ -3018,11 +3096,21 @@ export class AudioLensApp {
       const length = Math.min(DEFAULT_CHUNK_SIZE, size - offset);
       const requestId = this.requestSeq;
       this.requestSeq += 1;
-      const chunk = await new Promise<Extract<ExtensionMessage, { type: "chunk" }>>((resolve) => {
-        this.pendingChunks.set(requestId, resolve);
+      const chunk = await new Promise<Extract<ExtensionMessage, { type: "chunk" }>>((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => {
+          this.pendingChunks.delete(requestId);
+          reject(new Error(`Audio chunk request timed out at offset ${offset}.`));
+        }, CHUNK_REQUEST_TIMEOUT_MS);
+        this.pendingChunks.set(requestId, { resolve, reject, timeoutId });
         this.vscode.postMessage({ type: "readChunk", requestId, offset, length });
       });
       const bytes = new Uint8Array(chunk.bytes);
+      if (chunk.offset !== offset || chunk.total !== size) {
+        throw new Error("Audio file changed while it was being read.");
+      }
+      if (bytes.byteLength === 0 || bytes.byteLength > length || offset + bytes.byteLength > size) {
+        throw new Error(`Invalid audio chunk length at offset ${offset}.`);
+      }
       target.set(bytes, offset);
       offset += bytes.byteLength;
       this.setStatus(`${this.messages.readingAudioProgress} ${Math.round((offset / size) * 100)}%`);
@@ -3040,32 +3128,16 @@ export class AudioLensApp {
     return new Uint8Array(message.bytes);
   }
 
-  private installAudioElementFromBytes(fileName: string, bytes = this.audioBytes, mime = guessMime(fileName)): void {
-    if (!bytes) {
-      return;
-    }
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-    }
-    this.objectUrl = URL.createObjectURL(new Blob([toArrayBuffer(bytes)], { type: mime }));
-    this.elements.audio.src = this.objectUrl;
-    this.elements.audio.load();
-    this.elements.seek.value = "0";
-    this.updateClock();
-  }
-
   private installAudioElementFromBuffer(fileName: string): void {
     if (!this.audioBuffer) {
       return;
-    }
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-      this.objectUrl = undefined;
     }
     this.stopBufferSource();
     this.bufferPlaybackPaused = true;
     this.bufferPlaybackOffset = 0;
     this.elements.audio.removeAttribute("src");
+    this.elements.audio.load();
+    this.elements.play.textContent = "▶";
     this.elements.seek.value = "0";
     this.updateClock();
     const fileMetaText = `${fileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
@@ -3098,7 +3170,7 @@ export class AudioLensApp {
     this.spectrogramBitmapCache.clear();
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
-    this.waveformCache.clear();
+    this.clearWaveformCache();
     this.resetWorkerSampleStore();
     this.selection = undefined;
     this.selectionPlaybackEnd = undefined;
@@ -3828,12 +3900,18 @@ export class AudioLensApp {
 
   private redrawVisuals(): void {
     this.updateResetViewButtonState();
+    this.syncTimelineScrollbarGutter();
     const range = this.visibleRange();
     this.elements.viewRange.textContent = this.messages.timeLabel;
     this.elements.viewRange.title = `${range.startTime.toFixed(3)}s - ${range.endTime.toFixed(3)}s`;
     this.drawTimeline();
     this.drawTrackVisuals();
     this.updatePersistentSelectionBox();
+  }
+
+  private syncTimelineScrollbarGutter(): void {
+    const gutter = Math.max(0, this.elements.trackList.offsetWidth - this.elements.trackList.clientWidth);
+    this.elements.figures.style.setProperty("--timeline-scrollbar-gutter", `${gutter}px`);
   }
 
   private drawTimeline(): void {
@@ -4063,7 +4141,15 @@ export class AudioLensApp {
     resizeCanvas(canvas);
     const rect = this.getPlotRect(canvas);
     const ratio = window.devicePixelRatio || 1;
-    const targetFrames = Math.max(360, Math.min(1800, Math.floor(rect.width / ratio)));
+    const preferredTargetFrames = Math.max(360, Math.min(1800, Math.floor(rect.width / ratio)));
+    const paddedFftSize = nextPowerOfTwoNumber(this.settings.fftSize * this.settings.zeroPaddingFactor);
+    const halfFftSize = Math.max(1, paddedFftSize / 2);
+    // Worker 的帧数最多约为 targetFrames 的两倍，预留 2 倍余量保证幅值矩阵不超过预算。
+    const budgetTargetFrames = Math.max(
+      1,
+      Math.floor(SPECTROGRAM_MAG_BYTE_BUDGET / (halfFftSize * Float32Array.BYTES_PER_ELEMENT * 2))
+    );
+    const targetFrames = Math.min(preferredTargetFrames, budgetTargetFrames);
     const outputBins = Math.max(192, Math.min(900, Math.floor(rect.height / ratio)));
     const { startSample, endSample } = visible ?? this.visibleRange();
     const totalSamples = this.audioBuffer?.length ?? 0;
@@ -4072,15 +4158,15 @@ export class AudioLensApp {
     // 请求范围 = [对齐起点 - G, 起点 + B + 3G)。同一 B 内的缩放步进和 G 内的平移命中
     // 同一缓存 key（drawSpectrogramBitmap 负责裁剪），跨 G 才重算且左右各留 ≥G 余量。
     let block = 1;
-    while (block < span) block <<= 1;
-    const grid = Math.max(1, block >> 2);
+    while (block < span) block *= 2;
+    const grid = Math.max(1, Math.floor(block / 4));
     const alignedStart = Math.floor(startSample / grid) * grid - grid;
     const requestStart = Math.max(0, alignedStart);
     const requestEnd = Math.max(requestStart, Math.min(totalSamples, alignedStart + block + 3 * grid));
     // hop 取不超过理想值的最大 2 的幂：B 不变则 hop 不变，帧数约为目标帧数的 1~2 倍。
     const idealHop = Math.max(1, (block + 3 * grid) / targetFrames);
     let hopSize = 1;
-    while (hopSize * 2 <= idealHop) hopSize <<= 1;
+    while (hopSize * 2 <= idealHop) hopSize *= 2;
     return { startSample: requestStart, endSample: requestEnd, hopSize, outputBins, targetFrames };
   }
 
@@ -4118,7 +4204,7 @@ export class AudioLensApp {
       return;
     }
     this.setStatus(this.messages.analyzingSpectrogram);
-    this.elements.analysisMeta.textContent = `${formatAlgorithm(this.settings.algorithm, this.messages)} · ${formatWindowFunction(this.settings.windowFunction, this.messages)} · ${this.settings.fftSize} · ${this.messages.pad} ${this.settings.zeroPaddingFactor} · ${this.settings.frequencyScale} · ${this.messages.hop} ${plan.hopSize}`;
+    this.elements.analysisMeta.textContent = `${this.messages.algorithmFrequency} · ${formatWindowFunction(this.settings.windowFunction, this.messages)} · ${this.settings.fftSize} · ${this.messages.pad} ${this.settings.zeroPaddingFactor} · ${this.settings.frequencyScale} · ${this.messages.hop} ${plan.hopSize}`;
   }
 
   // prefetch=true 时使用当前代际（不作废在途请求）、不改状态栏；结果只入缓存不上屏。
@@ -4164,7 +4250,6 @@ export class AudioLensApp {
       endSample: plan.endSample,
       sampleRate: this.analysisSampleRate(),
       settings: {
-        algorithm: this.settings.algorithm,
         windowFunction: this.settings.windowFunction,
         fftSize: this.settings.fftSize,
         zeroPaddingFactor: this.settings.zeroPaddingFactor,
@@ -4239,7 +4324,6 @@ export class AudioLensApp {
       endSample: requestPlan.endSample,
       fftSize: this.settings.fftSize,
       windowFunction: this.settings.windowFunction,
-      algorithm: this.settings.algorithm,
       zeroPaddingFactor: this.settings.zeroPaddingFactor,
       outputBins: requestPlan.outputBins,
       targetFrames: requestPlan.targetFrames,
@@ -4637,6 +4721,8 @@ export class AudioLensApp {
     const cacheKey = `ch-${channel}:${startSample}:${endSample}:${width}`;
     const cached = this.waveformCache.get(cacheKey);
     if (cached) {
+      this.waveformCache.delete(cacheKey);
+      this.waveformCache.set(cacheKey, cached);
       return cached;
     }
 
@@ -4647,7 +4733,31 @@ export class AudioLensApp {
 
     const peaks = computeWaveformPeaks(samples, startSample, endSample, width);
     this.waveformCache.set(cacheKey, peaks);
+    this.waveformCacheBytes += peaks.min.byteLength + peaks.max.byteLength;
+    this.pruneWaveformCache();
     return peaks;
+  }
+
+  private clearWaveformCache(): void {
+    this.waveformCache.clear();
+    this.waveformCacheBytes = 0;
+  }
+
+  private pruneWaveformCache(): void {
+    while (
+      this.waveformCache.size > 0 &&
+      (this.waveformCache.size > WAVEFORM_CACHE_ENTRY_LIMIT || this.waveformCacheBytes > WAVEFORM_CACHE_BYTE_BUDGET)
+    ) {
+      const oldestKey = this.waveformCache.keys().next().value;
+      if (oldestKey === undefined) {
+        break;
+      }
+      const oldest = this.waveformCache.get(oldestKey);
+      if (oldest) {
+        this.waveformCacheBytes -= oldest.min.byteLength + oldest.max.byteLength;
+      }
+      this.waveformCache.delete(oldestKey);
+    }
   }
 
   private bindFigureInteraction(canvas: HTMLCanvasElement): void {
@@ -4658,6 +4768,7 @@ export class AudioLensApp {
       window.removeEventListener("pointermove", handleDragMove);
       window.removeEventListener("pointerup", finishDrag);
       window.removeEventListener("pointercancel", cancelDrag);
+      window.removeEventListener("blur", cancelDrag);
     };
     const cancelDrag = () => {
       if (!isDragging) {
@@ -4758,8 +4869,8 @@ export class AudioLensApp {
       window.addEventListener("pointermove", handleDragMove);
       window.addEventListener("pointerup", finishDrag);
       window.addEventListener("pointercancel", cancelDrag);
+      window.addEventListener("blur", cancelDrag);
     });
-    window.addEventListener("blur", cancelDrag);
   }
 
   private handleWheel(event: WheelEvent, canvas: HTMLCanvasElement): void {
@@ -5570,6 +5681,29 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return buffer;
 }
 
+function normalizeZeroPaddingFactor(fftSize: number, requestedFactor: number): number {
+  const safeFftSize = Math.max(8, Math.floor(Number.isFinite(fftSize) ? fftSize : 512));
+  const requested = Math.max(1, Math.floor(Number.isFinite(requestedFactor) ? requestedFactor : 1));
+  const maxFactor = Math.max(1, Math.floor(MAX_PADDED_FFT_SIZE / safeFftSize));
+  let factor = 1;
+  while (factor * 2 <= requested && factor * 2 <= maxFactor) {
+    factor *= 2;
+  }
+  return factor;
+}
+
+function normalizeFftSize(value: number): number {
+  return SUPPORTED_FFT_SIZES.includes(value as typeof SUPPORTED_FFT_SIZES[number]) ? value : 512;
+}
+
+function nextPowerOfTwoNumber(value: number): number {
+  let size = 1;
+  while (size < value) {
+    size *= 2;
+  }
+  return size;
+}
+
 async function decodeAudioDataWithTimeout(audioContext: AudioContext, bytes: Uint8Array, timeoutMs: number): Promise<AudioBuffer> {
   let timeoutId: number | undefined;
   try {
@@ -5815,16 +5949,6 @@ function amplitudeToDb(value: number): number {
 
 function formatDb(value: number): string {
   return `${value.toFixed(1)} dBFS`;
-}
-
-function formatAlgorithm(value: SpectrogramAlgorithm, messages: LocaleMessages): string {
-  if (value === "reassignment") {
-    return messages.algorithmReassignment;
-  }
-  if (value === "pitchEac") {
-    return messages.algorithmPitchEac;
-  }
-  return messages.algorithmFrequency;
 }
 
 function formatWindowFunction(value: WindowFunction, messages: LocaleMessages): string {

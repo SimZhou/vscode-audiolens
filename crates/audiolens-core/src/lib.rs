@@ -3,13 +3,6 @@ use std::f32::consts::PI;
 pub mod pcm;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpectrogramAlgorithm {
-    Frequency,
-    Reassignment,
-    PitchEac,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WindowFunction {
     Rectangular,
     Bartlett,
@@ -42,7 +35,6 @@ pub enum SpectrogramPalette {
 
 #[derive(Clone, Copy, Debug)]
 pub struct SpectrogramSettings {
-    pub algorithm: SpectrogramAlgorithm,
     pub window_function: WindowFunction,
     pub fft_size: usize,
     pub zero_padding_factor: usize,
@@ -100,7 +92,7 @@ pub fn render_spectrogram(samples: &[f32], settings: SpectrogramSettings) -> Spe
                 .round()
                 .clamp(0.0, (fft_size / 2 - 1) as f32) as usize;
             let mag = (re[bin] * re[bin] + im[bin] * im[bin]).sqrt() / window_size as f32;
-            let db = adjust_db_for_algorithm(20.0 * mag.max(1e-12).log10(), settings.algorithm);
+            let db = 20.0 * mag.max(1e-12).log10();
             let color = colorize((db - min_db) / (max_db - min_db), settings.palette);
             let index = (y * frames + frame) * 4;
             pixels[index] = color[0];
@@ -149,14 +141,6 @@ fn create_window(window_function: WindowFunction, size: usize) -> Vec<f32> {
 
 fn next_power_of_two(value: usize) -> usize {
     value.next_power_of_two().max(1)
-}
-
-fn adjust_db_for_algorithm(db: f32, algorithm: SpectrogramAlgorithm) -> f32 {
-    match algorithm {
-        SpectrogramAlgorithm::Frequency => db,
-        SpectrogramAlgorithm::Reassignment => db + 3.0,
-        SpectrogramAlgorithm::PitchEac => db - 3.0,
-    }
 }
 
 fn fft(re: &mut [f32], im: &mut [f32]) {
@@ -297,7 +281,6 @@ mod tests {
 
     fn default_settings() -> SpectrogramSettings {
         SpectrogramSettings {
-            algorithm: SpectrogramAlgorithm::Frequency,
             window_function: WindowFunction::Hann,
             fft_size: 64,
             zero_padding_factor: 1,

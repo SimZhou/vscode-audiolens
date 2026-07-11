@@ -8,7 +8,6 @@ export interface ViewElements {
   clock: HTMLSpanElement;
   seek: HTMLInputElement;
   audio: HTMLAudioElement;
-  algorithm: HTMLSelectElement;
   defaultTrackMode: HTMLSelectElement;
   zeroPaddingFactor: HTMLSelectElement;
   settingsToggle: HTMLButtonElement;
@@ -288,14 +287,6 @@ export function renderShell(root: HTMLDivElement): ViewElements {
         </section>
         <section class="settingsSection">
           <strong data-i18n="spectrogramDisplay">Spectrogram display</strong>
-        <label>
-          <span data-i18n="algorithm">Algorithm</span>
-          <select id="algorithm">
-            <option value="frequency" data-i18n="algorithmFrequency">Frequency</option>
-            <option value="reassignment" data-i18n="algorithmReassignment">Reassignment</option>
-            <option value="pitchEac" data-i18n="algorithmPitchEac">Pitch (EAC)</option>
-          </select>
-        </label>
         <label>
           <span data-i18n="windowSize">Window size</span>
           <select id="fftSize">
@@ -620,7 +611,6 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     clock: query("#clock", HTMLSpanElement),
     seek: query("#seek", HTMLInputElement),
     audio: query("#audio", HTMLAudioElement),
-    algorithm: query("#algorithm", HTMLSelectElement),
     defaultTrackMode: query("#defaultTrackMode", HTMLSelectElement),
     zeroPaddingFactor: query("#zeroPaddingFactor", HTMLSelectElement),
     settingsToggle: query("#settingsToggle", HTMLButtonElement),

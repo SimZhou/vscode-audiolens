@@ -85,7 +85,6 @@ export function createAnalysisCacheKey(parts: {
   endSample: number;
   fftSize: number;
   windowFunction: string;
-  algorithm?: string;
   zeroPaddingFactor?: number;
   outputBins?: number;
   targetFrames?: number;
@@ -103,7 +102,6 @@ export function createAnalysisCacheKey(parts: {
     parts.endSample,
     parts.fftSize,
     parts.windowFunction,
-    parts.algorithm ?? "frequency",
     parts.zeroPaddingFactor ?? 1,
     parts.outputBins ?? 0,
     parts.targetFrames ?? 0,

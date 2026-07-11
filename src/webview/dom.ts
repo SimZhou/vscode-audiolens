@@ -48,26 +48,3 @@ export function formatBytes(size: number): string {
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
-
-export function guessMime(fileName: string): string {
-  const extension = fileName.toLowerCase().split(".").pop();
-  if (extension === "mp3") {
-    return "audio/mpeg";
-  }
-  if (extension === "ogg") {
-    return "audio/ogg";
-  }
-  if (extension === "opus") {
-    return "audio/ogg; codecs=opus";
-  }
-  if (extension === "flac") {
-    return "audio/flac";
-  }
-  if (extension === "m4a") {
-    return "audio/mp4";
-  }
-  if (extension === "aac") {
-    return "audio/aac";
-  }
-  return "audio/wav";
-}

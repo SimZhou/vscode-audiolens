@@ -73,7 +73,7 @@ AudioLens 可以把 VS Code 变成实用的音频查看器，适合音频工程�
 | --- | --- |
 | 播放 | 打开后即可用 `Space` 播放/暂停，支持 seek、选区播放、播放增益、每通道静音和独奏。 |
 | 可视化 | 波形图、语谱图、组合视图、共享时间轴、可拖动的逐轨高度和波形图/语谱图比例、缩放、平移和重置。 |
-| 语谱图分析 | Frequency、Reassignment、Pitch (EAC) 算法；FFT 最大 `32768`；多种窗函数、频率刻度、配色和自动亮度。 |
+| 语谱图分析 | 频域 STFT 分析；FFT 最大 `32768`；多种窗函数、频率刻度、配色和自动亮度。 |
 | 文件检查 | 结构化查看 WAV/RIFF、FLAC、Ogg、MP4/M4A、AAC/ADTS 和 MP3/MPEG 帧头信息。 |
 | 数据集导航 | 在普通文本文件里通过 hover、状态栏和命令打开音频路径，不为大文件生成成千上万个正文链接。 |
 | 偏好保存 | 保存默认音轨视图、语谱图设置、播放增益、PCM 默认参数和界面语言。 |
@@ -232,10 +232,10 @@ Kaldi `*.ark:offset` 链接会刻意留给 Kaldi Reader 处理。
 
 AudioLens 提供适合语音和信号检查的语谱图参数：
 
-- 算法：Frequency、Reassignment、Pitch (EAC)
+- 算法：频域 STFT
 - FFT 大小：`8` 到 `32768`
 - 窗函数：Rectangular、Bartlett、Hamming、Hann、Blackman、Blackman-Harris、Welch 和 Gaussian 变体
-- 零填充倍数：`1` 到 `128`
+- 零填充倍数：`1` 到 `128`（padded FFT 最大为 `131072`，用于限制内存占用）
 - 频率刻度：Linear、Log、Mel、Bark、ERB
 - 可配置仅影响显示的频率范围，也可以让最大值跟随 Nyquist
 - 配色：Rose、Classic、Grayscale、Inverse Grayscale

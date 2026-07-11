@@ -12,6 +12,13 @@ export interface PcmFormat {
 }
 
 export const PCM_ENCODINGS: readonly PcmEncoding[] = ["signed-8", "signed-16", "signed-24", "signed-32", "unsigned-8", "float-32", "float-64"];
+export const MIN_PCM_SAMPLE_RATE = 3_000;
+export const MAX_PCM_SAMPLE_RATE = 768_000;
+export const MAX_PCM_CHANNELS = 32;
+
+export function isSupportedPcmSampleRate(value: number | undefined): value is number {
+  return value !== undefined && Number.isFinite(value) && value >= MIN_PCM_SAMPLE_RATE && value <= MAX_PCM_SAMPLE_RATE;
+}
 
 export function pcmEncodingToFormat(encoding: PcmEncoding): Pick<PcmFormat, "bitDepth" | "sampleFormat" | "endianness"> {
   switch (encoding) {
@@ -88,11 +95,11 @@ export function createAudioBufferFromChannels(audioContext: BaseAudioContext, de
 export function validatePcmFormat(bytes: Uint8Array, format: PcmFormat): string | undefined {
   const normalized = normalizePcmFormat(format);
   const startOffsetBytes = format.startOffsetBytes ?? 0;
-  if (!Number.isFinite(format.sampleRate) || format.sampleRate <= 0) {
-    return "PCM sample rate must be greater than 0.";
+  if (!isSupportedPcmSampleRate(format.sampleRate)) {
+    return `PCM sample rate must be between ${MIN_PCM_SAMPLE_RATE} and ${MAX_PCM_SAMPLE_RATE} Hz.`;
   }
-  if (!Number.isInteger(format.channels) || format.channels <= 0) {
-    return "PCM channel count must be a positive integer.";
+  if (!Number.isInteger(format.channels) || format.channels <= 0 || format.channels > MAX_PCM_CHANNELS) {
+    return `PCM channel count must be between 1 and ${MAX_PCM_CHANNELS}.`;
   }
   if (![8, 16, 24, 32, 64].includes(normalized.bitDepth)) {
     return "PCM encoding must be Signed 8/16/24/32-bit PCM, Unsigned 8-bit PCM, 32-bit float, or 64-bit float.";

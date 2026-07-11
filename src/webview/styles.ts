@@ -367,6 +367,7 @@ export function injectStyles(): void {
       overflow: hidden;
       background: var(--vscode-editor-background);
       box-shadow: 0 1px 0 var(--vscode-editor-background);
+      margin-right: var(--timeline-scrollbar-gutter, 0px);
     }
     .figures.isFirstTrackSelectedAtTop .timelineHeader {
       border-bottom-color: var(--vscode-focusBorder);

@@ -49,6 +49,7 @@ export const analysisWorkerSource = `
     let magTileClock = 0;
     const MAG_TILE_BYTE_CAP = 64 * 1024 * 1024;
     const MAG_TILE_COUNT_CAP = 12;
+    const MAX_PADDED_FFT_SIZE = 131072;
 
     self.onmessage = (event) => {
       const message = event.data;
@@ -95,14 +96,25 @@ export const analysisWorkerSource = `
       const start = Math.max(0, Math.min(samples.length, Math.floor(message.startSample || 0)));
       const end = Math.max(start, Math.min(samples.length, Math.floor(message.endSample === undefined ? samples.length : message.endSample)));
       const sampleCount = end - start;
-      const windowSize = Math.max(8, Math.floor(settings.fftSize));
-      const zeroPaddingFactor = Math.max(1, Math.floor(settings.zeroPaddingFactor || 1));
+      const windowSize = Math.min(MAX_PADDED_FFT_SIZE, Math.max(8, Math.floor(settings.fftSize || 512)));
+      let zeroPaddingFactor = Math.max(1, Math.floor(settings.zeroPaddingFactor || 1));
+      while (windowSize * zeroPaddingFactor > MAX_PADDED_FFT_SIZE && zeroPaddingFactor > 1) {
+        zeroPaddingFactor = Math.max(1, Math.floor(zeroPaddingFactor / 2));
+      }
       const fftSize = nextPowerOfTwo(windowSize * zeroPaddingFactor);
       const sampleRate = Math.max(1, message.sampleRate || 1);
-      const hopSize = Math.max(1, Math.floor(settings.hopSize));
+      let hopSize = Math.max(1, Math.floor(settings.hopSize || 1));
       const bins = Math.max(1, Math.min(Math.floor(settings.outputBins || 384), fftSize / 2));
-      const frames = Math.max(1, Math.floor(Math.max(0, sampleCount - windowSize) / hopSize) + 1);
       const half = fftSize / 2;
+      const maxFrames = Math.max(1, Math.floor(MAG_TILE_BYTE_CAP / Math.max(1, half * Float32Array.BYTES_PER_ELEMENT)));
+      const analyzableSamples = Math.max(0, sampleCount - windowSize);
+      let frames = Math.max(1, Math.floor(analyzableSamples / hopSize) + 1);
+      if (frames > maxFrames) {
+        hopSize = maxFrames <= 1
+          ? analyzableSamples + 1
+          : Math.max(hopSize, Math.ceil(analyzableSamples / (maxFrames - 1)));
+        frames = Math.max(1, Math.floor(analyzableSamples / hopSize) + 1);
+      }
       const nyquist = sampleRate / 2;
       const minFrequencyHz = Math.max(0, Math.min(Number(settings.minFrequencyHz) || 0, Math.max(0, nyquist - 1)));
       const maxFrequencyHz = Math.max(minFrequencyHz + 1, Math.min(Number(settings.maxFrequencyHz) || nyquist, nyquist));
@@ -189,7 +201,7 @@ export const analysisWorkerSource = `
       }
       const paletteLut = getPaletteLut(settings.palette);
       // db = 20*log10(max(sqrt(m2)/windowSize, 1e-12)) + 算法偏移，等价改写为 m2 域一次 log10。
-      const dbAdjust = adjustDbForAlgorithm(0, settings.algorithm) - 20 * Math.log10(windowSize);
+      const dbAdjust = -20 * Math.log10(windowSize);
       const m2Floor = 1e-24 * windowSize * windowSize;
       const dbSpan = Math.max(1e-6, settings.maxDb - settings.minDb);
       const minDb = settings.minDb;
@@ -445,12 +457,6 @@ export const analysisWorkerSource = `
       return size;
     }
 
-    function adjustDbForAlgorithm(db, algorithm) {
-      if (algorithm === "reassignment") return db + 3;
-      if (algorithm === "pitchEac") return db - 3;
-      return db;
-    }
-
     function fft(re, im, tables) {
       const n = re.length;
       for (let i = 1, j = 0; i < n; i += 1) {
@@ -549,5 +555,8 @@ export const analysisWorkerSource = `
   `;
 
 export function createAnalysisWorker(): Worker {
-  return new Worker(URL.createObjectURL(new Blob([analysisWorkerSource], { type: "text/javascript" })));
+  const url = URL.createObjectURL(new Blob([analysisWorkerSource], { type: "text/javascript" }));
+  const worker = new Worker(url);
+  URL.revokeObjectURL(url);
+  return worker;
 }

@@ -10,8 +10,6 @@ export type WindowFunction =
   | "gaussian35"
   | "gaussian45";
 
-export type SpectrogramAlgorithm = "frequency" | "reassignment" | "pitchEac";
-
 export interface AnalysisDefaults {
   windowFunction: WindowFunction;
   fftSize: number;
@@ -28,7 +26,6 @@ export interface AudioLensConfig {
 }
 
 export interface AudioLensPreferences {
-  algorithm?: SpectrogramAlgorithm;
   windowFunction?: WindowFunction;
   fftSize?: number;
   zeroPaddingFactor?: number;
@@ -75,6 +72,7 @@ export type ExtensionMessage =
   | { type: "configChanged"; config: AudioLensConfig }
   | { type: "fileChanged"; metadata: AudioMetadata }
   | { type: "chunk"; requestId: number; offset: number; total: number; bytes: ArrayBuffer }
+  | { type: "chunkError"; requestId: number; message: string }
   | { type: "transcodedAudio"; requestId: number; bytes: ArrayBuffer }
   | { type: "transcodeError"; requestId: number; message: string }
   | { type: "selectionWavSaveReady"; requestId: number }
