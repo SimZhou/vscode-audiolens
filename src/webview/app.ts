@@ -4067,16 +4067,34 @@ export class AudioLensApp {
     const channelRange = this.effectiveAmplitudeRange(channel);
     const span = Math.max(1e-6, channelRange.max - channelRange.min);
     const yOf = (v: number) => clamp(rect.bottom - ((v - channelRange.min) / span) * rect.height, rect.top, rect.bottom);
+    // 波形绘制策略：多边形填充 + 描边兜底（一次路径构建，两次绘制）
+    //
+    // 传统方式对每列画 min→max 垂直线段（stroke），在方波/低频信号上有两个经典问题：
+    //   1. 平顶处 min≈max，零长度线段被 Canvas 忽略，波形暗淡甚至不绘制
+    //   2. 跳变边可能落在像素夹缝中，垂直线过细甚至消失
+    //
+    // 本方案改用「闭合多边形填充」：
+    //   1. moveTo 到第一列的 max 点
+    //   2. 从左到右 lineTo 连接所有列的 max 点 → 上包络
+    //   3. 从右到左 lineTo 连接所有列的 min 点 → 下包络（反向行走以闭合回路）
+    //   4. closePath + fill() 填充整个波形区域
+    //   5. 复用同一路径再 stroke 一次，兜底零面积多边形（min≈max 时 fill 不可见）
+    //
+    // 这样无论方波、正弦波、噪声，在任何缩放级别下都呈现为连续实心波形。
+    context.fillStyle = "#8cc8ff";
     context.strokeStyle = "#8cc8ff";
     context.lineWidth = deviceLineWidth();
     context.beginPath();
-    for (let i = 0; i < peaks.min.length; i += 1) {
-      const min = peaks.min[i] ?? 0;
-      const max = peaks.max[i] ?? 0;
-      const x = rect.left + i;
-      context.moveTo(x, yOf(min));
-      context.lineTo(x, yOf(max));
+    context.moveTo(rect.left, yOf(peaks.max[0]));
+    for (let i = 1; i < peaks.min.length; i += 1) {
+      context.lineTo(rect.left + i, yOf(peaks.max[i]));
     }
+    for (let i = peaks.min.length - 1; i >= 0; i -= 1) {
+      context.lineTo(rect.left + i, yOf(peaks.min[i]));
+    }
+    context.closePath();
+    context.fill();
+    // 复用路径再 stroke 一次，兜底零面积多边形（min≈max 时 fill 不可见）
     context.stroke();
     this.drawSelectionOverlay(context, rect, range);
     this.drawPlayheadOverlay(context, rect, range);
