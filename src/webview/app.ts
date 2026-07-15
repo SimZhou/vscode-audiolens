@@ -3171,6 +3171,8 @@ export class AudioLensApp {
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
     this.clearWaveformCache();
+    // PCM 参数重读会替换 AudioBuffer；旧格式（尤其误选 float PCM）可能已把 NaN 峰值写入缓存。
+    this.channelPeakCache.clear();
     this.resetWorkerSampleStore();
     this.selection = undefined;
     this.selectionPlaybackEnd = undefined;
@@ -5394,7 +5396,10 @@ export class AudioLensApp {
     if (samples) {
       const stride = Math.max(1, Math.ceil(samples.length / 1_000_000));
       for (let i = 0; i < samples.length; i += stride) {
-        peak = Math.max(peak, Math.abs(samples[i] ?? 0));
+        const value = samples[i] ?? 0;
+        if (Number.isFinite(value)) {
+          peak = Math.max(peak, Math.abs(value));
+        }
       }
     }
     this.channelPeakCache.set(channel, peak);
