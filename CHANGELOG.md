@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.5
+
+- Fixed the waveform amplitude axis showing `NaN` after correcting the PCM parameters of a raw file. Reading a file with the wrong format (typically float PCM) could cache a non-finite channel peak, and re-reading the file refreshed every other cache but not that one. The channel peak cache is now cleared on re-read, and non-finite samples are skipped when computing peaks. Thanks to [@mayangzhou-btd](https://github.com/mayangzhou-btd) for the report and fix (#13).
+
 ## 1.8.4
 
 - Fixed waveforms rendering faint or not at all for low-frequency square and sine waves. Flat tops made each column's min and max coincide, and the resulting zero-length line segments were dropped by Canvas. Waveforms are now drawn as a filled closed polygon between the upper and lower envelopes. Thanks to [@a5632645](https://github.com/a5632645) for the report and fix (#11).
