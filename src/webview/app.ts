@@ -4085,12 +4085,12 @@ export class AudioLensApp {
     context.strokeStyle = "#8cc8ff";
     context.lineWidth = deviceLineWidth();
     context.beginPath();
-    context.moveTo(rect.left, yOf(peaks.max[0]));
+    context.moveTo(rect.left, yOf(peaks.max[0] ?? 0));
     for (let i = 1; i < peaks.min.length; i += 1) {
-      context.lineTo(rect.left + i, yOf(peaks.max[i]));
+      context.lineTo(rect.left + i, yOf(peaks.max[i] ?? 0));
     }
     for (let i = peaks.min.length - 1; i >= 0; i -= 1) {
-      context.lineTo(rect.left + i, yOf(peaks.min[i]));
+      context.lineTo(rect.left + i, yOf(peaks.min[i] ?? 0));
     }
     context.closePath();
     context.fill();
