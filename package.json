@@ -284,7 +284,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "rust:test": "cargo test --workspace",
-    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/audiolens-1.8.3.vsix",
+    "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/",
     "vscode:prepublish": "npm run clean && npm run build"
   },
   "devDependencies": {
