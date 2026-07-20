@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens — Audio inspection for VS Code",
   "description": "Audio viewer for speech and ML workflows with waveforms, spectrograms, raw PCM, Kaldi wav ark, and Remote SSH support.",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "publisher": "simzhou",
   "license": "Apache-2.0",
   "icon": "logo/icon.png",

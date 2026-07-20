@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.4
+
+- Fixed waveforms rendering faint or not at all for low-frequency square and sine waves. Flat tops made each column's min and max coincide, and the resulting zero-length line segments were dropped by Canvas. Waveforms are now drawn as a filled closed polygon between the upper and lower envelopes. Thanks to [@a5632645](https://github.com/a5632645) for the report and fix (#11).
+
 ## 1.8.3
 
 - Aligned the timeline with track plots on platforms that reserve a visible scrollbar gutter, addressing the layout reported in #5.
