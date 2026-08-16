@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Stereo dosyaları otomatik pan: kanal 1 tamamen solda, kanal 2 tamamen sağda; böylece iki kanal ortada mono olarak birleşmez. Kapatıldığında varsayılan ortalanmış davranış korunur.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Dili Değiştir",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark Girdisini Aç",

@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Pan tự động cho tệp âm thanh nổi: kênh 1 hoàn toàn bên trái, kênh 2 hoàn toàn bên phải, tránh cả hai kênh hợp nhất thành mono ở giữa. Tắt để giữ hành vi trung tâm mặc định.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Chuyển ngôn ngữ",
   "command.openKaldiWavArk.title": "Mở mục Kaldi WAV Ark",

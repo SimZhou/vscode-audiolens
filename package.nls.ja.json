@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "ステレオファイルを自動パン：チャンネル 1 を完全に左、チャンネル 2 を完全に右に配置し、両チャンネルが中央でモノラルに混ざるのを防ぎます。オフにすると既定の中央配置のままになります。",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "言語を切り替え",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark エントリを開く",

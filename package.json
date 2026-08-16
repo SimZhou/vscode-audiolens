@@ -142,6 +142,11 @@
           "default": true,
           "description": "打开音频后自动计算频谱。"
         },
+        "audiolens.autoStereoPan": {
+          "type": "boolean",
+          "default": false,
+          "description": "%audiolens.autoStereoPan.description%"
+        },
         "audiolens.language": {
           "type": "string",
           "enum": [

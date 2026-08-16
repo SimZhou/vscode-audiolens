@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Auto-pan stereo files: channel 1 hard left, channel 2 hard right, preventing both channels from collapsing into mono at the center. Disable to keep the default centered behavior.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Switch Language",
   "command.openKaldiWavArk.title": "Open Kaldi WAV Ark Entry",

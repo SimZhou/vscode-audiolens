@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Pan otomatis untuk file stereo: kanal 1 sepenuhnya ke kiri, kanal 2 sepenuhnya ke kanan, mencegah kedua kanal menyatu menjadi mono di tengah. Nonaktifkan untuk mempertahankan perilaku tengah bawaan.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Ganti Bahasa",
   "command.openKaldiWavArk.title": "Buka Entri Kaldi WAV Ark",

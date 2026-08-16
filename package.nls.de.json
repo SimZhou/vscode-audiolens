@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Automatisches Pannen von Stereo-Dateien: Kanal 1 ganz links, Kanal 2 ganz rechts, damit beide Kanäle nicht in der Mitte zu Mono kollabieren. Deaktivieren, um das standardmäßige zentrierte Verhalten beizubehalten.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Sprache wechseln",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark Eintrag öffnen",

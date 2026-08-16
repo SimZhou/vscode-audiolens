@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Panoramique automatique des fichiers stéréo : canal 1 entièrement à gauche, canal 2 entièrement à droite, évitant que les deux canaux ne se réduisent en mono au centre. Désactivez pour conserver le comportement centré par défaut.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Changer de langue",
   "command.openKaldiWavArk.title": "Ouvrir une entrée Kaldi WAV Ark",

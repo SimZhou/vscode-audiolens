@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "스테레오 파일 자동 팬: 채널 1을 완전히 왼쪽, 채널 2를 완전히 오른쪽으로 설정하여 두 채널이 중앙에서 모노로 합쳐지는 것을 방지합니다. 끄면 기본 중앙 동작을 유지합니다.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "언어 전환",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark 항목 열기",

@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Automatisk panorer stereo-filer: kanal 1 helt til venstre, kanal 2 helt til høyre, og unngår at begge kanalene kollapser til mono i midten. Deaktiver for å beholde standard sentrert oppførsel.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Bytt språk",
   "command.openKaldiWavArk.title": "Åpne Kaldi WAV Ark-oppføring",

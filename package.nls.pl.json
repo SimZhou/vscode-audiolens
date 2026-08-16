@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Automatyczny pan dla plików stereo: kanał 1 całkowicie w lewo, kanał 2 całkowicie w prawo, aby oba kanały nie łączyły się w mono na środku. Wyłącz, aby zachować domyślne zachowanie wyśrodkowane.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Przełącz język",
   "command.openKaldiWavArk.title": "Otwórz wpis Kaldi WAV Ark",

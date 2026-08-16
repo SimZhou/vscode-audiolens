@@ -1569,6 +1569,7 @@ export class AudioLensApp {
         );
         this.applyLanguage(message.config);
         this.syncControls();
+        this.applyAutoStereoPan();
         this.updateSelectionAnalysis();
         this.redrawVisuals();
         break;
@@ -1820,6 +1821,7 @@ export class AudioLensApp {
 
     this.populateChannels();
     this.renderTrackList();
+    this.applyAutoStereoPan();
     this.applyAutoBrightness();
     this.redrawVisuals();
     this.focusDefaultPlot();
@@ -3473,6 +3475,7 @@ export class AudioLensApp {
     this.installAudioElementFromBuffer(this.currentFileName);
     this.populateChannels();
     this.renderTrackList();
+    this.applyAutoStereoPan();
     this.applyAutoBrightness();
     this.redrawVisuals();
     if (this.config?.autoAnalyze) {
@@ -3704,6 +3707,22 @@ export class AudioLensApp {
       this.addTrackRow(channel);
     }
     this.renderTrackSelection();
+  }
+
+  private applyAutoStereoPan(): void {
+    if (!this.audioBuffer) {
+      return;
+    }
+    const enabled = Boolean(this.config?.autoStereoPan);
+    const isStereo = this.audioBuffer.numberOfChannels === 2;
+    for (const view of this.trackViews) {
+      // 开启且为双声道立体声时：声道 1 全左、声道 2 全右；其余情况恢复默认居中。
+      const pan = enabled && isStereo ? (view.channel === 0 ? -1 : 1) : 0;
+      view.pan = pan;
+      view.panSlider.value = String(Math.round(pan * 100));
+      this.syncTrackSliderHints(view);
+    }
+    this.updatePlaybackChannelGains(true);
   }
 
   private addTrackRow(channel: number): void {

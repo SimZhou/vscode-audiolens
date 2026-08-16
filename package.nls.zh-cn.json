@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "打开双声道立体声文件时自动将声道 1 设为全左、声道 2 设为全右，避免两个声道在中间合并为单声道；关闭时保持默认居中行为。",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "切换语言",
   "command.openKaldiWavArk.title": "打开 Kaldi WAV Ark 音频",

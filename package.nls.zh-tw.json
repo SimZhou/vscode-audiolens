@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "開啟雙聲道立體聲檔案時自動將聲道 1 設為全左、聲道 2 設為全右，避免兩個聲道在中央合併為單聲道；關閉時保持預設置中行為。",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "切換語言",
   "command.openKaldiWavArk.title": "開啟 Kaldi WAV Ark 音訊",

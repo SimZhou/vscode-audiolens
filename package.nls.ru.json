@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Автоматическая панорама для стереофайлов: канал 1 полностью влево, канал 2 полностью вправо, что не даёт обоим каналам сливаться в моно в центре. Отключите, чтобы сохранить поведение по умолчанию.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Переключить язык",
   "command.openKaldiWavArk.title": "Открыть запись Kaldi WAV Ark",

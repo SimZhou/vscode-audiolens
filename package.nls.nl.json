@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Automatische panning voor stereobestanden: kanaal 1 volledig links, kanaal 2 volledig rechts, zodat beide kanalen niet in het midden tot mono samenvallen. Uitschakelen om het standaard gecentreerde gedrag te behouden.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Taal wisselen",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark-entry openen",

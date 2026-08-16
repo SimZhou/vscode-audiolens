@@ -18,6 +18,7 @@ export interface AnalysisDefaults {
 
 export interface AudioLensConfig {
   autoAnalyze: boolean;
+  autoStereoPan: boolean;
   maxFileSizeMB: number;
   language: string;
   vscodeLanguage: string;

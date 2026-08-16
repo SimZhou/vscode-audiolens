@@ -1,4 +1,5 @@
 {
+  "audiolens.autoStereoPan.description": "Paneo automático de archivos estéreo: canal 1 totalmente a la izquierda, canal 2 totalmente a la derecha, evitando que ambos canales se colapsen en mono en el centro. Desactívelo para mantener el comportamiento centrado predeterminado.",
   "command.category": "AudioLens",
   "command.selectLanguage.title": "Cambiar idioma",
   "command.openKaldiWavArk.title": "Abrir entrada Kaldi WAV Ark",

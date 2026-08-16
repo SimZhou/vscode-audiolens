@@ -743,6 +743,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     const config = vscode.workspace.getConfiguration("audiolens");
     return {
       autoAnalyze: config.get("autoAnalyze", true),
+      autoStereoPan: config.get("autoStereoPan", false),
       maxFileSizeMB: this.maxTransferBytes() / (1024 * 1024),
       language: config.get("language", "auto"),
       vscodeLanguage: vscode.env.language,
