@@ -1549,24 +1549,12 @@ export class AudioLensApp {
       case "bootstrap":
         this.config = message.config;
         this.applyLanguage(message.config);
-        this.settings.windowFunction = message.config.analysis.windowFunction;
-        this.settings.fftSize = normalizeFftSize(message.config.analysis.fftSize);
-        this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
-          this.settings.fftSize,
-          message.config.analysis.zeroPaddingFactor
-        );
         this.applyPreferences(message.preferences);
         this.syncControls();
         await this.enqueueLoad(message.metadata);
         break;
       case "configChanged":
         this.config = message.config;
-        this.settings.windowFunction = message.config.analysis.windowFunction;
-        this.settings.fftSize = normalizeFftSize(message.config.analysis.fftSize);
-        this.settings.zeroPaddingFactor = normalizeZeroPaddingFactor(
-          this.settings.fftSize,
-          message.config.analysis.zeroPaddingFactor
-        );
         this.applyLanguage(message.config);
         this.syncControls();
         this.updateSelectionAnalysis();

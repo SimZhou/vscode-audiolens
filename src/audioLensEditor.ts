@@ -747,12 +747,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       maxFileSizeMB: this.maxTransferBytes() / (1024 * 1024),
       language: config.get("language", "auto"),
       vscodeLanguage: vscode.env.language,
-      profileSpectrogram: config.get("profileSpectrogram", false),
-      analysis: {
-        windowFunction: config.get("analysis.windowFunction", "hamming"),
-        fftSize: config.get("analysis.fftSize", 512),
-        zeroPaddingFactor: config.get("analysis.zeroPaddingFactor", 2)
-      }
+      profileSpectrogram: config.get("profileSpectrogram", false)
     };
   }
 

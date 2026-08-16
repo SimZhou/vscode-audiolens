@@ -10,12 +10,6 @@ export type WindowFunction =
   | "gaussian35"
   | "gaussian45";
 
-export interface AnalysisDefaults {
-  windowFunction: WindowFunction;
-  fftSize: number;
-  zeroPaddingFactor: number;
-}
-
 export interface AudioLensConfig {
   autoAnalyze: boolean;
   autoStereoPan: boolean;
@@ -23,7 +17,6 @@ export interface AudioLensConfig {
   language: string;
   vscodeLanguage: string;
   profileSpectrogram: boolean;
-  analysis: AnalysisDefaults;
 }
 
 export interface AudioLensPreferences {
