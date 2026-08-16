@@ -1569,7 +1569,6 @@ export class AudioLensApp {
         );
         this.applyLanguage(message.config);
         this.syncControls();
-        this.applyAutoStereoPan();
         this.updateSelectionAnalysis();
         this.redrawVisuals();
         break;
@@ -1672,6 +1671,8 @@ export class AudioLensApp {
     this.currentLocale = locale;
     this.messages = getMessages(locale);
     applyLocale(document, this.messages);
+    // applyLocale 会把 #fileMeta 重置为等待文案；已加载文件时恢复文件信息显示。
+    this.refreshFileMetaText();
     if (!this.elements.headerInfoPanel.hidden) {
       this.renderHeaderInfo();
       this.positionHeaderInfoPanel();
@@ -1680,6 +1681,16 @@ export class AudioLensApp {
     this.updateResetViewButtonState();
     this.updateTrackLabels();
     this.redrawVisuals();
+  }
+
+  private refreshFileMetaText(): void {
+    if (this.audioBuffer) {
+      const fileMetaText = `${this.currentFileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
+      this.elements.fileMeta.textContent = fileMetaText;
+      this.elements.fileMeta.title = fileMetaText;
+    } else {
+      this.elements.fileMeta.textContent = this.messages.waitingAudioFile;
+    }
   }
 
   private resetWorkerSampleStore(): void {
