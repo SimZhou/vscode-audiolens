@@ -127,7 +127,7 @@ export const analysisWorkerSource = `
       const mag = new Float32Array(frames * half);
       const covered = new Uint8Array(frames);
       let reusedFrames = 0;
-      for (const tile of magTiles) {
+      for (const tile of message.disableMagCache ? [] : magTiles) {
         if (tile.groupKey !== groupKey || tile.half !== half) continue;
         const delta = (start - tile.baseSample) / hopSize;
         if (!Number.isInteger(delta)) continue;
@@ -189,7 +189,9 @@ export const analysisWorkerSource = `
           }
         }
       }
-      storeMagTile(groupKey, start, frames, half, mag);
+      if (!message.disableMagCache) {
+        storeMagTile(groupKey, start, frames, half, mag);
+      }
       const fftEnd = profile ? performance.now() : 0;
 
       // ---- 第二级：光栅化（行 -> bin 查找表 + 调色板 LUT，显示参数只影响这一级） ----

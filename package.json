@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens — Audio inspection for VS Code",
   "description": "Audio viewer for speech and ML workflows with waveforms, spectrograms, raw PCM, Kaldi wav ark, and Remote SSH support.",
-  "version": "1.8.5",
+  "version": "1.8.8",
   "publisher": "simzhou",
   "license": "Apache-2.0",
   "icon": "logo/icon.png",
@@ -243,7 +243,7 @@
           "type": "number",
           "default": 512,
           "minimum": 16,
-          "description": "Webview 解码前允许加载的最大音频文件大小。"
+          "description": "允许读取并传输到 Webview 的源音频文件大小上限；不限制扩展端的磁盘 PCM 缓存。"
         },
         "audiolens.profileSpectrogram": {
           "type": "boolean",

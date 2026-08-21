@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.8
+
+- Replaced whole-file FFmpeg WAV transfers with an Audacity-style disk PCM cache. Long MP4/M4A/AAC files now use peak pyramids for waveforms and bounded on-demand sample windows for spectrograms and selection analysis, avoiding the previous 512 MB decoded-output failure.
+- Fixed playback for cached MP4/M4A/AAC audio on Electron builds that cannot demux the original AAC stream. Playback now reads bounded PCM chunks from the disk cache, keeps a short look-ahead queue, and schedules adjacent chunks on the Web Audio timeline instead of passing the original file to the media element.
+
 ## 1.8.5
 
 - Fixed the waveform amplitude axis showing `NaN` after correcting the PCM parameters of a raw file. Reading a file with the wrong format (typically float PCM) could cache a non-finite channel peak, and re-reading the file refreshed every other cache but not that one. The channel peak cache is now cleared on re-read, and non-finite samples are skipped when computing peaks. Thanks to [@mayangzhou-btd](https://github.com/mayangzhou-btd) for the report and fix (#13).

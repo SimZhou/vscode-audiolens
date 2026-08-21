@@ -158,7 +158,7 @@ AudioLens uses the browser audio stack for common encoded formats and the extens
 | --- | --- | --- |
 | WAV | `.wav` | Supports multi-channel WAV files, ordered RIFF chunk inspection, standard 44-byte PCM header checks, and optional one-time PCM reread. |
 | Kaldi wav ark | `.ark` entries such as `wav.ark:23252` | Use `AudioLens: Open Kaldi WAV Ark Entry` or open an `.ark` file and enter an offset. AudioLens validates `RIFF/WAVE` at the offset and reads only that WAV entry. |
-| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Uses the VS Code Webview decoder first. Header inspection shows key container or frame fields. Extension-host FFmpeg is used as a fallback when available. |
+| Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Long MP4/M4A/AAC audio uses an extension-host FFmpeg disk cache with peak pyramids, bounded PCM playback chunks, and on-demand analysis windows, avoiding whole-file decoded PCM transfers and Electron AAC demuxer limitations. Other formats use the Webview decoder first and fall back to the same cache. |
 | Raw PCM | `.pcm`, `.raw` | Requires explicit PCM parameters before reading. |
 
 ## View Multi-Channel Audio

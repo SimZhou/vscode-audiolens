@@ -3,6 +3,7 @@ import {
   ExtensionMessage,
   AudioLensConfig,
   AudioLensPreferences,
+  StreamedAudioMetadata,
   WebviewMessage,
   WindowFunction
 } from "../shared/protocol";
@@ -160,6 +161,10 @@ interface PendingSelectionWavDownload {
   fileName: string;
 }
 
+type StreamedAudioResponse = Extract<ExtensionMessage, {
+  type: "streamedAudioReady" | "streamedAudioPeaks" | "streamedAudioSamples" | "streamedAudioWindows";
+}>;
+
 type TrackViewMode = "waveform" | "spectrogram" | "both";
 
 interface TrackView {
@@ -183,8 +188,12 @@ interface TrackView {
 }
 
 const MIN_DRAG_PIXELS = 6;
-const ENCODED_DECODE_TIMEOUT_MS = 8000;
+// 长音频原生解码可能需要数十秒；过早超时会与无法取消的 decodeAudioData 并行启动 FFmpeg。
+const ENCODED_DECODE_TIMEOUT_MS = 60_000;
 const CHUNK_REQUEST_TIMEOUT_MS = 30_000;
+const STREAMED_AUDIO_REQUEST_TIMEOUT_MS = 6 * 60_000;
+const STREAMED_PLAYBACK_CHUNK_SECONDS = 15;
+const STREAMED_PLAYBACK_LOOKAHEAD_SECONDS = 30;
 const SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
 const MAX_PADDED_FFT_SIZE = 131_072;
 const SPECTROGRAM_MAG_BYTE_BUDGET = 64 * 1024 * 1024;
@@ -1421,6 +1430,7 @@ const HEADER_NOTES_BY_LOCALE: Partial<Record<LocaleCode, Record<string, string>>
 export class AudioLensApp {
   private config: AudioLensConfig | undefined;
   private audioBuffer: AudioBuffer | undefined;
+  private streamedAudio: StreamedAudioMetadata | undefined;
   private audioBytes: Uint8Array | undefined;
   private trackViews: TrackView[] = [];
   private defaultPcmFormat: PcmFormat | undefined;
@@ -1445,6 +1455,14 @@ export class AudioLensApp {
   private playbackSourceNode: AudioNode | undefined;
   private playbackMediaSourceNode: MediaElementAudioSourceNode | undefined;
   private playbackBufferSourceNode: AudioBufferSourceNode | undefined;
+  private streamedPlaybackInputNode: GainNode | undefined;
+  private readonly streamedPlaybackSources = new Set<AudioBufferSourceNode>();
+  private streamedPlaybackGeneration = 0;
+  private streamedPlaybackNextSample = 0;
+  private streamedPlaybackEndSample = 0;
+  private streamedPlaybackScheduledUntil = 0;
+  private streamedPlaybackFillTimer: number | undefined;
+  private streamedPlaybackStarting = false;
   private bufferPlaybackPaused = true;
   private bufferPlaybackOffset = 0;
   private bufferPlaybackStartedAt = 0;
@@ -1456,9 +1474,11 @@ export class AudioLensApp {
     reject: (error: Error) => void;
     timeoutId: number;
   }>();
-  private readonly pendingTranscodes = new Map<number, {
-    resolve: (message: Extract<ExtensionMessage, { type: "transcodedAudio" }>) => void;
+  private readonly pendingStreamedAudioRequests = new Map<number, {
+    expectedType: StreamedAudioResponse["type"];
+    resolve: (message: StreamedAudioResponse) => void;
     reject: (error: Error) => void;
+    timeoutId: number;
   }>();
   private readonly pendingAnalysisTargets = new Map<string, number>();
   private readonly pendingAnalysisProfiles = new Map<string, SpectrogramRequestProfile>();
@@ -1467,6 +1487,7 @@ export class AudioLensApp {
   private readonly spectrogramRangeCache = new Map<string, SpectrogramRangeState>();
   private readonly lastSpectrogramByChannel = new Map<number, SpectrogramResult>();
   private readonly waveformCache = new Map<string, WaveformPeaks>();
+  private readonly pendingWaveformKeys = new Set<string>();
   private waveformCacheBytes = 0;
   private readonly channelPeakCache = new Map<number, number>();
   private readonly pcmStatusStates = new WeakMap<HTMLElement, PcmStatusState>();
@@ -1474,6 +1495,7 @@ export class AudioLensApp {
   private selectionWorker = createAnalysisWorker();
   private selectionSpectrumTimer: number | undefined;
   private selectionSpectrumRequestSeq = 0;
+  private selectionDataRequestSeq = 0;
   private currentSelectionSpectrumRequestId: string | undefined;
   private selectionSpectrumRunning = false;
   private selectionWavDownloadRequestSeq = 0;
@@ -1553,11 +1575,14 @@ export class AudioLensApp {
       case "chunkError":
         this.rejectChunk(message);
         break;
-      case "transcodedAudio":
-        this.resolveTranscode(message);
+      case "streamedAudioReady":
+      case "streamedAudioPeaks":
+      case "streamedAudioSamples":
+      case "streamedAudioWindows":
+        this.resolveStreamedAudioRequest(message);
         break;
-      case "transcodeError":
-        this.rejectTranscode(message);
+      case "streamedAudioError":
+        this.rejectStreamedAudioRequest(message);
         break;
       case "selectionWavSaveReady":
         this.writePendingSelectionWav(message.requestId);
@@ -1677,7 +1702,13 @@ export class AudioLensApp {
   private clearDecodedAudio(): void {
     this.cancelSelectionSpectrumAnalysis();
     this.pendingSelectionWavDownloads.clear();
+    for (const pending of this.pendingStreamedAudioRequests.values()) {
+      window.clearTimeout(pending.timeoutId);
+      pending.reject(new Error("Audio source changed."));
+    }
+    this.pendingStreamedAudioRequests.clear();
     this.audioBuffer = undefined;
+    this.streamedAudio = undefined;
     this.sourceSampleRate = undefined;
     this.clearAudioElement();
     this.spectrogramCache.clear();
@@ -1685,6 +1716,7 @@ export class AudioLensApp {
     this.spectrogramRangeCache.clear();
     this.lastSpectrogramByChannel.clear();
     this.clearWaveformCache();
+    this.pendingWaveformKeys.clear();
     this.channelPeakCache.clear();
     this.pendingAnalysisKeys.clear();
     this.pendingAnalysisTargets.clear();
@@ -1698,6 +1730,7 @@ export class AudioLensApp {
 
   private clearAudioElement(): void {
     this.stopBufferSource();
+    this.stopStreamedPlaybackSources();
     this.stopPlaybackTicker();
     this.bufferPlaybackPaused = true;
     this.bufferPlaybackOffset = 0;
@@ -1705,6 +1738,9 @@ export class AudioLensApp {
     this.elements.audio.pause();
     this.elements.audio.removeAttribute("src");
     this.elements.audio.load();
+    this.streamedPlaybackInputNode?.disconnect();
+    if (this.playbackSourceNode === this.streamedPlaybackInputNode) this.playbackSourceNode = undefined;
+    this.streamedPlaybackInputNode = undefined;
     this.elements.play.textContent = "▶";
   }
 
@@ -1753,7 +1789,7 @@ export class AudioLensApp {
       }
     } else {
       await this.loadEncoded(metadata.fileName);
-      if (!this.audioBuffer) {
+      if (!this.hasAudio()) {
         this.settings.channel = 0;
         this.selection = undefined;
         this.playheadTime = undefined;
@@ -1797,6 +1833,13 @@ export class AudioLensApp {
     if (fileName.toLowerCase().endsWith(".wav") && await this.tryLoadWavePcmDirectly(fileName)) {
       return;
     }
+    // MP4/AAC 容器可能只有十几 MB，却对应数百 MB 甚至数 GB 的 PCM。Chromium 的
+    // decodeAudioData 会一次性物化整段音频；这类格式直接走磁盘块缓存，行为与 Audacity 一致。
+    const extension = fileName.toLowerCase().split(".").pop() ?? "";
+    if (extension === "m4a" || extension === "mp4" || extension === "aac") {
+      await this.loadEncodedViaFfmpeg(fileName);
+      return;
+    }
 
     const audioContext = isSupportedPcmSampleRate(facts.sampleRate)
       ? new AudioContext({ sampleRate: facts.sampleRate })
@@ -1821,28 +1864,35 @@ export class AudioLensApp {
   private async loadEncodedViaFfmpeg(fileName: string): Promise<void> {
     this.setStatus(this.messages.transcodingAudio);
     try {
-      const bytes = await this.requestTranscodedAudio();
-      const audioContext = new AudioContext();
-      try {
-        try {
-          this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, bytes, ENCODED_DECODE_TIMEOUT_MS);
-          this.sourceSampleRate = this.audioBuffer.sampleRate;
-        } catch (decodeError) {
-          console.warn("AudioLens FFmpeg WAV decode fallback:", decodeError);
-          if (!this.loadWavePcmBytes(bytes, audioContext)) {
-            throw decodeError;
-          }
-        }
-      } finally {
-        await audioContext.close().catch(() => undefined);
-      }
-      this.installAudioElementFromBuffer(`${fileName}.wav`);
+      const response = await this.requestStreamedAudio<Extract<ExtensionMessage, { type: "streamedAudioReady" }>>(
+        { type: "prepareStreamedAudio", requestId: 0 },
+        "streamedAudioReady"
+      );
+      this.streamedAudio = response.metadata;
+      this.sourceSampleRate = response.metadata.sampleRate;
+      response.metadata.channelPeaks.forEach((peak, channel) => this.channelPeakCache.set(channel, peak));
+      this.installStreamedAudio(fileName);
     } catch (error) {
       console.warn("AudioLens FFmpeg fallback failed:", error);
       this.clearDecodedAudio();
       const detail = error instanceof Error ? error.message : String(error);
       this.setStatus(`${this.messages.encodedPlaybackOnly} ${detail}`);
     }
+  }
+
+  private installStreamedAudio(fileName: string): void {
+    if (!this.audioBytes || !this.streamedAudio) return;
+    // Electron 的媒体解复用器不一定包含 AAC/M4A 支持；播放也从 PCM 缓存按块调度。
+    this.elements.audio.removeAttribute("src");
+    this.elements.audio.load();
+    this.elements.play.textContent = "▶";
+    this.elements.seek.value = "0";
+    this.updateClock();
+    const metadata = this.streamedAudio;
+    const fileMetaText = `${fileName} · ${metadata.numberOfChannels}ch · ${metadata.sampleRate} Hz${this.currentSourceLabel}`;
+    this.elements.fileMeta.textContent = fileMetaText;
+    this.elements.fileMeta.title = fileMetaText;
+    this.setStatus(this.messages.audioLoaded);
   }
 
   private async tryLoadWavePcmDirectly(fileName: string): Promise<boolean> {
@@ -1932,7 +1982,7 @@ export class AudioLensApp {
       this.syncPlaybackState({ redraw: this.playbackFrameId === undefined });
     });
     this.elements.seek.addEventListener("input", () => {
-      const duration = this.audioBuffer?.duration ?? this.elements.audio.duration;
+      const duration = this.audioDuration() || this.elements.audio.duration;
       if (!Number.isNaN(duration)) {
         this.selectionPlaybackEnd = undefined;
         this.setPlaybackPosition((Number(this.elements.seek.value) / 1000) * duration);
@@ -2120,6 +2170,10 @@ export class AudioLensApp {
       await this.toggleBufferPlayback();
       return;
     }
+    if (this.streamedAudio) {
+      await this.toggleStreamedPlayback();
+      return;
+    }
     if (!this.elements.audio.src) {
       this.reportPlaybackError(this.messages.audioNotReady);
       return;
@@ -2160,6 +2214,193 @@ export class AudioLensApp {
       const message = error instanceof Error ? error.message : String(error);
       this.reportPlaybackError(message);
     }
+  }
+
+  private async toggleStreamedPlayback(): Promise<void> {
+    if (!this.streamedAudio || this.streamedPlaybackStarting) return;
+    try {
+      if (this.bufferPlaybackPaused) {
+        this.prepareStreamedPlaybackStart();
+        await this.startStreamedPlayback();
+      } else {
+        this.selectionPlaybackEnd = undefined;
+        this.pauseStreamedPlayback();
+      }
+    } catch (error) {
+      this.streamedPlaybackStarting = false;
+      this.bufferPlaybackPaused = true;
+      this.elements.play.textContent = "▶";
+      this.reportPlaybackError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  private prepareStreamedPlaybackStart(): void {
+    if (!this.streamedAudio) return;
+    if (this.selection) {
+      this.playheadTime = this.selection.start;
+      this.selectionPlaybackEnd = this.selection.end;
+      this.bufferPlaybackOffset = this.selection.start;
+      this.redrawVisuals();
+      return;
+    }
+    const duration = this.audioDuration();
+    const requestedTime = this.playheadTime === undefined ? 0 : clamp(this.playheadTime, 0, duration);
+    const lastPlayableTime = Math.max(0, duration - 1 / this.audioSampleRate());
+    const nextTime = requestedTime >= lastPlayableTime ? 0 : requestedTime;
+    this.playheadTime = nextTime;
+    this.bufferPlaybackOffset = nextTime;
+    this.redrawVisuals();
+  }
+
+  private async startStreamedPlayback(): Promise<void> {
+    const metadata = this.streamedAudio;
+    if (!metadata) return;
+    this.stopStreamedPlaybackSources();
+    const generation = this.streamedPlaybackGeneration;
+    const startSample = clamp(Math.floor(this.bufferPlaybackOffset * metadata.sampleRate), 0, metadata.length);
+    const endTime = this.selectionPlaybackEnd ?? metadata.duration;
+    const endSample = clamp(Math.ceil(endTime * metadata.sampleRate), startSample, metadata.length);
+    const firstEnd = Math.min(endSample, startSample + Math.max(1, Math.floor(STREAMED_PLAYBACK_CHUNK_SECONDS * metadata.sampleRate)));
+    if (firstEnd <= startSample) {
+      this.finishStreamedPlayback();
+      return;
+    }
+
+    this.streamedPlaybackStarting = true;
+    const channels = await this.requestStreamedPlaybackChunk(startSample, firstEnd);
+    if (generation !== this.streamedPlaybackGeneration || this.streamedAudio !== metadata) return;
+    if (!this.playbackAudioContext) this.playbackAudioContext = new AudioContext({ sampleRate: metadata.sampleRate });
+    if (this.playbackAudioContext.state === "suspended") await this.playbackAudioContext.resume();
+    if (generation !== this.streamedPlaybackGeneration) return;
+
+    this.streamedPlaybackNextSample = firstEnd;
+    this.streamedPlaybackEndSample = endSample;
+    this.bufferPlaybackOffset = startSample / metadata.sampleRate;
+    this.bufferPlaybackStartedAt = this.playbackAudioContext.currentTime + 0.03;
+    this.streamedPlaybackScheduledUntil = this.bufferPlaybackStartedAt;
+    this.streamedPlaybackStarting = false;
+    this.bufferPlaybackPaused = false;
+    this.ensurePlaybackGraph();
+    this.scheduleStreamedPlaybackChunk(channels, this.streamedPlaybackScheduledUntil, generation);
+    this.elements.play.textContent = "⏸";
+    this.startPlaybackTicker();
+    this.continueStreamedPlaybackQueue(generation);
+  }
+
+  private async requestStreamedPlaybackChunk(startSample: number, endSample: number): Promise<Float32Array[]> {
+    const requests = Array.from({ length: this.audioChannelCount() }, (_, channel) =>
+      this.requestStreamedAudio<Extract<ExtensionMessage, { type: "streamedAudioSamples" }>>(
+        { type: "readStreamedAudioSamples", requestId: 0, channel, startSample, endSample },
+        "streamedAudioSamples"
+      )
+    );
+    const responses = await Promise.all(requests);
+    return responses.map((response) => new Float32Array(response.samples));
+  }
+
+  private scheduleStreamedPlaybackChunk(channels: Float32Array[], when: number, generation: number): void {
+    const context = this.playbackAudioContext;
+    const metadata = this.streamedAudio;
+    const frameCount = channels[0]?.length ?? 0;
+    if (!context || !metadata || frameCount === 0 || generation !== this.streamedPlaybackGeneration) return;
+    const buffer = context.createBuffer(channels.length, frameCount, metadata.sampleRate);
+    channels.forEach((samples, channel) => buffer.getChannelData(channel).set(samples));
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(this.streamedPlaybackInputNode ?? context.destination);
+    source.onended = () => {
+      this.streamedPlaybackSources.delete(source);
+      source.disconnect();
+      if (
+        generation === this.streamedPlaybackGeneration && !this.bufferPlaybackPaused &&
+        this.streamedPlaybackNextSample >= this.streamedPlaybackEndSample && this.streamedPlaybackSources.size === 0
+      ) {
+        this.finishStreamedPlayback();
+      }
+    };
+    this.streamedPlaybackSources.add(source);
+    source.start(when);
+    this.streamedPlaybackScheduledUntil = when + frameCount / metadata.sampleRate;
+  }
+
+  private async fillStreamedPlaybackQueue(generation: number): Promise<void> {
+    const metadata = this.streamedAudio;
+    const context = this.playbackAudioContext;
+    if (!metadata || !context) return;
+    while (
+      generation === this.streamedPlaybackGeneration && !this.bufferPlaybackPaused &&
+      this.streamedPlaybackNextSample < this.streamedPlaybackEndSample &&
+      this.streamedPlaybackScheduledUntil - context.currentTime < STREAMED_PLAYBACK_LOOKAHEAD_SECONDS
+    ) {
+      const start = this.streamedPlaybackNextSample;
+      const end = Math.min(this.streamedPlaybackEndSample, start + Math.floor(STREAMED_PLAYBACK_CHUNK_SECONDS * metadata.sampleRate));
+      const channels = await this.requestStreamedPlaybackChunk(start, end);
+      if (generation !== this.streamedPlaybackGeneration || this.bufferPlaybackPaused) return;
+      this.streamedPlaybackNextSample = end;
+      this.scheduleStreamedPlaybackChunk(channels, this.streamedPlaybackScheduledUntil, generation);
+    }
+    if (generation !== this.streamedPlaybackGeneration || this.bufferPlaybackPaused || this.streamedPlaybackNextSample >= this.streamedPlaybackEndSample) return;
+    const delaySeconds = Math.max(0.25, this.streamedPlaybackScheduledUntil - context.currentTime - STREAMED_PLAYBACK_LOOKAHEAD_SECONDS / 2);
+    this.streamedPlaybackFillTimer = window.setTimeout(() => {
+      this.streamedPlaybackFillTimer = undefined;
+      this.continueStreamedPlaybackQueue(generation);
+    }, Math.min(10_000, delaySeconds * 1000));
+  }
+
+  private continueStreamedPlaybackQueue(generation: number): void {
+    void this.fillStreamedPlaybackQueue(generation).catch((error) => {
+      if (generation !== this.streamedPlaybackGeneration) return;
+      this.pauseStreamedPlayback();
+      this.reportPlaybackError(error instanceof Error ? error.message : String(error));
+    });
+  }
+
+  private pauseStreamedPlayback(): void {
+    const currentTime = this.currentPlaybackTime();
+    this.stopStreamedPlaybackSources();
+    this.bufferPlaybackPaused = true;
+    this.bufferPlaybackOffset = currentTime;
+    this.playheadTime = currentTime;
+    this.elements.play.textContent = "▶";
+    this.stopPlaybackTicker();
+    this.syncPlaybackState({ redraw: true });
+  }
+
+  private finishStreamedPlayback(): void {
+    const endTime = this.selectionPlaybackEnd ?? this.audioDuration();
+    const stoppedAtSelectionEnd = this.selectionPlaybackEnd !== undefined;
+    this.stopStreamedPlaybackSources();
+    this.bufferPlaybackPaused = true;
+    this.selectionPlaybackEnd = undefined;
+    this.elements.play.textContent = "▶";
+    this.stopPlaybackTicker();
+    if (stoppedAtSelectionEnd) {
+      this.bufferPlaybackOffset = clamp(endTime, 0, this.audioDuration());
+      this.playheadTime = this.bufferPlaybackOffset;
+      this.syncPlaybackState({ redraw: true });
+      return;
+    }
+    this.bufferPlaybackOffset = 0;
+    this.playheadTime = undefined;
+    this.dragPlayheadTime = undefined;
+    this.elements.seek.value = "0";
+    this.updateClock();
+    this.redrawVisuals();
+  }
+
+  private stopStreamedPlaybackSources(): void {
+    this.streamedPlaybackGeneration += 1;
+    this.streamedPlaybackStarting = false;
+    if (this.streamedPlaybackFillTimer !== undefined) {
+      window.clearTimeout(this.streamedPlaybackFillTimer);
+      this.streamedPlaybackFillTimer = undefined;
+    }
+    for (const source of this.streamedPlaybackSources) {
+      source.onended = null;
+      try { source.stop(); } catch { /* 已结束的 AudioBufferSourceNode 可安全忽略。 */ }
+      source.disconnect();
+    }
+    this.streamedPlaybackSources.clear();
   }
 
   private prepareBufferPlaybackStart(): void {
@@ -2299,12 +2540,17 @@ export class AudioLensApp {
   private syncPlaybackState(options: { redraw: boolean }): void {
     const audio = this.elements.audio;
     const currentTime = this.currentPlaybackTime();
-    const duration = this.audioBuffer?.duration ?? audio.duration;
+    const duration = this.audioDuration() || audio.duration;
     if (this.selectionPlaybackEnd !== undefined && currentTime >= this.selectionPlaybackEnd) {
       const end = this.selectionPlaybackEnd;
       this.selectionPlaybackEnd = undefined;
       if (this.audioBuffer) {
         this.stopBufferSource();
+        this.bufferPlaybackPaused = true;
+        this.bufferPlaybackOffset = end;
+        this.elements.play.textContent = "▶";
+      } else if (this.streamedAudio) {
+        this.stopStreamedPlaybackSources();
         this.bufferPlaybackPaused = true;
         this.bufferPlaybackOffset = end;
         this.elements.play.textContent = "▶";
@@ -2328,11 +2574,11 @@ export class AudioLensApp {
   }
 
   private followPlayheadDuringPlayback(): void {
-    if (!this.audioBuffer || this.playheadTime === undefined || this.isPlaybackPaused()) {
+    if (!this.hasAudio() || this.playheadTime === undefined || this.isPlaybackPaused()) {
       return;
     }
     const range = this.visibleRange();
-    const duration = this.audioBuffer.duration;
+    const duration = this.audioDuration();
     const viewDuration = range.endTime - range.startTime;
     if (viewDuration <= 0 || viewDuration >= duration) {
       return;
@@ -2413,6 +2659,8 @@ export class AudioLensApp {
     }
     if (this.audioBuffer) {
       this.pauseBufferPlayback();
+    } else if (this.streamedAudio) {
+      this.pauseStreamedPlayback();
     } else {
       this.elements.audio.pause();
       this.elements.audio.currentTime = 0;
@@ -2710,12 +2958,25 @@ export class AudioLensApp {
   }
 
   private downloadSelectionAsWav(): void {
-    if (!this.audioBuffer || !this.selection) {
+    if (!this.hasAudio() || !this.selection) {
       this.reportPlaybackError(this.messages.noSelectionToDownload);
       return;
     }
 
-    const audioBuffer = this.audioBuffer;
+    if (!this.audioBuffer && this.streamedAudio) {
+      this.vscode.postMessage({
+        type: "saveStreamedSelectionWav",
+        requestId: ++this.selectionWavDownloadRequestSeq,
+        fileName: this.selectionWavFileName(this.selection.start, this.selection.end),
+        startTime: this.selection.start,
+        endTime: this.selection.end,
+        saveLabel: this.messages.downloadSelection,
+        title: this.messages.downloadSelectionWav
+      });
+      return;
+    }
+
+    const audioBuffer = this.audioBuffer!;
     const startFrame = clamp(Math.floor(this.selection.start * audioBuffer.sampleRate), 0, audioBuffer.length);
     const endFrame = clamp(Math.ceil(this.selection.end * audioBuffer.sampleRate), startFrame, audioBuffer.length);
     if (endFrame <= startFrame) {
@@ -2979,7 +3240,7 @@ export class AudioLensApp {
   }
 
   private applyAutoBrightness(): void {
-    if (!this.settings.autoBrightness || !this.audioBuffer) {
+    if (!this.settings.autoBrightness || !this.hasAudio()) {
       return;
     }
     const { minDb, maxDb } = this.computeAutoDbRange();
@@ -2991,6 +3252,15 @@ export class AudioLensApp {
   }
 
   private computeAutoDbRange(): { minDb: number; maxDb: number } {
+    if (this.streamedAudio && !this.audioBuffer) {
+      const active = this.streamedAudio.channelRms
+        .map((rms, channel) => ({ rms, peak: this.streamedAudio?.channelPeaks[channel] ?? 0 }))
+        .filter(({ rms, peak }) => rms >= 1e-8 || peak >= 1e-8);
+      if (active.length === 0) return { minDb: -96, maxDb: 0 };
+      const rms = Math.sqrt(active.reduce((sum, item) => sum + item.rms * item.rms, 0) / active.length);
+      const peak = Math.max(...active.map((item) => item.peak));
+      return normalizeDbRange(amplitudeToDb(rms) - 72, amplitudeToDb(peak) - 27);
+    }
     if (!this.audioBuffer) {
       return { minDb: -96, maxDb: 0 };
     }
@@ -3071,21 +3341,27 @@ export class AudioLensApp {
     pending.reject(new Error(message.message));
   }
 
-  private resolveTranscode(message: Extract<ExtensionMessage, { type: "transcodedAudio" }>): void {
-    const pending = this.pendingTranscodes.get(message.requestId);
+  private resolveStreamedAudioRequest(message: StreamedAudioResponse): void {
+    const pending = this.pendingStreamedAudioRequests.get(message.requestId);
     if (!pending) {
       return;
     }
-    this.pendingTranscodes.delete(message.requestId);
+    this.pendingStreamedAudioRequests.delete(message.requestId);
+    window.clearTimeout(pending.timeoutId);
+    if (message.type !== pending.expectedType) {
+      pending.reject(new Error(`Unexpected streamed audio response: ${message.type}.`));
+      return;
+    }
     pending.resolve(message);
   }
 
-  private rejectTranscode(message: Extract<ExtensionMessage, { type: "transcodeError" }>): void {
-    const pending = this.pendingTranscodes.get(message.requestId);
+  private rejectStreamedAudioRequest(message: Extract<ExtensionMessage, { type: "streamedAudioError" }>): void {
+    const pending = this.pendingStreamedAudioRequests.get(message.requestId);
     if (!pending) {
       return;
     }
-    this.pendingTranscodes.delete(message.requestId);
+    this.pendingStreamedAudioRequests.delete(message.requestId);
+    window.clearTimeout(pending.timeoutId);
     pending.reject(new Error(message.message));
   }
 
@@ -3118,14 +3394,25 @@ export class AudioLensApp {
     return target;
   }
 
-  private async requestTranscodedAudio(): Promise<Uint8Array> {
+  private requestStreamedAudio<T extends StreamedAudioResponse>(
+    message: WebviewMessage & { requestId: number },
+    expectedType: T["type"]
+  ): Promise<T> {
     const requestId = this.requestSeq;
     this.requestSeq += 1;
-    const message = await new Promise<Extract<ExtensionMessage, { type: "transcodedAudio" }>>((resolve, reject) => {
-      this.pendingTranscodes.set(requestId, { resolve, reject });
-      this.vscode.postMessage({ type: "transcodeAudio", requestId });
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        this.pendingStreamedAudioRequests.delete(requestId);
+        reject(new Error(`Streamed audio request timed out: ${expectedType}.`));
+      }, STREAMED_AUDIO_REQUEST_TIMEOUT_MS);
+      this.pendingStreamedAudioRequests.set(requestId, {
+        expectedType,
+        resolve: (response) => resolve(response as T),
+        reject,
+        timeoutId
+      });
+      this.vscode.postMessage({ ...message, requestId } as WebviewMessage);
     });
-    return new Uint8Array(message.bytes);
   }
 
   private installAudioElementFromBuffer(fileName: string): void {
@@ -3230,8 +3517,8 @@ export class AudioLensApp {
   private suggestPcmFormatForCurrentFile(): PcmFormat {
     const current = this.readPcmControls();
     return {
-      sampleRate: Math.max(1, Math.floor(this.audioBuffer?.sampleRate ?? current.sampleRate)),
-      channels: Math.max(1, Math.floor(this.audioBuffer?.numberOfChannels ?? current.channels)),
+      sampleRate: Math.max(1, Math.floor(this.hasAudio() ? this.audioSampleRate() : current.sampleRate)),
+      channels: Math.max(1, Math.floor(this.hasAudio() ? this.audioChannelCount() : current.channels)),
       bitDepth: current.bitDepth,
       sampleFormat: current.sampleFormat,
       endianness: current.endianness,
@@ -3381,31 +3668,33 @@ export class AudioLensApp {
   }
 
   private populateChannels(): void {
-    if (!this.audioBuffer) {
+    const channelCount = this.audioChannelCount();
+    if (channelCount === 0) {
       return;
     }
 
     this.elements.channel.replaceChildren();
-    for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
+    for (let channel = 0; channel < channelCount; channel += 1) {
       const option = document.createElement("option");
       option.value = String(channel);
       option.textContent = `CH ${channel + 1}`;
       this.elements.channel.appendChild(option);
     }
 
-    this.settings.channel = Math.min(this.settings.channel, this.audioBuffer.numberOfChannels - 1);
+    this.settings.channel = Math.min(this.settings.channel, channelCount - 1);
     this.elements.channel.value = String(this.settings.channel);
   }
 
   private renderTrackList(): void {
     this.elements.trackList.replaceChildren();
     this.trackViews = [];
-    if (!this.audioBuffer) {
+    const channelCount = this.audioChannelCount();
+    if (channelCount === 0) {
       this.elements.trackList.hidden = true;
       return;
     }
     this.elements.trackList.hidden = false;
-    for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
+    for (let channel = 0; channel < channelCount; channel += 1) {
       this.addTrackRow(channel);
     }
     this.renderTrackSelection();
@@ -3837,7 +4126,7 @@ export class AudioLensApp {
   }
 
   private selectChannel(channel: number): void {
-    this.settings.channel = clamp(channel, 0, Math.max(0, (this.audioBuffer?.numberOfChannels ?? 1) - 1));
+    this.settings.channel = clamp(channel, 0, Math.max(0, this.audioChannelCount() - 1));
     this.elements.channel.value = String(this.settings.channel);
     this.renderTrackSelection();
     this.updateSelectionAnalysis();
@@ -3900,6 +4189,26 @@ export class AudioLensApp {
     return this.audioBuffer.getChannelData(clamp(channel, 0, this.audioBuffer.numberOfChannels - 1));
   }
 
+  private hasAudio(): boolean {
+    return this.audioBuffer !== undefined || this.streamedAudio !== undefined;
+  }
+
+  private audioDuration(): number {
+    return this.audioBuffer?.duration ?? this.streamedAudio?.duration ?? 0;
+  }
+
+  private audioSampleRate(): number {
+    return this.audioBuffer?.sampleRate ?? this.streamedAudio?.sampleRate ?? 1;
+  }
+
+  private audioLength(): number {
+    return this.audioBuffer?.length ?? this.streamedAudio?.length ?? 0;
+  }
+
+  private audioChannelCount(): number {
+    return this.audioBuffer?.numberOfChannels ?? this.streamedAudio?.numberOfChannels ?? 0;
+  }
+
   private redrawVisuals(): void {
     this.updateResetViewButtonState();
     this.syncTimelineScrollbarGutter();
@@ -3923,7 +4232,7 @@ export class AudioLensApp {
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = canvasBackgroundColor();
     context.fillRect(0, 0, canvas.width, canvas.height);
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
 
@@ -3992,7 +4301,7 @@ export class AudioLensApp {
   }
 
   private drawTrackVisuals(): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
     for (const view of this.trackViews) {
@@ -4050,11 +4359,7 @@ export class AudioLensApp {
   }
 
   private drawChannelWaveform(canvas: HTMLCanvasElement, channel: number): void {
-    if (!this.audioBuffer) {
-      return;
-    }
-    const samples = this.samplesForChannel(channel);
-    if (!samples) {
+    if (!this.hasAudio()) {
       return;
     }
     const context = resizeCanvas(canvas);
@@ -4130,7 +4435,7 @@ export class AudioLensApp {
   }
 
   private analyze(): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
 
@@ -4172,7 +4477,7 @@ export class AudioLensApp {
     const targetFrames = Math.min(preferredTargetFrames, budgetTargetFrames);
     const outputBins = Math.max(192, Math.min(900, Math.floor(rect.height / ratio)));
     const { startSample, endSample } = visible ?? this.visibleRange();
-    const totalSamples = this.audioBuffer?.length ?? 0;
+    const totalSamples = this.audioLength();
     const span = Math.max(1, endSample - startSample);
     // 量化 overscan 请求：B 为不小于可见跨度的最小 2 的幂，G = B/4 为对齐网格，
     // 请求范围 = [对齐起点 - G, 起点 + B + 3G)。同一 B 内的缩放步进和 G 内的平移命中
@@ -4230,10 +4535,10 @@ export class AudioLensApp {
   // prefetch=true 时使用当前代际（不作废在途请求）、不改状态栏；结果只入缓存不上屏。
   private postSpectrogramRequest(view: TrackView, plan: SpectrogramRequestPlan, cacheKey: string, prefetch: boolean): boolean {
     const samples = this.samplesForChannel(view.channel);
-    if (!samples) {
+    if (!samples && !this.streamedAudio) {
       return false;
     }
-    this.ensureWorkerSamples(view.channel, samples);
+    if (samples) this.ensureWorkerSamples(view.channel, samples);
     this.pendingAnalysisKeys.add(cacheKey);
     this.pendingAnalysisTargets.set(cacheKey, view.channel);
     if (!prefetch && this.shouldProfileSpectrogram()) {
@@ -4260,7 +4565,7 @@ export class AudioLensApp {
       minDb: this.settings.minDb,
       maxDb: this.settings.maxDb
     });
-    this.worker.postMessage({
+    const workerMessage = {
       type: "analyze",
       requestId: cacheKey,
       generation: this.analysisGeneration,
@@ -4283,6 +4588,39 @@ export class AudioLensApp {
         palette: this.settings.palette,
         profile: !prefetch && this.shouldProfileSpectrogram()
       }
+    };
+    if (samples) {
+      this.worker.postMessage(workerMessage);
+      return true;
+    }
+
+    void this.requestStreamedAudio<Extract<ExtensionMessage, { type: "streamedAudioWindows" }>>(
+      {
+        type: "readStreamedAudioWindows",
+        requestId: 0,
+        channel: view.channel,
+        startSample: plan.startSample,
+        endSample: plan.endSample,
+        windowSize: this.settings.fftSize,
+        hopSize: plan.hopSize,
+        maxFrames: Math.min(4096, Math.max(1, plan.targetFrames * 2))
+      },
+      "streamedAudioWindows"
+    ).then((response) => {
+      if (!this.pendingAnalysisKeys.has(cacheKey)) return;
+      this.worker.postMessage({
+        ...workerMessage,
+        startSample: 0,
+        endSample: response.frameCount * response.windowSize,
+        samples: response.samples,
+        disableMagCache: true,
+        settings: { ...workerMessage.settings, hopSize: response.windowSize }
+      }, [response.samples]);
+    }).catch((error) => {
+      this.pendingAnalysisKeys.delete(cacheKey);
+      this.pendingAnalysisTargets.delete(cacheKey);
+      this.pendingAnalysisProfiles.delete(cacheKey);
+      if (!prefetch) this.setStatus(error instanceof Error ? error.message : String(error), "warning");
     });
     return true;
   }
@@ -4300,7 +4638,7 @@ export class AudioLensApp {
   }
 
   private prefetchSpectrogramNeighbors(): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
     const views = this.trackViews.filter((view) => view.mode !== "waveform");
@@ -4309,7 +4647,7 @@ export class AudioLensApp {
     }
     const range = this.visibleRange();
     const span = Math.max(1, range.endSample - range.startSample);
-    const total = this.audioBuffer.length;
+    const total = this.audioLength();
     const shift = Math.round(span * 0.5);
     const quarter = Math.round(span * 0.25);
     const candidates = [
@@ -4578,41 +4916,41 @@ export class AudioLensApp {
   }
 
   private visibleRange(): VisibleRangeState {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return { startSample: 0, endSample: 0, startTime: 0, endTime: 0 };
     }
 
     return getVisibleRange({
-      duration: this.audioBuffer.duration,
-      sampleRate: this.audioBuffer.sampleRate,
+      duration: this.audioDuration(),
+      sampleRate: this.audioSampleRate(),
       timeZoom: this.settings.timeZoom,
       timeOffset: this.settings.timeOffset
     });
   }
 
   private updateClock(): void {
-    const rawDuration = this.audioBuffer?.duration ?? this.elements.audio.duration;
+    const rawDuration = this.audioDuration() || this.elements.audio.duration;
     const current = formatTime(this.currentPlaybackTime());
     const duration = formatTime(Number.isFinite(rawDuration) ? rawDuration : 0);
     this.elements.clock.textContent = `${current} / ${duration}`;
   }
 
   private currentPlaybackTime(): number {
-    if (this.audioBuffer) {
+    if (this.audioBuffer || this.streamedAudio) {
       if (!this.bufferPlaybackPaused && this.playbackAudioContext) {
         return clamp(
           this.bufferPlaybackOffset + this.playbackAudioContext.currentTime - this.bufferPlaybackStartedAt,
           0,
-          this.audioBuffer.duration
+          this.audioDuration()
         );
       }
-      return clamp(this.playheadTime ?? this.bufferPlaybackOffset, 0, this.audioBuffer.duration);
+      return clamp(this.playheadTime ?? this.bufferPlaybackOffset, 0, this.audioDuration());
     }
     return this.elements.audio.currentTime || 0;
   }
 
   private isPlaybackPaused(): boolean {
-    return this.audioBuffer ? this.bufferPlaybackPaused : this.elements.audio.paused;
+    return this.audioBuffer || this.streamedAudio ? this.bufferPlaybackPaused : this.elements.audio.paused;
   }
 
   private setPlaybackPosition(time: number): void {
@@ -4626,6 +4964,16 @@ export class AudioLensApp {
       if (wasPlaying) {
         void this.startBufferPlayback();
       }
+      return;
+    }
+    if (this.streamedAudio) {
+      const nextTime = clamp(time, 0, this.audioDuration());
+      const wasPlaying = !this.bufferPlaybackPaused;
+      this.stopStreamedPlaybackSources();
+      this.bufferPlaybackPaused = true;
+      this.bufferPlaybackOffset = nextTime;
+      this.playheadTime = nextTime;
+      if (wasPlaying) void this.startStreamedPlayback();
       return;
     }
     this.elements.audio.currentTime = time;
@@ -4661,7 +5009,10 @@ export class AudioLensApp {
     if (!this.playbackAudioContext) {
       this.playbackAudioContext = new AudioContext();
     }
-    if (!this.audioBuffer && !this.playbackMediaSourceNode) {
+    if (this.streamedAudio) {
+      if (!this.streamedPlaybackInputNode) this.streamedPlaybackInputNode = this.playbackAudioContext.createGain();
+      this.playbackSourceNode = this.streamedPlaybackInputNode;
+    } else if (!this.audioBuffer && !this.playbackMediaSourceNode) {
       this.playbackMediaSourceNode = this.playbackAudioContext.createMediaElementSource(this.elements.audio);
       this.playbackSourceNode = this.playbackMediaSourceNode;
     }
@@ -4680,14 +5031,14 @@ export class AudioLensApp {
       pair.left.disconnect();
       pair.right.disconnect();
     }
-    if (!this.audioBuffer) {
+    if (!this.audioBuffer && !this.streamedAudio) {
       this.playbackSourceNode.connect(this.playbackAudioContext.destination);
       this.playbackChannelGains = [];
       this.playbackSplitterNode = undefined;
       this.playbackMergerNode = undefined;
       return;
     }
-    const channels = this.audioBuffer.numberOfChannels;
+    const channels = this.audioChannelCount();
     this.playbackSplitterNode = this.playbackAudioContext.createChannelSplitter(channels);
     this.playbackMergerNode = this.playbackAudioContext.createChannelMerger(2);
     this.playbackChannelGains = Array.from({ length: channels }, () => ({
@@ -4747,6 +5098,26 @@ export class AudioLensApp {
     }
 
     const samples = this.samplesForChannel(channel);
+    if (!samples && this.streamedAudio && width > 0) {
+      if (!this.pendingWaveformKeys.has(cacheKey)) {
+        this.pendingWaveformKeys.add(cacheKey);
+        void this.requestStreamedAudio<Extract<ExtensionMessage, { type: "streamedAudioPeaks" }>>(
+          { type: "readStreamedAudioPeaks", requestId: 0, channel, startSample, endSample, width },
+          "streamedAudioPeaks"
+        ).then((message) => {
+          const peaks = { min: new Float32Array(message.min), max: new Float32Array(message.max) };
+          this.waveformCache.set(cacheKey, peaks);
+          this.waveformCacheBytes += peaks.min.byteLength + peaks.max.byteLength;
+          this.pruneWaveformCache();
+          this.redrawVisuals();
+        }).catch((error) => {
+          this.setStatus(error instanceof Error ? error.message : String(error), "warning");
+        }).finally(() => {
+          this.pendingWaveformKeys.delete(cacheKey);
+        });
+      }
+      return { min: new Float32Array(width), max: new Float32Array(width) };
+    }
     if (!samples || width <= 0) {
       return { min: new Float32Array(width), max: new Float32Array(width) };
     }
@@ -4897,7 +5268,7 @@ export class AudioLensApp {
     const timeZoomModifier = isTimeZoomModifier(event);
     const trackpadPinchZoom = isTrackpadPinchZoom(event);
     const horizontalPan = isHorizontalTrackpadPan(event);
-    if (!this.audioBuffer || (!timeZoomModifier && !trackpadPinchZoom && !event.shiftKey && !event.altKey && !horizontalPan)) {
+    if (!this.hasAudio() || (!timeZoomModifier && !trackpadPinchZoom && !event.shiftKey && !event.altKey && !horizontalPan)) {
       return;
     }
     event.preventDefault();
@@ -4962,7 +5333,7 @@ export class AudioLensApp {
 
     if (event.shiftKey) {
       const range = this.visibleRange();
-      const duration = this.audioBuffer.duration;
+      const duration = this.audioDuration();
       const direction = event.deltaY > 0 ? 1 : -1;
       const viewDuration = range.endTime - range.startTime;
       this.panTime(direction * viewDuration * 0.12, duration);
@@ -4976,7 +5347,7 @@ export class AudioLensApp {
       const range = this.visibleRange();
       const viewDuration = range.endTime - range.startTime;
       const delta = normalizeWheelDelta(event.deltaX, event.deltaMode);
-      this.panTime((delta / 100) * viewDuration * 0.12, this.audioBuffer.duration);
+      this.panTime((delta / 100) * viewDuration * 0.12, this.audioDuration());
       this.syncControls();
       this.redrawVisuals();
       this.scheduleAnalyze();
@@ -5003,14 +5374,14 @@ export class AudioLensApp {
   }
 
   private setPlayheadFromPointer(canvas: HTMLCanvasElement, clientX: number): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
     const time = this.timeFromCanvasX(canvas, clientX);
     this.selection = undefined;
     this.selectionPlaybackEnd = undefined;
     this.updateSelectionAnalysis();
-    this.playheadTime = clamp(time, 0, this.audioBuffer.duration);
+    this.playheadTime = clamp(time, 0, this.audioDuration());
     this.dragPlayheadTime = undefined;
     this.setPlaybackPosition(this.playheadTime);
     this.updateClock();
@@ -5018,11 +5389,11 @@ export class AudioLensApp {
   }
 
   private setDragPlayheadFromPointer(canvas: HTMLCanvasElement, clientX: number): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
     const time = this.timeFromCanvasX(canvas, clientX);
-    this.dragPlayheadTime = clamp(time, 0, this.audioBuffer.duration);
+    this.dragPlayheadTime = clamp(time, 0, this.audioDuration());
     this.drawTimeline();
     if (this.isPlaybackPaused()) {
       this.drawTrackVisuals();
@@ -5030,11 +5401,11 @@ export class AudioLensApp {
   }
 
   private setSelectionFromPointer(canvas: HTMLCanvasElement, fromX: number, toX: number): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
-    const start = clamp(this.timeFromCanvasX(canvas, fromX), 0, this.audioBuffer.duration);
-    const end = clamp(this.timeFromCanvasX(canvas, toX), 0, this.audioBuffer.duration);
+    const start = clamp(this.timeFromCanvasX(canvas, fromX), 0, this.audioDuration());
+    const end = clamp(this.timeFromCanvasX(canvas, toX), 0, this.audioDuration());
     const selection = { start: Math.min(start, end), end: Math.max(start, end) };
     if (selection.end - selection.start < 0.001) {
       return;
@@ -5063,10 +5434,10 @@ export class AudioLensApp {
   }
 
   private isPointerInsideSelection(canvas: HTMLCanvasElement, clientX: number): boolean {
-    if (!this.selection || !this.audioBuffer) {
+    if (!this.selection || !this.hasAudio()) {
       return false;
     }
-    const time = clamp(this.timeFromCanvasX(canvas, clientX), 0, this.audioBuffer.duration);
+    const time = clamp(this.timeFromCanvasX(canvas, clientX), 0, this.audioDuration());
     return time >= this.selection.start && time <= this.selection.end;
   }
 
@@ -5113,7 +5484,7 @@ export class AudioLensApp {
     if (this.isDraggingSelection) {
       return;
     }
-    if (!this.selection || !this.audioBuffer) {
+    if (!this.selection || !this.hasAudio()) {
       this.hideSelectionBox();
       return;
     }
@@ -5238,7 +5609,8 @@ export class AudioLensApp {
   }
 
   private updateSelectionAnalysis(): void {
-    if (!this.audioBuffer || !this.selection) {
+    if (!this.hasAudio() || !this.selection) {
+      this.selectionDataRequestSeq += 1;
       this.cancelSelectionSpectrumAnalysis();
       this.elements.analysisStart.closest<HTMLElement>(".selectionAnalysisPane")?.setAttribute("hidden", "");
       this.setAnalysisValue(this.elements.analysisStart, "--");
@@ -5257,14 +5629,20 @@ export class AudioLensApp {
     }
     this.elements.analysisStart.closest<HTMLElement>(".selectionAnalysisPane")?.removeAttribute("hidden");
 
+    if (!this.audioBuffer && this.streamedAudio) {
+      void this.updateStreamedSelectionAnalysis(this.selection, this.settings.channel);
+      return;
+    }
+
     const samples = this.samplesForActiveTrack();
-    if (!samples) {
+    const audioBuffer = this.audioBuffer;
+    if (!samples || !audioBuffer) {
       this.cancelSelectionSpectrumAnalysis();
       return;
     }
-    const startSample = Math.floor(this.selection.start * this.audioBuffer.sampleRate);
-    const endSample = Math.min(samples.length, Math.ceil(this.selection.end * this.audioBuffer.sampleRate));
-    const timeMetrics = computeTimeSelectionMetrics(samples, startSample, endSample, this.audioBuffer.sampleRate);
+    const startSample = Math.floor(this.selection.start * audioBuffer.sampleRate);
+    const endSample = Math.min(samples.length, Math.ceil(this.selection.end * audioBuffer.sampleRate));
+    const timeMetrics = computeTimeSelectionMetrics(samples, startSample, endSample, audioBuffer.sampleRate);
     this.setAnalysisValue(this.elements.analysisStart, `${this.selection.start.toFixed(3)}s`);
     this.setAnalysisValue(this.elements.analysisEnd, `${this.selection.end.toFixed(3)}s`);
     this.setAnalysisValue(this.elements.analysisDuration, `${(this.selection.end - this.selection.start).toFixed(3)}s`);
@@ -5278,6 +5656,48 @@ export class AudioLensApp {
     this.setAnalysisValue(this.elements.analysisZcr, `${timeMetrics.zeroCrossingRate.toFixed(1)}/s`);
     this.renderFrequencyRows(BAND_LIMITS.map((band) => ({ label: this.messages[band.labelKey], percent: Number.NaN })), true);
     this.scheduleSelectionSpectrumAnalysis(samples, startSample, endSample);
+  }
+
+  private async updateStreamedSelectionAnalysis(selection: TimeSelectionState, channel: number): Promise<void> {
+    const sequence = ++this.selectionDataRequestSeq;
+    const sampleRate = this.audioSampleRate();
+    const startSample = Math.floor(selection.start * sampleRate);
+    const endSample = Math.min(this.audioLength(), Math.ceil(selection.end * sampleRate));
+    this.setAnalysisValue(this.elements.analysisStart, `${selection.start.toFixed(3)}s`);
+    this.setAnalysisValue(this.elements.analysisEnd, `${selection.end.toFixed(3)}s`);
+    this.setAnalysisValue(this.elements.analysisDuration, `${(selection.end - selection.start).toFixed(3)}s`);
+    for (const element of [this.elements.analysisRms, this.elements.analysisPeak, this.elements.analysisDominant,
+      this.elements.analysisCrest, this.elements.analysisClipping, this.elements.analysisNoiseFloor,
+      this.elements.analysisCentroid, this.elements.analysisZcr]) {
+      this.setAnalysisValue(element, this.selectionAnalysisCalculatingText(), true);
+    }
+    this.renderFrequencyRows(BAND_LIMITS.map((band) => ({ label: this.messages[band.labelKey], percent: Number.NaN })), true);
+    try {
+      const response = await this.requestStreamedAudio<Extract<ExtensionMessage, { type: "streamedAudioSamples" }>>(
+        { type: "readStreamedAudioSamples", requestId: 0, channel, startSample, endSample },
+        "streamedAudioSamples"
+      );
+      if (sequence !== this.selectionDataRequestSeq || this.selection?.start !== selection.start || this.selection?.end !== selection.end) return;
+      const samples = new Float32Array(response.samples);
+      const metrics = computeTimeSelectionMetrics(samples, 0, samples.length, sampleRate);
+      this.setAnalysisValue(this.elements.analysisRms, formatDb(amplitudeToDb(metrics.rms)));
+      this.setAnalysisValue(this.elements.analysisPeak, formatDb(amplitudeToDb(metrics.peak)));
+      this.setAnalysisValue(this.elements.analysisCrest, Number.isFinite(metrics.crestDb) ? `${metrics.crestDb.toFixed(1)} dB` : "--");
+      this.setAnalysisValue(this.elements.analysisClipping, `${metrics.clippingPercent.toFixed(3)}%`);
+      this.setAnalysisValue(this.elements.analysisNoiseFloor, formatDb(metrics.noiseFloorDb));
+      this.setAnalysisValue(this.elements.analysisZcr, `${metrics.zeroCrossingRate.toFixed(1)}/s`);
+      this.scheduleSelectionSpectrumAnalysis(samples, 0, samples.length);
+    } catch (error) {
+      if (sequence !== this.selectionDataRequestSeq) return;
+      this.cancelSelectionSpectrumAnalysis();
+      this.setStatus(error instanceof Error ? error.message : String(error), "warning");
+      for (const element of [this.elements.analysisRms, this.elements.analysisPeak, this.elements.analysisDominant,
+        this.elements.analysisCrest, this.elements.analysisClipping, this.elements.analysisNoiseFloor,
+        this.elements.analysisCentroid, this.elements.analysisZcr]) {
+        this.setAnalysisValue(element, "--");
+      }
+      this.renderFrequencyRows([]);
+    }
   }
 
   private setAnalysisValue(element: HTMLElement, value: string, loading = false): void {
@@ -5356,7 +5776,7 @@ export class AudioLensApp {
   }
 
   private analysisSampleRate(): number {
-    return this.sourceSampleRate ?? this.audioBuffer?.sampleRate ?? 1;
+    return this.sourceSampleRate ?? this.audioSampleRate();
   }
 
   private nyquistFrequency(): number {
@@ -5584,7 +6004,7 @@ export class AudioLensApp {
   }
 
   private drawFrequencyAxis(context: CanvasRenderingContext2D, rect: PlotRect, channel: number): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
     context.save();
@@ -5678,10 +6098,10 @@ export class AudioLensApp {
   }
 
   private applyTimeZoom(nextZoom: number, anchorTime: number, anchorRatio: number): void {
-    if (!this.audioBuffer) {
+    if (!this.hasAudio()) {
       return;
     }
-    const duration = this.audioBuffer.duration;
+    const duration = this.audioDuration();
     this.settings.timeZoom = clamp(nextZoom, 1, 64);
     const viewDuration = duration / this.settings.timeZoom;
     const maxStart = Math.max(0, duration - viewDuration);

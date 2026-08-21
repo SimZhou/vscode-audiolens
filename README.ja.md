@@ -158,7 +158,7 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 | --- | --- | --- |
 | WAV | `.wav` | マルチチャンネル WAV、RIFF chunk の順序表示、標準 44 バイト PCM ヘッダー確認、一時的な raw PCM 読み直しに対応します。 |
 | Kaldi wav ark | `wav.ark:23252` のような `.ark` エントリ | `AudioLens: Open Kaldi WAV Ark Entry` コマンドを使うか、`.ark` ファイルを直接開いて offset を入力します。AudioLens は offset 位置が `RIFF/WAVE` であることを確認し、その WAV entry だけを読み込みます。 |
-| エンコード音声 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | まず VS Code Webview のデコーダを使います。主要なコンテナまたはフレームヘッダーを確認でき、必要に応じて拡張ホスト側の FFmpeg によるフォールバック変換を使います。 |
+| エンコード音声 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 長い MP4/M4A/AAC は拡張ホスト側 FFmpeg のディスクキャッシュ、ピークピラミッド、有界 PCM 再生チャンク、オンデマンド解析窓を使い、デコード済み PCM 全体の転送と Electron の AAC デマルチプレクサ制約を回避します。その他の形式は Webview で先にデコードし、失敗時に同じキャッシュへ切り替えます。 |
 | Raw PCM | `.pcm`、`.raw` | 読み込み前に PCM パラメータを明示的に指定する必要があります。 |
 
 ## マルチチャンネル音声を見る

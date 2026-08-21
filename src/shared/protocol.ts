@@ -67,14 +67,26 @@ export interface AudioMetadata {
   sourceOffset?: number;
 }
 
+export interface StreamedAudioMetadata {
+  sampleRate: number;
+  numberOfChannels: number;
+  length: number;
+  duration: number;
+  channelPeaks: number[];
+  channelRms: number[];
+}
+
 export type ExtensionMessage =
   | { type: "bootstrap"; config: AudioLensConfig; preferences: AudioLensPreferences; metadata: AudioMetadata }
   | { type: "configChanged"; config: AudioLensConfig }
   | { type: "fileChanged"; metadata: AudioMetadata }
   | { type: "chunk"; requestId: number; offset: number; total: number; bytes: ArrayBuffer }
   | { type: "chunkError"; requestId: number; message: string }
-  | { type: "transcodedAudio"; requestId: number; bytes: ArrayBuffer }
-  | { type: "transcodeError"; requestId: number; message: string }
+  | { type: "streamedAudioReady"; requestId: number; metadata: StreamedAudioMetadata }
+  | { type: "streamedAudioPeaks"; requestId: number; min: ArrayBuffer; max: ArrayBuffer }
+  | { type: "streamedAudioSamples"; requestId: number; samples: ArrayBuffer }
+  | { type: "streamedAudioWindows"; requestId: number; samples: ArrayBuffer; frameCount: number; windowSize: number }
+  | { type: "streamedAudioError"; requestId: number; message: string }
   | { type: "selectionWavSaveReady"; requestId: number }
   | { type: "selectionWavSaveCanceled"; requestId: number }
   | { type: "error"; message: string };
@@ -82,7 +94,11 @@ export type ExtensionMessage =
 export type WebviewMessage =
   | { type: "ready" }
   | { type: "readChunk"; requestId: number; offset: number; length: number }
-  | { type: "transcodeAudio"; requestId: number }
+  | { type: "prepareStreamedAudio"; requestId: number }
+  | { type: "readStreamedAudioPeaks"; requestId: number; channel: number; startSample: number; endSample: number; width: number }
+  | { type: "readStreamedAudioSamples"; requestId: number; channel: number; startSample: number; endSample: number }
+  | { type: "readStreamedAudioWindows"; requestId: number; channel: number; startSample: number; endSample: number; windowSize: number; hopSize: number; maxFrames: number }
+  | { type: "saveStreamedSelectionWav"; requestId: number; fileName: string; startTime: number; endTime: number; saveLabel?: string; title?: string }
   | { type: "downloadAudio" }
   | { type: "requestSelectionWavSave"; requestId: number; fileName: string; saveLabel?: string; title?: string }
   | { type: "writeSelectionWavChunk"; requestId: number; fileName: string; chunkIndex: number; bytesBase64: string; isLast: boolean }

@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, open, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
@@ -10,7 +10,14 @@ import {
   AudioLensConfig,
   AudioLensPreferences
 } from "./shared/protocol";
-import { normalizePipedWavSizes } from "./ffmpegWav";
+import {
+  createStreamedAudioCache,
+  disposeStreamedAudioCache,
+  readChannelSamples,
+  readPackedWindows,
+  readWaveformPeaks,
+  StreamedAudioCache
+} from "./streamedAudioCache";
 import { formatBytes, getNonce } from "./util";
 
 const PREFERENCES_KEY = "audiolens.preferences.v1";
@@ -18,6 +25,9 @@ const ARK_OFFSET_QUERY_KEY = "arkOffset";
 const MAX_MESSAGE_TEXT_LENGTH = 1024;
 const MAX_SELECTION_WAV_CHUNK_BYTES = 1024 * 1024;
 const FFMPEG_TIMEOUT_MS = 60_000;
+const FFMPEG_CACHE_TIMEOUT_MS = 5 * 60_000;
+const MAX_STREAMED_RESPONSE_BYTES = 32 * 1024 * 1024;
+const MAX_PCM_CACHE_BYTES = 4 * 1024 * 1024 * 1024 - 2 * 1024 * 1024;
 const WINDOW_FUNCTIONS = ["rectangular", "bartlett", "hamming", "hann", "blackman", "blackmanHarris", "welch", "gaussian25", "gaussian35", "gaussian45"] as const;
 const FFT_SIZES = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768] as const;
 const ZERO_PADDING_FACTORS = [1, 2, 4, 8, 16, 32, 64, 128] as const;
@@ -241,7 +251,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
   private static readonly viewType = "audiolens.audioPreview";
   private readonly pendingSelectionWavDestinations = new WeakMap<vscode.Webview, Map<number, vscode.Uri>>();
   private readonly pendingSelectionWavWrites = new WeakMap<vscode.Webview, Map<number, PendingSelectionWavWrite>>();
-  private readonly activeTranscodes = new WeakSet<AudioLensDocument>();
+  private readonly streamedAudioCaches = new WeakMap<AudioLensDocument, Promise<StreamedAudioCache>>();
   private activeTranscodeCount = 0;
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -270,7 +280,11 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     _openContext: vscode.CustomDocumentOpenContext,
     _token: vscode.CancellationToken
   ): Promise<AudioLensDocument> {
-    return AudioLensDocument.create(uri);
+    const document = await AudioLensDocument.create(uri);
+    document.onDidDispose(() => {
+      this.invalidateStreamedAudioCache(document);
+    });
+    return document;
   }
 
   public async resolveCustomEditor(
@@ -306,6 +320,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     const subscriptions: vscode.Disposable[] = [
       document.onDidChange(async () => {
         try {
+          this.invalidateStreamedAudioCache(document);
           await document.refresh();
           this.postMessage(webviewPanel.webview, {
             type: "fileChanged",
@@ -381,8 +396,20 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
         case "writeSelectionWavChunk":
           await this.writeSelectionWavChunk(webview, message);
           break;
-        case "transcodeAudio":
-          await this.transcodeAudio(message.requestId, document, webview);
+        case "prepareStreamedAudio":
+          await this.prepareStreamedAudio(message.requestId, document, webview);
+          break;
+        case "readStreamedAudioPeaks":
+          await this.readStreamedAudioPeaks(message, document, webview);
+          break;
+        case "readStreamedAudioSamples":
+          await this.readStreamedAudioSamples(message, document, webview);
+          break;
+        case "readStreamedAudioWindows":
+          await this.readStreamedAudioWindows(message, document, webview);
+          break;
+        case "saveStreamedSelectionWav":
+          await this.saveStreamedSelectionWav(message, document, webview);
           break;
         case "showError":
           vscode.window.showErrorMessage(message.message);
@@ -508,46 +535,178 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     vscode.window.showInformationMessage(`AudioLens saved ${path.basename(pending.destination.fsPath || pending.fileName)}.`);
   }
 
-  private async transcodeAudio(requestId: number, document: AudioLensDocument, webview: vscode.Webview): Promise<void> {
-    let transcodeStarted = false;
+  private async prepareStreamedAudio(requestId: number, document: AudioLensDocument, webview: vscode.Webview): Promise<void> {
     try {
       this.assertTransferAllowed(document);
-      if (this.activeTranscodes.has(document)) {
-        throw new Error("AudioLens is already transcoding this audio file.");
-      }
-      if (this.activeTranscodeCount >= 1) {
-        throw new Error("AudioLens is already transcoding another audio file.");
-      }
-      this.activeTranscodes.add(document);
-      this.activeTranscodeCount += 1;
-      transcodeStarted = true;
-      const bytes = await this.transcodeDocumentToWav(document);
-      this.postMessage(webview, { type: "transcodedAudio", requestId, bytes: toArrayBuffer(bytes) });
+      const cache = await this.getStreamedAudioCache(document);
+      this.postMessage(webview, {
+        type: "streamedAudioReady",
+        requestId,
+        metadata: {
+          sampleRate: cache.sampleRate,
+          numberOfChannels: cache.numberOfChannels,
+          length: cache.length,
+          duration: cache.duration,
+          channelPeaks: cache.channelPeaks,
+          channelRms: cache.channelRms
+        }
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.postMessage(webview, { type: "transcodeError", requestId, message });
-    } finally {
-      if (transcodeStarted) {
-        this.activeTranscodes.delete(document);
-        this.activeTranscodeCount = Math.max(0, this.activeTranscodeCount - 1);
-      }
+      this.postMessage(webview, { type: "streamedAudioError", requestId, message });
     }
   }
 
-  private async transcodeDocumentToWav(document: AudioLensDocument): Promise<Uint8Array> {
-    if (document.sourceUri.scheme === "file" && !document.isFileSlice) {
-      return runFfmpegToWav(document.sourceUri.fsPath, this.maxTransferBytes());
-    }
-
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), "audiolens-"));
-    const extension = document.extension ? `.${document.extension}` : ".audio";
-    const inputPath = path.join(tempDir, `input${extension}`);
+  private async readStreamedAudioPeaks(
+    message: Extract<WebviewMessage, { type: "readStreamedAudioPeaks" }>,
+    document: AudioLensDocument,
+    webview: vscode.Webview
+  ): Promise<void> {
     try {
-      await writeFile(inputPath, await document.readRange(0, document.size));
-      return await runFfmpegToWav(inputPath, this.maxTransferBytes());
-    } finally {
-      await rm(tempDir, { recursive: true, force: true });
+      const cache = await this.getStreamedAudioCache(document);
+      const peaks = readWaveformPeaks(cache, message.channel, message.startSample, message.endSample, message.width);
+      this.postMessage(webview, {
+        type: "streamedAudioPeaks",
+        requestId: message.requestId,
+        min: toArrayBuffer(peaks.min),
+        max: toArrayBuffer(peaks.max)
+      });
+    } catch (error) {
+      this.postStreamedAudioError(webview, message.requestId, error);
     }
+  }
+
+  private async readStreamedAudioSamples(
+    message: Extract<WebviewMessage, { type: "readStreamedAudioSamples" }>,
+    document: AudioLensDocument,
+    webview: vscode.Webview
+  ): Promise<void> {
+    try {
+      const cache = await this.getStreamedAudioCache(document);
+      const samples = await readChannelSamples(
+        cache,
+        message.channel,
+        message.startSample,
+        message.endSample,
+        MAX_STREAMED_RESPONSE_BYTES
+      );
+      this.postMessage(webview, { type: "streamedAudioSamples", requestId: message.requestId, samples: toArrayBuffer(samples) });
+    } catch (error) {
+      this.postStreamedAudioError(webview, message.requestId, error);
+    }
+  }
+
+  private async readStreamedAudioWindows(
+    message: Extract<WebviewMessage, { type: "readStreamedAudioWindows" }>,
+    document: AudioLensDocument,
+    webview: vscode.Webview
+  ): Promise<void> {
+    try {
+      const cache = await this.getStreamedAudioCache(document);
+      const result = await readPackedWindows(cache, { ...message, maxOutputBytes: MAX_STREAMED_RESPONSE_BYTES });
+      this.postMessage(webview, {
+        type: "streamedAudioWindows",
+        requestId: message.requestId,
+        samples: toArrayBuffer(result.samples),
+        frameCount: result.frameCount,
+        windowSize: result.windowSize
+      });
+    } catch (error) {
+      this.postStreamedAudioError(webview, message.requestId, error);
+    }
+  }
+
+  private async saveStreamedSelectionWav(
+    message: Extract<WebviewMessage, { type: "saveStreamedSelectionWav" }>,
+    document: AudioLensDocument,
+    webview: vscode.Webview
+  ): Promise<void> {
+    try {
+      const cache = await this.getStreamedAudioCache(document);
+      const startTime = Math.max(0, Math.min(message.startTime, cache.duration));
+      const endTime = Math.max(startTime, Math.min(message.endTime, cache.duration));
+      if (endTime <= startTime) {
+        throw new Error("The selected audio range is empty.");
+      }
+      const safeFileName = sanitizeSuggestedFileName(message.fileName) || "audiolens_selection.wav";
+      const destination = await vscode.window.showSaveDialog({
+        defaultUri: resolveDefaultDownloadUri(document, safeFileName),
+        filters: { "WAV audio": ["wav"] },
+        saveLabel: message.saveLabel || "Download Selection",
+        title: message.title || "Download Selection as WAV"
+      });
+      if (!destination) return;
+
+      if (destination.scheme === "file") {
+        await runFfmpegSelection(cache.wavPath, destination.fsPath, startTime, endTime - startTime);
+      } else {
+        const outputPath = path.join(cache.tempDir, `selection-${message.requestId}.wav`);
+        await runFfmpegSelection(cache.wavPath, outputPath, startTime, endTime - startTime);
+        const outputStat = await stat(outputPath);
+        if (outputStat.size > this.maxTransferBytes()) {
+          throw new Error(`Selection WAV is too large: ${formatBytes(outputStat.size)} / ${formatBytes(this.maxTransferBytes())}.`);
+        }
+        await vscode.workspace.fs.writeFile(destination, await readFile(outputPath));
+        await rm(outputPath, { force: true });
+      }
+      vscode.window.showInformationMessage(`AudioLens saved ${path.basename(destination.fsPath || safeFileName)}.`);
+    } catch (error) {
+      this.postStreamedAudioError(webview, message.requestId, error);
+    }
+  }
+
+  private getStreamedAudioCache(document: AudioLensDocument): Promise<StreamedAudioCache> {
+    const existing = this.streamedAudioCaches.get(document);
+    if (existing) return existing;
+    const pending = this.createDocumentStreamedAudioCache(document);
+    this.streamedAudioCaches.set(document, pending);
+    void pending.catch(() => {
+      if (this.streamedAudioCaches.get(document) === pending) this.streamedAudioCaches.delete(document);
+    });
+    return pending;
+  }
+
+  private async createDocumentStreamedAudioCache(document: AudioLensDocument): Promise<StreamedAudioCache> {
+    if (this.activeTranscodeCount >= 1) {
+      throw new Error("AudioLens is already preparing another PCM cache.");
+    }
+    this.activeTranscodeCount += 1;
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "audiolens-cache-"));
+    try {
+      let inputPath = document.sourceUri.fsPath;
+      if (document.sourceUri.scheme !== "file" || document.isFileSlice) {
+        const extension = document.extension ? `.${document.extension}` : ".audio";
+        inputPath = path.join(tempDir, `input${extension}`);
+        await writeFile(inputPath, await document.readRange(0, document.size));
+      }
+      return await createStreamedAudioCache({
+        inputPath,
+        wavPath: path.join(tempDir, "decoded.wav"),
+        tempDir,
+        workerPath: path.join(this.context.extensionPath, "dist", "audioCacheWorker.js"),
+        maxCacheBytes: Math.min(MAX_PCM_CACHE_BYTES, Math.max(1024 * 1024 * 1024, this.maxTransferBytes() * 8)),
+        timeoutMs: FFMPEG_CACHE_TIMEOUT_MS
+      });
+    } catch (error) {
+      await rm(tempDir, { recursive: true, force: true });
+      throw error;
+    } finally {
+      this.activeTranscodeCount = Math.max(0, this.activeTranscodeCount - 1);
+    }
+  }
+
+  private invalidateStreamedAudioCache(document: AudioLensDocument): void {
+    const pending = this.streamedAudioCaches.get(document);
+    this.streamedAudioCaches.delete(document);
+    if (pending) void pending.then(disposeStreamedAudioCache).catch(() => undefined);
+  }
+
+  private postStreamedAudioError(webview: vscode.Webview, requestId: number, error: unknown): void {
+    this.postMessage(webview, {
+      type: "streamedAudioError",
+      requestId,
+      message: error instanceof Error ? error.message : String(error)
+    });
   }
 
   private readPreferences(): AudioLensPreferences {
@@ -915,12 +1074,12 @@ function normalizeLocale(locale: string): string {
   return lower.split("-")[0] ?? "en";
 }
 
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+function toArrayBuffer(bytes: ArrayBufferView): ArrayBuffer {
   if (bytes.byteOffset === 0 && bytes.buffer instanceof ArrayBuffer && bytes.byteLength === bytes.buffer.byteLength) {
     return bytes.buffer;
   }
   const buffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(buffer).set(bytes);
+  new Uint8Array(buffer).set(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength));
   return buffer;
 }
 
@@ -1053,25 +1212,28 @@ async function readUriRange(uri: vscode.Uri, offset: number, length: number): Pr
   return data.slice(offset, offset + length);
 }
 
-async function runFfmpegToWav(inputPath: string, maxOutputBytes: number): Promise<Uint8Array> {
+async function runFfmpegSelection(inputPath: string, outputPath: string, startTime: number, duration: number): Promise<void> {
   return new Promise((resolve, reject) => {
     let settled = false;
     const child = spawn("ffmpeg", [
       "-hide_banner",
       "-loglevel",
       "error",
+      "-y",
+      "-ss",
+      String(startTime),
       "-i",
       inputPath,
+      "-t",
+      String(duration),
       "-vn",
       "-f",
       "wav",
       "-acodec",
       "pcm_s16le",
-      "pipe:1"
+      outputPath
     ]);
-    const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
-    let stdoutBytes = 0;
     let stderrBytes = 0;
     const timeout = setTimeout(() => {
       fail(new Error(`FFmpeg timed out after ${Math.round(FFMPEG_TIMEOUT_MS / 1000)} seconds.`));
@@ -1087,14 +1249,6 @@ async function runFfmpegToWav(inputPath: string, maxOutputBytes: number): Promis
       reject(error);
     };
 
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdoutBytes += chunk.byteLength;
-      if (stdoutBytes > maxOutputBytes) {
-        fail(new Error(`FFmpeg output is too large: ${formatBytes(stdoutBytes)} / ${formatBytes(maxOutputBytes)}.`));
-        return;
-      }
-      stdout.push(chunk);
-    });
     child.stderr.on("data", (chunk: Buffer) => {
       if (stderrBytes < 8192) {
         stderr.push(chunk);
@@ -1115,10 +1269,7 @@ async function runFfmpegToWav(inputPath: string, maxOutputBytes: number): Promis
       settled = true;
       clearTimeout(timeout);
       if (code === 0) {
-        const output = Buffer.concat(stdout);
-        stdout.length = 0;
-        normalizePipedWavSizes(output);
-        resolve(output);
+        resolve();
         return;
       }
       const detail = Buffer.concat(stderr).toString("utf8").trim();
@@ -1141,9 +1292,56 @@ function parseWebviewMessage(value: unknown, maxTransferBytes: number): WebviewM
         return { type: "readChunk", requestId: value.requestId, offset: value.offset, length: value.length };
       }
       return undefined;
-    case "transcodeAudio":
+    case "prepareStreamedAudio":
       if (isSafeRequestId(value.requestId)) {
-        return { type: "transcodeAudio", requestId: value.requestId };
+        return { type: "prepareStreamedAudio", requestId: value.requestId };
+      }
+      return undefined;
+    case "readStreamedAudioPeaks":
+      if (
+        isSafeRequestId(value.requestId) && isSafeChannel(value.channel) &&
+        isSafeOffset(value.startSample) && isSafeOffset(value.endSample) && value.endSample >= value.startSample &&
+        isIntegerInRange(value.width, 1, 8192)
+      ) {
+        return { type: value.type, requestId: value.requestId, channel: value.channel, startSample: value.startSample, endSample: value.endSample, width: value.width };
+      }
+      return undefined;
+    case "readStreamedAudioSamples":
+      if (
+        isSafeRequestId(value.requestId) && isSafeChannel(value.channel) &&
+        isSafeOffset(value.startSample) && isSafeOffset(value.endSample) && value.endSample >= value.startSample
+      ) {
+        return { type: value.type, requestId: value.requestId, channel: value.channel, startSample: value.startSample, endSample: value.endSample };
+      }
+      return undefined;
+    case "readStreamedAudioWindows": {
+      const windowSize = oneOf(value.windowSize, FFT_SIZES);
+      if (
+        isSafeRequestId(value.requestId) && isSafeChannel(value.channel) &&
+        isSafeOffset(value.startSample) && isSafeOffset(value.endSample) && value.endSample >= value.startSample &&
+        windowSize !== undefined && isIntegerInRange(value.hopSize, 1, Number.MAX_SAFE_INTEGER) &&
+        isIntegerInRange(value.maxFrames, 1, 4096)
+      ) {
+        return {
+          type: value.type,
+          requestId: value.requestId,
+          channel: value.channel,
+          startSample: value.startSample,
+          endSample: value.endSample,
+          windowSize,
+          hopSize: value.hopSize,
+          maxFrames: value.maxFrames
+        };
+      }
+      return undefined;
+    }
+    case "saveStreamedSelectionWav":
+      if (
+        isSafeRequestId(value.requestId) && isBoundedString(value.fileName) &&
+        isNonNegativeFinite(value.startTime) && isNonNegativeFinite(value.endTime) && value.endTime > value.startTime &&
+        isOptionalBoundedString(value.saveLabel) && isOptionalBoundedString(value.title)
+      ) {
+        return { type: value.type, requestId: value.requestId, fileName: value.fileName, startTime: value.startTime, endTime: value.endTime, saveLabel: value.saveLabel, title: value.title };
       }
       return undefined;
     case "requestSelectionWavSave":
@@ -1216,6 +1414,18 @@ function isSafeRequestId(value: unknown): value is number {
 
 function isSafeOffset(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function isSafeChannel(value: unknown): value is number {
+  return isIntegerInRange(value, 0, 31);
+}
+
+function isIntegerInRange(value: unknown, min: number, max: number): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= min && value <= max;
+}
+
+function isNonNegativeFinite(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
 function isChunkLength(value: unknown): value is number {

@@ -29,9 +29,18 @@ const webview = await context({
   target: "es2022"
 });
 
+const audioCacheWorker = await context({
+  ...shared,
+  entryPoints: ["src/extension/audioCacheWorker.ts"],
+  outfile: "dist/audioCacheWorker.js",
+  platform: "node",
+  format: "cjs",
+  target: "node20"
+});
+
 if (watch) {
-  await Promise.all([extension.watch(), webview.watch()]);
+  await Promise.all([extension.watch(), webview.watch(), audioCacheWorker.watch()]);
 } else {
-  await Promise.all([extension.rebuild(), webview.rebuild()]);
-  await Promise.all([extension.dispose(), webview.dispose()]);
+  await Promise.all([extension.rebuild(), webview.rebuild(), audioCacheWorker.rebuild()]);
+  await Promise.all([extension.dispose(), webview.dispose(), audioCacheWorker.dispose()]);
 }
