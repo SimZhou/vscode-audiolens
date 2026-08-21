@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.9
+
+- Fixed blocky waveforms for cached encoded audio. When a canvas column covers fewer than the peak pyramid's 512-sample base block, AudioLens now reads the visible PCM range in bounded chunks and computes exact per-column min/max values instead of repeating a coarse peak block.
+- Improved spectrogram time and vertical resolution. Overscan requests now allocate enough FFT frames for the visible range, high-DPI canvases use their physical height for raster rows, and magnitude, raster, and streamed-window budgets keep the higher resolution bounded.
+
 ## 1.8.8
 
 - Replaced whole-file FFmpeg WAV transfers with an Audacity-style disk PCM cache. Long MP4/M4A/AAC files now use peak pyramids for waveforms and bounded on-demand sample windows for spectrograms and selection analysis, avoiding the previous 512 MB decoded-output failure.

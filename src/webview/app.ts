@@ -11,6 +11,8 @@ import { resolveWaveDataSize } from "../ffmpegWav";
 import {
   createAnalysisCacheKey,
   computeAxisIntervals,
+  computeSpectrogramRequestPlan,
+  computeStreamedSpectrogramMaxFrames,
   computeWaveformPeaks,
   formatAxisFrequency,
   FrequencyScale,
@@ -197,6 +199,10 @@ const STREAMED_PLAYBACK_LOOKAHEAD_SECONDS = 30;
 const SELECTION_WAV_CHUNK_SIZE = 1024 * 1024;
 const MAX_PADDED_FFT_SIZE = 131_072;
 const SPECTROGRAM_MAG_BYTE_BUDGET = 64 * 1024 * 1024;
+const SPECTROGRAM_RASTER_BYTE_BUDGET = 16 * 1024 * 1024;
+const SPECTROGRAM_STREAMED_WINDOW_BYTE_BUDGET = 32 * 1024 * 1024;
+const SPECTROGRAM_MAX_TARGET_FRAMES = 4096;
+const SPECTROGRAM_MAX_STREAMED_FRAMES = 8192;
 const WAVEFORM_CACHE_BYTE_BUDGET = 64 * 1024 * 1024;
 const WAVEFORM_CACHE_ENTRY_LIMIT = 256;
 const SUPPORTED_FFT_SIZES = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768] as const;
@@ -4466,33 +4472,20 @@ export class AudioLensApp {
     resizeCanvas(canvas);
     const rect = this.getPlotRect(canvas);
     const ratio = window.devicePixelRatio || 1;
-    const preferredTargetFrames = Math.max(360, Math.min(1800, Math.floor(rect.width / ratio)));
     const paddedFftSize = nextPowerOfTwoNumber(this.settings.fftSize * this.settings.zeroPaddingFactor);
-    const halfFftSize = Math.max(1, paddedFftSize / 2);
-    // Worker 的帧数最多约为 targetFrames 的两倍，预留 2 倍余量保证幅值矩阵不超过预算。
-    const budgetTargetFrames = Math.max(
-      1,
-      Math.floor(SPECTROGRAM_MAG_BYTE_BUDGET / (halfFftSize * Float32Array.BYTES_PER_ELEMENT * 2))
-    );
-    const targetFrames = Math.min(preferredTargetFrames, budgetTargetFrames);
-    const outputBins = Math.max(192, Math.min(900, Math.floor(rect.height / ratio)));
     const { startSample, endSample } = visible ?? this.visibleRange();
-    const totalSamples = this.audioLength();
-    const span = Math.max(1, endSample - startSample);
-    // 量化 overscan 请求：B 为不小于可见跨度的最小 2 的幂，G = B/4 为对齐网格，
-    // 请求范围 = [对齐起点 - G, 起点 + B + 3G)。同一 B 内的缩放步进和 G 内的平移命中
-    // 同一缓存 key（drawSpectrogramBitmap 负责裁剪），跨 G 才重算且左右各留 ≥G 余量。
-    let block = 1;
-    while (block < span) block *= 2;
-    const grid = Math.max(1, Math.floor(block / 4));
-    const alignedStart = Math.floor(startSample / grid) * grid - grid;
-    const requestStart = Math.max(0, alignedStart);
-    const requestEnd = Math.max(requestStart, Math.min(totalSamples, alignedStart + block + 3 * grid));
-    // hop 取不超过理想值的最大 2 的幂：B 不变则 hop 不变，帧数约为目标帧数的 1~2 倍。
-    const idealHop = Math.max(1, (block + 3 * grid) / targetFrames);
-    let hopSize = 1;
-    while (hopSize * 2 <= idealHop) hopSize *= 2;
-    return { startSample: requestStart, endSample: requestEnd, hopSize, outputBins, targetFrames };
+    return computeSpectrogramRequestPlan({
+      visibleStartSample: startSample,
+      visibleEndSample: endSample,
+      totalSamples: this.audioLength(),
+      plotWidthPixels: rect.width,
+      plotHeightPixels: rect.height,
+      devicePixelRatio: ratio,
+      paddedFftSize,
+      magnitudeByteBudget: SPECTROGRAM_MAG_BYTE_BUDGET,
+      rasterByteBudget: SPECTROGRAM_RASTER_BYTE_BUDGET,
+      maxTargetFrames: SPECTROGRAM_MAX_TARGET_FRAMES
+    });
   }
 
   private ensureWorkerSamples(channel: number, samples: Float32Array): void {
@@ -4603,7 +4596,12 @@ export class AudioLensApp {
         endSample: plan.endSample,
         windowSize: this.settings.fftSize,
         hopSize: plan.hopSize,
-        maxFrames: Math.min(4096, Math.max(1, plan.targetFrames * 2))
+        maxFrames: computeStreamedSpectrogramMaxFrames(
+          plan.targetFrames,
+          this.settings.fftSize,
+          SPECTROGRAM_STREAMED_WINDOW_BYTE_BUDGET,
+          SPECTROGRAM_MAX_STREAMED_FRAMES
+        )
       },
       "streamedAudioWindows"
     ).then((response) => {

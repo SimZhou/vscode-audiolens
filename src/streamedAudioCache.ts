@@ -33,6 +33,7 @@ interface CacheWorkerMessage {
 }
 
 const PCM_SCALE = 1 / 32768;
+const FINE_WAVEFORM_READ_BYTES = 4 * 1024 * 1024;
 
 export async function createStreamedAudioCache(options: {
   inputPath: string;
@@ -69,13 +70,13 @@ export async function disposeStreamedAudioCache(cache: StreamedAudioCache): Prom
   await rm(cache.tempDir, { recursive: true, force: true });
 }
 
-export function readWaveformPeaks(
+export async function readWaveformPeaks(
   cache: StreamedAudioCache,
   channel: number,
   startSample: number,
   endSample: number,
   width: number
-): { min: Float32Array; max: Float32Array } {
+): Promise<{ min: Float32Array; max: Float32Array }> {
   const safeChannel = clampInteger(channel, 0, cache.numberOfChannels - 1);
   const safeStart = clampInteger(startSample, 0, cache.length);
   const safeEnd = clampInteger(endSample, safeStart, cache.length);
@@ -87,6 +88,10 @@ export function readWaveformPeaks(
       break;
     }
     level = candidate;
+  }
+
+  if (samplesPerPixel < level.blockSize) {
+    return readFineWaveformPeaks(cache, safeChannel, safeStart, safeEnd, safeWidth);
   }
 
   const sourceMin = level.min[safeChannel];
@@ -106,6 +111,70 @@ export function readWaveformPeaks(
     }
     min[pixel] = lo <= hi ? lo : 0;
     max[pixel] = lo <= hi ? hi : 0;
+  }
+  return { min, max };
+}
+
+async function readFineWaveformPeaks(
+  cache: StreamedAudioCache,
+  channel: number,
+  startSample: number,
+  endSample: number,
+  width: number
+): Promise<{ min: Float32Array; max: Float32Array }> {
+  const min = new Float32Array(width);
+  const max = new Float32Array(width);
+  const sampleCount = endSample - startSample;
+  if (sampleCount <= 0) {
+    return { min, max };
+  }
+
+  const bytesPerFrame = cache.numberOfChannels * 2;
+  const maxFramesPerRead = Math.max(1, Math.floor(FINE_WAVEFORM_READ_BYTES / bytesPerFrame));
+  const pixelStart = (pixel: number): number => Math.min(
+    endSample - 1,
+    startSample + Math.floor((pixel * sampleCount) / width)
+  );
+  const pixelEnd = (pixel: number): number => Math.min(
+    endSample,
+    Math.max(pixelStart(pixel) + 1, startSample + Math.ceil(((pixel + 1) * sampleCount) / width))
+  );
+
+  const handle = await open(cache.wavPath, "r");
+  try {
+    let firstPixel = 0;
+    while (firstPixel < width) {
+      const readStart = pixelStart(firstPixel);
+      let lastPixel = firstPixel;
+      let readEnd = pixelEnd(lastPixel);
+      while (lastPixel + 1 < width) {
+        const candidateEnd = pixelEnd(lastPixel + 1);
+        if (candidateEnd - readStart > maxFramesPerRead) {
+          break;
+        }
+        lastPixel += 1;
+        readEnd = candidateEnd;
+      }
+
+      const input = Buffer.allocUnsafe((readEnd - readStart) * bytesPerFrame);
+      await readFully(handle, input, cache.dataOffset + readStart * bytesPerFrame);
+      for (let pixel = firstPixel; pixel <= lastPixel; pixel += 1) {
+        const from = pixelStart(pixel) - readStart;
+        const to = pixelEnd(pixel) - readStart;
+        let lo = 1;
+        let hi = -1;
+        for (let frame = from; frame < to; frame += 1) {
+          const sample = input.readInt16LE((frame * cache.numberOfChannels + channel) * 2) * PCM_SCALE;
+          lo = Math.min(lo, sample);
+          hi = Math.max(hi, sample);
+        }
+        min[pixel] = lo <= hi ? lo : 0;
+        max[pixel] = lo <= hi ? hi : 0;
+      }
+      firstPixel = lastPixel + 1;
+    }
+  } finally {
+    await handle.close();
   }
   return { min, max };
 }
@@ -159,7 +228,7 @@ export async function readPackedWindows(
   const hopSize = clampInteger(options.hopSize, 1, Math.max(1, cache.length));
   const available = Math.max(0, end - start);
   const naturalFrames = available <= windowSize ? 1 : Math.floor((available - windowSize) / hopSize) + 1;
-  const frameCount = Math.min(clampInteger(options.maxFrames, 1, 4096), Math.max(1, naturalFrames));
+  const frameCount = Math.min(clampInteger(options.maxFrames, 1, 8192), Math.max(1, naturalFrames));
   const outputBytes = frameCount * windowSize * Float32Array.BYTES_PER_ELEMENT;
   if (outputBytes > options.maxOutputBytes) {
     throw new Error(`Requested FFT windows are too large: ${formatBytes(outputBytes)} / ${formatBytes(options.maxOutputBytes)}.`);

@@ -37,7 +37,7 @@ docs/assets/readme/.DS_Store
 docs/roadmap.md
 
 # Local audio fixtures
-tests/audios/
+tests/audio/
 
 # Local tests
 tests/

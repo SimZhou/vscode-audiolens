@@ -145,6 +145,63 @@ export function computeWaveformPeaks(samples: Float32Array, startSample: number,
   return { min, max };
 }
 
+export function computeSpectrogramRequestPlan(options: {
+  visibleStartSample: number;
+  visibleEndSample: number;
+  totalSamples: number;
+  plotWidthPixels: number;
+  plotHeightPixels: number;
+  devicePixelRatio: number;
+  paddedFftSize: number;
+  magnitudeByteBudget: number;
+  rasterByteBudget: number;
+  maxTargetFrames?: number;
+}): { startSample: number; endSample: number; hopSize: number; outputBins: number; targetFrames: number } {
+  const totalSamples = Math.max(0, Math.floor(options.totalSamples));
+  const visibleStart = clamp(Math.floor(options.visibleStartSample), 0, totalSamples);
+  const visibleEnd = clamp(Math.floor(options.visibleEndSample), visibleStart, totalSamples);
+  const visibleSpan = Math.max(1, visibleEnd - visibleStart);
+
+  let block = 1;
+  while (block < visibleSpan) block *= 2;
+  const grid = Math.max(1, Math.floor(block / 4));
+  const alignedStart = Math.floor(visibleStart / grid) * grid - grid;
+  const startSample = Math.max(0, alignedStart);
+  const endSample = Math.max(startSample, Math.min(totalSamples, alignedStart + block + 3 * grid));
+  const requestSpan = Math.max(1, endSample - startSample);
+
+  const ratio = Math.max(1, Number.isFinite(options.devicePixelRatio) ? options.devicePixelRatio : 1);
+  const cssWidth = Math.max(1, options.plotWidthPixels / ratio);
+  const visibleTargetFrames = Math.max(360, Math.min(1800, Math.floor(cssWidth)));
+  const preferredTargetFrames = Math.ceil(visibleTargetFrames * requestSpan / visibleSpan);
+  const outputBins = Math.max(192, Math.min(900, Math.floor(options.plotHeightPixels)));
+  const halfFftSize = Math.max(1, Math.floor(options.paddedFftSize / 2));
+  // hop 向下取 2 的幂后，实际帧数可能接近 targetFrames 的两倍。
+  const magnitudeBudgetFrames = Math.max(1, Math.floor(options.magnitudeByteBudget / (halfFftSize * 4 * 2)));
+  const rasterBudgetFrames = Math.max(1, Math.floor(options.rasterByteBudget / (outputBins * 4 * 2)));
+  const targetFrames = Math.max(1, Math.min(
+    preferredTargetFrames,
+    magnitudeBudgetFrames,
+    rasterBudgetFrames,
+    options.maxTargetFrames ?? 4096
+  ));
+
+  const idealHop = Math.max(1, requestSpan / targetFrames);
+  let hopSize = 1;
+  while (hopSize * 2 <= idealHop) hopSize *= 2;
+  return { startSample, endSample, hopSize, outputBins, targetFrames };
+}
+
+export function computeStreamedSpectrogramMaxFrames(
+  targetFrames: number,
+  windowSize: number,
+  byteBudget: number,
+  maxFrames: number
+): number {
+  const framesByTransfer = Math.max(1, Math.floor(byteBudget / (Math.max(1, windowSize) * 4)));
+  return Math.max(1, Math.min(maxFrames, framesByTransfer, Math.max(1, Math.floor(targetFrames) * 2)));
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

@@ -564,7 +564,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
   ): Promise<void> {
     try {
       const cache = await this.getStreamedAudioCache(document);
-      const peaks = readWaveformPeaks(cache, message.channel, message.startSample, message.endSample, message.width);
+      const peaks = await readWaveformPeaks(cache, message.channel, message.startSample, message.endSample, message.width);
       this.postMessage(webview, {
         type: "streamedAudioPeaks",
         requestId: message.requestId,
@@ -1320,7 +1320,7 @@ function parseWebviewMessage(value: unknown, maxTransferBytes: number): WebviewM
         isSafeRequestId(value.requestId) && isSafeChannel(value.channel) &&
         isSafeOffset(value.startSample) && isSafeOffset(value.endSample) && value.endSample >= value.startSample &&
         windowSize !== undefined && isIntegerInRange(value.hopSize, 1, Number.MAX_SAFE_INTEGER) &&
-        isIntegerInRange(value.maxFrames, 1, 4096)
+        isIntegerInRange(value.maxFrames, 1, 8192)
       ) {
         return {
           type: value.type,
