@@ -64,6 +64,42 @@ export interface DecodedPcmAudio {
   channels: Float32Array[];
 }
 
+// Chromium/Electron 的 AudioContext.createBuffer 仅接受 >= 3000Hz 的采样率，
+// 低于此值需先升采样到播放载体，但分析仍用原生采样率。
+export const MIN_AUDIO_BUFFER_SAMPLE_RATE = 3_000;
+
+// 几何/分析的唯一样本真值：始终保持原生采样率，不受播放载体升采样影响。
+export interface DecodedTrack {
+  channels: Float32Array[];
+  sampleRate: number;
+  length: number;
+  numberOfChannels: number;
+  duration: number;
+}
+
+export function buildDecodedTrack(channels: Float32Array[], sampleRate: number): DecodedTrack {
+  const length = channels[0]?.length ?? 0;
+  return {
+    channels,
+    sampleRate,
+    length,
+    numberOfChannels: channels.length,
+    duration: sampleRate > 0 ? length / sampleRate : 0
+  };
+}
+
+export function trackFromAudioBuffer(buffer: AudioBuffer): DecodedTrack {
+  // 引用而非拷贝：普通文件（>=3000Hz）不产生额外内存开销。
+  const channels = Array.from({ length: buffer.numberOfChannels }, (_, channel) => buffer.getChannelData(channel));
+  return {
+    channels,
+    sampleRate: buffer.sampleRate,
+    length: buffer.length,
+    numberOfChannels: buffer.numberOfChannels,
+    duration: buffer.duration
+  };
+}
+
 export function decodePcm(bytes: Uint8Array, format: PcmFormat): DecodedPcmAudio {
   const normalized = normalizePcmFormat(format);
   const data = pcmPayloadBytes(bytes, normalized);
@@ -85,10 +121,43 @@ export function decodePcm(bytes: Uint8Array, format: PcmFormat): DecodedPcmAudio
   return { sampleRate: format.sampleRate, channels };
 }
 
-export function createAudioBufferFromChannels(audioContext: BaseAudioContext, decoded: DecodedPcmAudio): AudioBuffer {
-  const frames = decoded.channels[0]?.length ?? 0;
-  const audioBuffer = audioContext.createBuffer(decoded.channels.length, frames, decoded.sampleRate);
-  decoded.channels.forEach((samples, channel) => audioBuffer.getChannelData(channel).set(samples));
+// 将低于 minRate 的采样率按最小整数倍线性插值升采样，使 createBuffer 可接受。
+// 仅用于播放载体；升采样不会在原始 Nyquist 以上凭空造信息，故不损失有效频段。
+export function upsampleToMinRate(
+  channels: Float32Array[],
+  sampleRate: number,
+  minRate = MIN_AUDIO_BUFFER_SAMPLE_RATE
+): { channels: Float32Array[]; sampleRate: number } {
+  if (sampleRate >= minRate || sampleRate <= 0 || channels.length === 0) {
+    return { channels, sampleRate };
+  }
+  const factor = Math.ceil(minRate / sampleRate);
+  const targetRate = sampleRate * factor;
+  const srcFrames = channels[0]?.length ?? 0;
+  // 产出 srcFrames*factor 帧，使播放载体时长与原生精确一致（duration 不变）。
+  // 末样本没有后继可插值，其 factor 个样本保持末值。
+  const dstFrames = srcFrames * factor;
+  const upsampled = channels.map((src) => {
+    const dst = new Float32Array(dstFrames);
+    for (let i = 0; i < srcFrames; i += 1) {
+      const a = src[i];
+      const b = i + 1 < srcFrames ? src[i + 1] : a;
+      const base = i * factor;
+      for (let k = 0; k < factor; k += 1) {
+        dst[base + k] = a + ((b - a) * k) / factor;
+      }
+    }
+    return dst;
+  });
+  return { channels: upsampled, sampleRate: targetRate };
+}
+
+// 构造播放专用 AudioBuffer：原生采样率 >= 3000Hz 直接用，否则升采样后再建。
+export function buildPlaybackBuffer(audioContext: BaseAudioContext, track: DecodedTrack): AudioBuffer {
+  const playable = upsampleToMinRate(track.channels, track.sampleRate);
+  const frames = playable.channels[0]?.length ?? 0;
+  const audioBuffer = audioContext.createBuffer(Math.max(1, playable.channels.length), Math.max(1, frames), playable.sampleRate);
+  playable.channels.forEach((samples, channel) => audioBuffer.getChannelData(channel).set(samples));
   return audioBuffer;
 }
 

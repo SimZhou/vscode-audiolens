@@ -29,7 +29,9 @@ import { clamp, formatBytes, formatTime, resizeCanvas } from "./dom";
 import { getMessages, resolveLocale } from "./i18n";
 import { LocaleCode, LocaleMessages, LocaleSetting } from "./i18n/types";
 import {
-  createAudioBufferFromChannels,
+  buildDecodedTrack,
+  buildPlaybackBuffer,
+  DecodedTrack,
   decodePcm,
   isSupportedPcmSampleRate,
   pcmEncodingToFormat,
@@ -38,6 +40,7 @@ import {
   PcmEndianness,
   PcmFormat,
   PcmSampleFormat,
+  trackFromAudioBuffer,
   validatePcmFormat
 } from "./pcm";
 import { defaultChannelPan } from "./playback";
@@ -158,7 +161,7 @@ interface VisibleRangeState {
 }
 
 interface PendingSelectionWavDownload {
-  audioBuffer: AudioBuffer;
+  track: DecodedTrack;
   startFrame: number;
   endFrame: number;
   fileName: string;
@@ -1452,6 +1455,8 @@ export class AudioLensApp {
   private playheadTime: number | undefined;
   private dragPlayheadTime: number | undefined;
   private sourceSampleRate: number | undefined;
+  // 几何/分析的唯一样本真值（原生采样率）。audioBuffer 仅作播放载体，低采样率时会升采样。
+  private track: DecodedTrack | undefined;
   private selection: TimeSelectionState | undefined;
   private selectionPlaybackEnd: number | undefined;
   private isDraggingSelection = false;
@@ -1716,6 +1721,7 @@ export class AudioLensApp {
     this.pendingStreamedAudioRequests.clear();
     this.audioBuffer = undefined;
     this.streamedAudio = undefined;
+    this.track = undefined;
     this.sourceSampleRate = undefined;
     this.clearAudioElement();
     this.spectrogramCache.clear();
@@ -1853,6 +1859,7 @@ export class AudioLensApp {
       : new AudioContext();
     try {
       this.audioBuffer = await decodeAudioDataWithTimeout(audioContext, this.audioBytes, ENCODED_DECODE_TIMEOUT_MS);
+      this.track = trackFromAudioBuffer(this.audioBuffer);
       this.sourceSampleRate = facts.sampleRate ?? this.audioBuffer.sampleRate;
       this.installAudioElementFromBuffer(fileName);
     } catch (error) {
@@ -1932,7 +1939,9 @@ export class AudioLensApp {
     }
 
     const decoded = decodePcm(parsed.bytes, parsed.format);
-    this.audioBuffer = createAudioBufferFromChannels(audioContext, decoded);
+    // 原生采样率作为几何/分析真值；播放载体在 <3000Hz 时升采样，避免 createBuffer 抛错。
+    this.track = buildDecodedTrack(decoded.channels, decoded.sampleRate);
+    this.audioBuffer = buildPlaybackBuffer(audioContext, this.track);
     this.sourceSampleRate = decoded.sampleRate;
     return true;
   }
@@ -2983,9 +2992,14 @@ export class AudioLensApp {
       return;
     }
 
-    const audioBuffer = this.audioBuffer!;
-    const startFrame = clamp(Math.floor(this.selection.start * audioBuffer.sampleRate), 0, audioBuffer.length);
-    const endFrame = clamp(Math.ceil(this.selection.end * audioBuffer.sampleRate), startFrame, audioBuffer.length);
+    // 导出基于原生 track：帧号与采样率均为原生值，产物即真实原生采样率的 WAV。
+    const track = this.track;
+    if (!track) {
+      this.reportPlaybackError(this.messages.noSelectionToDownload);
+      return;
+    }
+    const startFrame = clamp(Math.floor(this.selection.start * track.sampleRate), 0, track.length);
+    const endFrame = clamp(Math.ceil(this.selection.end * track.sampleRate), startFrame, track.length);
     if (endFrame <= startFrame) {
       this.reportPlaybackError(this.messages.noSelectionToDownload);
       return;
@@ -2994,7 +3008,7 @@ export class AudioLensApp {
     const fileName = this.selectionWavFileName(this.selection.start, this.selection.end);
     const requestId = this.selectionWavDownloadRequestSeq + 1;
     this.selectionWavDownloadRequestSeq = requestId;
-    this.pendingSelectionWavDownloads.set(requestId, { audioBuffer, startFrame, endFrame, fileName });
+    this.pendingSelectionWavDownloads.set(requestId, { track, startFrame, endFrame, fileName });
     this.vscode.postMessage({
       type: "requestSelectionWavSave",
       requestId,
@@ -3020,7 +3034,7 @@ export class AudioLensApp {
   }
 
   private async encodeAndWriteSelectionWav(requestId: number, pending: PendingSelectionWavDownload): Promise<void> {
-    const bytes = await encodeWavAsync(pending.audioBuffer, pending.startFrame, pending.endFrame);
+    const bytes = await encodeWavAsync(pending.track, pending.startFrame, pending.endFrame);
     const view = new Uint8Array(bytes);
     const chunkCount = Math.max(1, Math.ceil(view.byteLength / SELECTION_WAV_CHUNK_SIZE));
     for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
@@ -3268,15 +3282,15 @@ export class AudioLensApp {
       const peak = Math.max(...active.map((item) => item.peak));
       return normalizeDbRange(amplitudeToDb(rms) - 72, amplitudeToDb(peak) - 27);
     }
-    if (!this.audioBuffer) {
+    if (!this.track) {
       return { minDb: -96, maxDb: 0 };
     }
-    const stride = Math.max(1, Math.ceil(this.audioBuffer.length / 2_000_000));
+    const stride = Math.max(1, Math.ceil(this.track.length / 2_000_000));
     let sumSquares = 0;
     let peak = 0;
     let measured = 0;
-    for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel += 1) {
-      const samples = this.audioBuffer.getChannelData(channel);
+    for (let channel = 0; channel < this.track.numberOfChannels; channel += 1) {
+      const samples = this.track.channels[channel];
       let channelSquares = 0;
       let channelPeak = 0;
       let channelMeasured = 0;
@@ -3434,7 +3448,10 @@ export class AudioLensApp {
     this.elements.play.textContent = "▶";
     this.elements.seek.value = "0";
     this.updateClock();
-    const fileMetaText = `${fileName} · ${this.audioBuffer.numberOfChannels}ch · ${this.audioBuffer.sampleRate} Hz${this.currentSourceLabel}`;
+    // 显示原生采样率（track），而非可能已升采样的播放载体。
+    const displayChannels = this.track?.numberOfChannels ?? this.audioBuffer.numberOfChannels;
+    const displaySampleRate = this.track?.sampleRate ?? this.audioBuffer.sampleRate;
+    const fileMetaText = `${fileName} · ${displayChannels}ch · ${displaySampleRate} Hz${this.currentSourceLabel}`;
     this.elements.fileMeta.textContent = fileMetaText;
     this.elements.fileMeta.title = fileMetaText;
     this.setStatus(this.messages.audioLoaded);
@@ -3455,8 +3472,11 @@ export class AudioLensApp {
     }
     this.writePcmControls(format);
     const decoded = decodePcm(this.audioBytes, format);
-    const audioContext = new AudioContext({ sampleRate: decoded.sampleRate });
-    this.audioBuffer = createAudioBufferFromChannels(audioContext, decoded);
+    this.track = buildDecodedTrack(decoded.channels, decoded.sampleRate);
+    // AudioContext 与 AudioBuffer 的采样率可以不同；上下文使用设备默认值，
+    // 避免低采样率在构造 AudioContext 时先于 buildPlaybackBuffer 失败。
+    const audioContext = new AudioContext();
+    this.audioBuffer = buildPlaybackBuffer(audioContext, this.track);
     this.sourceSampleRate = decoded.sampleRate;
     await audioContext.close();
     this.settings.channel = 0;
@@ -4192,6 +4212,9 @@ export class AudioLensApp {
   }
 
   private samplesForChannel(channel: number): Float32Array | undefined {
+    if (this.track) {
+      return this.track.channels[clamp(channel, 0, this.track.numberOfChannels - 1)];
+    }
     if (!this.audioBuffer) {
       return undefined;
     }
@@ -4203,19 +4226,19 @@ export class AudioLensApp {
   }
 
   private audioDuration(): number {
-    return this.audioBuffer?.duration ?? this.streamedAudio?.duration ?? 0;
+    return this.track?.duration ?? this.audioBuffer?.duration ?? this.streamedAudio?.duration ?? 0;
   }
 
   private audioSampleRate(): number {
-    return this.audioBuffer?.sampleRate ?? this.streamedAudio?.sampleRate ?? 1;
+    return this.track?.sampleRate ?? this.audioBuffer?.sampleRate ?? this.streamedAudio?.sampleRate ?? 1;
   }
 
   private audioLength(): number {
-    return this.audioBuffer?.length ?? this.streamedAudio?.length ?? 0;
+    return this.track?.length ?? this.audioBuffer?.length ?? this.streamedAudio?.length ?? 0;
   }
 
   private audioChannelCount(): number {
-    return this.audioBuffer?.numberOfChannels ?? this.streamedAudio?.numberOfChannels ?? 0;
+    return this.track?.numberOfChannels ?? this.audioBuffer?.numberOfChannels ?? this.streamedAudio?.numberOfChannels ?? 0;
   }
 
   private redrawVisuals(): void {
@@ -5636,14 +5659,15 @@ export class AudioLensApp {
     }
 
     const samples = this.samplesForActiveTrack();
-    const audioBuffer = this.audioBuffer;
-    if (!samples || !audioBuffer) {
+    if (!samples) {
       this.cancelSelectionSpectrumAnalysis();
       return;
     }
-    const startSample = Math.floor(this.selection.start * audioBuffer.sampleRate);
-    const endSample = Math.min(samples.length, Math.ceil(this.selection.end * audioBuffer.sampleRate));
-    const timeMetrics = computeTimeSelectionMetrics(samples, startSample, endSample, audioBuffer.sampleRate);
+    // samples 来自原生 track，帧号与指标采样率同用原生采样率。
+    const analysisRate = this.analysisSampleRate();
+    const startSample = Math.floor(this.selection.start * analysisRate);
+    const endSample = Math.min(samples.length, Math.ceil(this.selection.end * analysisRate));
+    const timeMetrics = computeTimeSelectionMetrics(samples, startSample, endSample, analysisRate);
     this.setAnalysisValue(this.elements.analysisStart, `${this.selection.start.toFixed(3)}s`);
     this.setAnalysisValue(this.elements.analysisEnd, `${this.selection.end.toFixed(3)}s`);
     this.setAnalysisValue(this.elements.analysisDuration, `${(this.selection.end - this.selection.start).toFixed(3)}s`);
@@ -5777,7 +5801,8 @@ export class AudioLensApp {
   }
 
   private analysisSampleRate(): number {
-    return this.sourceSampleRate ?? this.audioSampleRate();
+    // 原生采样率为准（track），不受播放载体升采样影响；保证频谱频率轴正确。
+    return this.track?.sampleRate ?? this.sourceSampleRate ?? this.audioSampleRate();
   }
 
   private nyquistFrequency(): number {
@@ -6166,11 +6191,12 @@ async function decodeAudioDataWithTimeout(audioContext: AudioContext, bytes: Uin
   }
 }
 
-async function encodeWavAsync(audioBuffer: AudioBuffer, startFrame = 0, endFrame = audioBuffer.length): Promise<ArrayBuffer> {
-  const channels = audioBuffer.numberOfChannels;
-  const sampleRate = audioBuffer.sampleRate;
-  const start = clamp(Math.floor(startFrame), 0, audioBuffer.length);
-  const end = clamp(Math.ceil(endFrame), start, audioBuffer.length);
+async function encodeWavAsync(track: DecodedTrack, startFrame = 0, endFrame = track.length): Promise<ArrayBuffer> {
+  // 从原生 track 导出：采样率与内容均为真实原生值（不受播放载体升采样影响）。
+  const channels = track.numberOfChannels;
+  const sampleRate = track.sampleRate;
+  const start = clamp(Math.floor(startFrame), 0, track.length);
+  const end = clamp(Math.ceil(endFrame), start, track.length);
   const frames = end - start;
   const bytesPerSample = 2;
   const blockAlign = channels * bytesPerSample;
@@ -6191,7 +6217,7 @@ async function encodeWavAsync(audioBuffer: AudioBuffer, startFrame = 0, endFrame
   writeAscii(view, 36, "data");
   view.setUint32(40, dataSize, true);
 
-  const channelData = Array.from({ length: channels }, (_, channel) => audioBuffer.getChannelData(channel));
+  const channelData = Array.from({ length: channels }, (_, channel) => track.channels[channel]);
   let offset = 44;
   const chunkFrames = 262_144;
   for (let frame = 0; frame < frames; frame += 1) {
