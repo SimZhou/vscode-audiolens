@@ -1,5 +1,9 @@
 # 更新日志
 
+## 1.8.10
+
+- 双声道音频现在默认将声道 1 设为全左、声道 2 设为全右，保留原始立体声分离；单声道和三个及以上声道继续沿用原有的居中下混行为。用不同声道数重新读取 Raw PCM 后也会应用同一规则。感谢 [@a5632645](https://github.com/a5632645) 报告问题并贡献初始实现（[#15](https://github.com/SimZhou/vscode-audiolens/issues/15)、[#16](https://github.com/SimZhou/vscode-audiolens/pull/16)）。
+
 ## 1.8.9
 
 - 修复缓存编码音频的柱状、台阶状波形。当每个画布列覆盖的采样少于峰值金字塔的 512-sample 基础块时，AudioLens 会分块读取可见 PCM 并精确计算逐列 min/max，不再重复粗峰值块。

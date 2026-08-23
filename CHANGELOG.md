@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.10
+
+- Stereo audio now starts with channel 1 panned fully left and channel 2 fully right, preserving the original stereo separation. Mono and audio with three or more channels keep the existing centered downmix behavior. The same rule applies after re-reading Raw PCM with a different channel count. Thanks [@a5632645](https://github.com/a5632645) for reporting and contributing the initial implementation ([#15](https://github.com/SimZhou/vscode-audiolens/issues/15), [#16](https://github.com/SimZhou/vscode-audiolens/pull/16)).
+
 ## 1.8.9
 
 - Fixed blocky waveforms for cached encoded audio. When a canvas column covers fewer than the peak pyramid's 512-sample base block, AudioLens now reads the visible PCM range in bounded chunks and computes exact per-column min/max values instead of repeating a coarse peak block.

@@ -40,6 +40,7 @@ import {
   PcmSampleFormat,
   validatePcmFormat
 } from "./pcm";
+import { defaultChannelPan } from "./playback";
 import { applyLocale, ViewElements } from "./view";
 
 interface VsCodeApi {
@@ -3730,6 +3731,8 @@ export class AudioLensApp {
     mode.value = this.settings.defaultTrackMode;
     const gainSlider = this.createTrackSlider("gain");
     const panSlider = this.createTrackSlider("pan");
+    const pan = defaultChannelPan(this.audioChannelCount(), channel);
+    panSlider.input.value = String(pan * 100);
     sidebar.append(title, mute, solo, mode, gainSlider.control, panSlider.control);
 
     const body = document.createElement("div");
@@ -3764,7 +3767,7 @@ export class AudioLensApp {
       muted: false,
       solo: false,
       gainDb: 0,
-      pan: 0,
+      pan,
       gainSlider: gainSlider.input,
       panSlider: panSlider.input,
       rowHeight: this.settings.defaultTrackRowHeight,
