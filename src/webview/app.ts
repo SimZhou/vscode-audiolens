@@ -1940,8 +1940,13 @@ export class AudioLensApp {
 
     const decoded = decodePcm(parsed.bytes, parsed.format);
     // 原生采样率作为几何/分析真值；播放载体在 <3000Hz 时升采样，避免 createBuffer 抛错。
-    this.track = buildDecodedTrack(decoded.channels, decoded.sampleRate);
-    this.audioBuffer = buildPlaybackBuffer(audioContext, this.track);
+    const nativeTrack = buildDecodedTrack(decoded.channels, decoded.sampleRate);
+    this.audioBuffer = buildPlaybackBuffer(audioContext, nativeTrack);
+    // 普通采样率继续复用 AudioBuffer 内的样本，避免大型 WAV 常驻两份 PCM；
+    // 只有播放载体发生升采样时，才必须另外保留原生 track。
+    this.track = this.audioBuffer.sampleRate === nativeTrack.sampleRate
+      ? trackFromAudioBuffer(this.audioBuffer)
+      : nativeTrack;
     this.sourceSampleRate = decoded.sampleRate;
     return true;
   }
@@ -3472,11 +3477,14 @@ export class AudioLensApp {
     }
     this.writePcmControls(format);
     const decoded = decodePcm(this.audioBytes, format);
-    this.track = buildDecodedTrack(decoded.channels, decoded.sampleRate);
+    const nativeTrack = buildDecodedTrack(decoded.channels, decoded.sampleRate);
     // AudioContext 与 AudioBuffer 的采样率可以不同；上下文使用设备默认值，
     // 避免低采样率在构造 AudioContext 时先于 buildPlaybackBuffer 失败。
     const audioContext = new AudioContext();
-    this.audioBuffer = buildPlaybackBuffer(audioContext, this.track);
+    this.audioBuffer = buildPlaybackBuffer(audioContext, nativeTrack);
+    this.track = this.audioBuffer.sampleRate === nativeTrack.sampleRate
+      ? trackFromAudioBuffer(this.audioBuffer)
+      : nativeTrack;
     this.sourceSampleRate = decoded.sampleRate;
     await audioContext.close();
     this.settings.channel = 0;

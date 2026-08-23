@@ -1,5 +1,9 @@
 # 更新日志
 
+## 1.8.11
+
+- 修复低于 3000 Hz 的标准 PCM WAV 因 Chromium 拒绝创建低采样率 `AudioBuffer` 而无法打开的问题。AudioLens 现在以原生采样率样本绘制波形和频谱、计算选区并导出 WAV，只对播放载体升采样；普通采样率 PCM 继续复用播放缓冲区中的样本，不增加一份常驻副本。感谢 [@penguinway](https://github.com/penguinway) 报告、实现并验证该修复（[#14](https://github.com/SimZhou/vscode-audiolens/pull/14)）。
+
 ## 1.8.10
 
 - 双声道音频现在默认将声道 1 设为全左、声道 2 设为全右，保留原始立体声分离；单声道和三个及以上声道继续沿用原有的居中下混行为。用不同声道数重新读取 Raw PCM 后也会应用同一规则。感谢 [@a5632645](https://github.com/a5632645) 报告问题并贡献初始实现（[#15](https://github.com/SimZhou/vscode-audiolens/issues/15)、[#16](https://github.com/SimZhou/vscode-audiolens/pull/16)）。

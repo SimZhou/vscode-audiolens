@@ -156,7 +156,7 @@ AudioLens 会优先使用 Webview 的浏览器解码能力处理常见音频格�
 
 | 类型 | 扩展名 | 说明 |
 | --- | --- | --- |
-| WAV | `.wav` | 支持多通道 WAV、RIFF chunk 顺序查看、标准 44 字节 PCM 头检查，也支持临时按原始 PCM 重新读取。 |
+| WAV | `.wav` | 支持多通道 WAV、低于 3000 Hz 的 PCM WAV 原生采样率分析、RIFF chunk 顺序查看、标准 44 字节 PCM 头检查，也支持临时按原始 PCM 重新读取。 |
 | Kaldi wav ark | 例如 `wav.ark:23252` 的 `.ark` 条目 | 使用 `AudioLens: Open Kaldi WAV Ark Entry` 命令，或直接打开 `.ark` 文件后输入 offset。AudioLens 会校验 offset 处是否为 `RIFF/WAVE`，并只读取对应的 WAV entry。 |
 | 编码音频 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 长 MP4/M4A/AAC 音频由扩展宿主 FFmpeg 建立磁盘缓存，波形使用峰值金字塔，播放和分析按需读取有界 PCM 小段，不再传输整段解码 PCM，也不依赖 Electron 的 AAC 解复用能力；其他格式先用 Webview 解码，失败后使用同一缓存。 |
 | 原始 PCM | `.pcm`、`.raw` | 读取前需要用户显式填写 PCM 参数。 |

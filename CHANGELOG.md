@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.11
+
+- Fixed standard PCM WAV files below 3000 Hz failing to open because Chromium rejects low-rate `AudioBuffer` creation. AudioLens now keeps native-rate samples for waveforms, spectrograms, selection analysis, and WAV export while upsampling only the playback buffer; normal-rate PCM continues to reuse the playback buffer's samples without an extra resident copy. Thanks [@penguinway](https://github.com/penguinway) for the report, implementation, and verification ([#14](https://github.com/SimZhou/vscode-audiolens/pull/14)).
+
 ## 1.8.10
 
 - Stereo audio now starts with channel 1 panned fully left and channel 2 fully right, preserving the original stereo separation. Mono and audio with three or more channels keep the existing centered downmix behavior. The same rule applies after re-reading Raw PCM with a different channel count. Thanks [@a5632645](https://github.com/a5632645) for reporting and contributing the initial implementation ([#15](https://github.com/SimZhou/vscode-audiolens/issues/15), [#16](https://github.com/SimZhou/vscode-audiolens/pull/16)).
