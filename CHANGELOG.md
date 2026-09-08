@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.0
+
+- Enforce workspace trust and source-file size limits before every disk PCM cache access, including cache reuse, on-demand reads, and selection export.
+- Support the 16-bit PCM WAVEFORMATEXTENSIBLE headers FFmpeg produces for multichannel or high-rate caches, with format, frame-alignment, and file-boundary validation.
+- Prevent spectrogram jobs from an earlier audio source from restoring stale results or caches after a file reload or PCM re-read.
+- Compute selection RMS, peak, clipping, and zero-crossing metrics from every sample in a cancellable Worker, avoiding the aliasing and missed peaks caused by fixed-stride sampling of long selections.
+- Analyze long cached-audio selections through sample blocks of at most 1 MiB instead of one oversized request, preserving exact statistics and FFT results across block boundaries and retaining the 32 MiB response limit.
+- Preserve the original extension when downloading source audio; append `.wav` only for selection WAV exports.
+- Report success, cancellation, and errors for cached-audio selection exports through dedicated replies, and clean up intermediate WAV files even when saving fails.
+- Release the cache-transcoding slot if temporary-directory creation fails, so subsequent attempts can proceed.
+
+This update was completed using GPT-6-Astra in xhigh mode.
+
 ## 1.8.11
 
 - Fixed standard PCM WAV files below 3000 Hz failing to open because Chromium rejects low-rate `AudioBuffer` creation. AudioLens now keeps native-rate samples for waveforms, spectrograms, selection analysis, and WAV export while upsampling only the playback buffer; normal-rate PCM continues to reuse the playback buffer's samples without an extra resident copy. Thanks [@penguinway](https://github.com/penguinway) for the report, implementation, and verification ([#14](https://github.com/SimZhou/vscode-audiolens/pull/14)).

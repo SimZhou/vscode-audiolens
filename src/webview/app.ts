@@ -23,7 +23,7 @@ import {
   WaveformPeaks,
   zoomRange
 } from "../shared/analysis";
-import { AnalysisWorkerResult, createAnalysisWorker, SelectionSpectrumResult, SpectrogramResult } from "./analysisWorker";
+import { AnalysisWorkerResult, createAnalysisWorker, SelectionSpectrumResult, SelectionTimeMetricsResult, SpectrogramResult } from "./analysisWorker";
 import { AudioHeaderInfo, readAudioFileFacts, readAudioHeaderInfo } from "./audioFacts";
 import { clamp, formatBytes, formatTime, resizeCanvas } from "./dom";
 import { getMessages, resolveLocale } from "./i18n";
@@ -1449,6 +1449,7 @@ export class AudioLensApp {
   private requestSeq = 1;
   private pendingAnalysisKeys = new Set<string>();
   private analysisGeneration = 0;
+  private audioSourceVersion = 0;
   private readonly workerLoadedChannels = new Set<number>();
   private lastAnalyzeAt = 0;
   private prefetchTimer: number | undefined;
@@ -1507,11 +1508,12 @@ export class AudioLensApp {
   private selectionWorker = createAnalysisWorker();
   private selectionSpectrumTimer: number | undefined;
   private selectionSpectrumRequestSeq = 0;
-  private selectionDataRequestSeq = 0;
   private currentSelectionSpectrumRequestId: string | undefined;
+  private streamedSelectionSource: { requestId: string; channel: number; startSample: number; endSample: number } | undefined;
   private selectionSpectrumRunning = false;
   private selectionWavDownloadRequestSeq = 0;
   private readonly pendingSelectionWavDownloads = new Map<number, PendingSelectionWavDownload>();
+  private readonly pendingStreamedSelectionWavDownloads = new Set<number>();
   private loadQueue: Promise<void> = Promise.resolve();
   private currentLocale: LocaleCode = "en";
   private messages = getMessages("en");
@@ -1596,6 +1598,16 @@ export class AudioLensApp {
       case "streamedAudioError":
         this.rejectStreamedAudioRequest(message);
         break;
+      case "streamedSelectionWavSaved":
+      case "streamedSelectionWavCanceled":
+        this.pendingStreamedSelectionWavDownloads.delete(message.requestId);
+        break;
+      case "streamedSelectionWavError":
+        if (this.pendingStreamedSelectionWavDownloads.delete(message.requestId)) {
+          this.setStatus(message.message, "error");
+          this.vscode.postMessage({ type: "showError", message: message.message });
+        }
+        break;
       case "selectionWavSaveReady":
         this.writePendingSelectionWav(message.requestId);
         break;
@@ -1625,16 +1637,31 @@ export class AudioLensApp {
 
   private bindSelectionWorker(): void {
     this.selectionWorker.addEventListener("message", (event: MessageEvent<AnalysisWorkerResult>) => {
-      if (event.data.type === "selectionSpectrum") {
+      if (event.data.type === "selectionSamplesNeeded") {
+        void this.sendStreamedSelectionSamples(event.data);
+      } else if (event.data.type === "selectionTimeMetrics") {
+        this.applySelectionTimeMetricsResult(event.data);
+      } else if (event.data.type === "selectionSpectrum") {
         this.applySelectionSpectrumResult(event.data);
+      } else if (event.data.type === "selectionAnalysisError" && this.currentSelectionSpectrumRequestId === event.data.requestId) {
+        this.failSelectionAnalysis(event.data.message);
       }
     });
     this.selectionWorker.addEventListener("error", (event) => {
       event.preventDefault();
-      this.selectionSpectrumRunning = false;
-      this.resetSelectionWorker();
-      this.setStatus(event.message || "Selection analysis failed.", "error");
+      this.failSelectionAnalysis(event.message || "Selection analysis failed.");
     }, { once: true });
+  }
+
+  private failSelectionAnalysis(message: string): void {
+    this.cancelSelectionSpectrumAnalysis();
+    this.setStatus(message, "error");
+    for (const element of [this.elements.analysisRms, this.elements.analysisPeak, this.elements.analysisDominant,
+      this.elements.analysisCrest, this.elements.analysisClipping, this.elements.analysisNoiseFloor,
+      this.elements.analysisCentroid, this.elements.analysisZcr]) {
+      this.setAnalysisValue(element, "--");
+    }
+    this.renderFrequencyRows([]);
   }
 
   private enqueueLoad(metadata: AudioFileMetadata): Promise<void> {
@@ -1688,6 +1715,10 @@ export class AudioLensApp {
   }
 
   private resetWorkerSampleStore(): void {
+    this.audioSourceVersion += 1;
+    this.pendingAnalysisKeys.clear();
+    this.pendingAnalysisTargets.clear();
+    this.pendingAnalysisProfiles.clear();
     this.workerLoadedChannels.clear();
     this.worker.postMessage({ type: "clearSamples" });
   }
@@ -1705,6 +1736,7 @@ export class AudioLensApp {
     }
     this.selectionSpectrumRequestSeq += 1;
     this.currentSelectionSpectrumRequestId = undefined;
+    this.streamedSelectionSource = undefined;
     if (this.selectionSpectrumRunning) {
       this.selectionSpectrumRunning = false;
       this.resetSelectionWorker();
@@ -1731,8 +1763,6 @@ export class AudioLensApp {
     this.clearWaveformCache();
     this.pendingWaveformKeys.clear();
     this.channelPeakCache.clear();
-    this.pendingAnalysisKeys.clear();
-    this.pendingAnalysisTargets.clear();
     this.resetWorkerSampleStore();
     this.trackViews = [];
     this.elements.trackList.replaceChildren();
@@ -2985,9 +3015,11 @@ export class AudioLensApp {
     }
 
     if (!this.audioBuffer && this.streamedAudio) {
+      const requestId = ++this.selectionWavDownloadRequestSeq;
+      this.pendingStreamedSelectionWavDownloads.add(requestId);
       this.vscode.postMessage({
         type: "saveStreamedSelectionWav",
-        requestId: ++this.selectionWavDownloadRequestSeq,
+        requestId,
         fileName: this.selectionWavFileName(this.selection.start, this.selection.end),
         startTime: this.selection.start,
         endTime: this.selection.end,
@@ -4708,7 +4740,7 @@ export class AudioLensApp {
   private createSpectrogramCacheKey(channel: number, canvas: HTMLCanvasElement, plan?: SpectrogramRequestPlan): string {
     const requestPlan = plan ?? this.spectrogramRequestPlan(canvas);
     const frequencyRange = this.effectiveFrequencyRange(channel);
-    return createAnalysisCacheKey({
+    return `${this.audioSourceVersion}:${createAnalysisCacheKey({
       channel,
       startSample: requestPlan.startSample,
       endSample: requestPlan.endSample,
@@ -4724,7 +4756,7 @@ export class AudioLensApp {
       spectrogramMaxHz: frequencyRange.maxHz,
       frequencyScale: this.effectiveFrequencyScale(channel),
       palette: this.settings.palette
-    });
+    })}`;
   }
 
   private touchSpectrogramCacheKey(key: string): void {
@@ -5642,7 +5674,6 @@ export class AudioLensApp {
 
   private updateSelectionAnalysis(): void {
     if (!this.hasAudio() || !this.selection) {
-      this.selectionDataRequestSeq += 1;
       this.cancelSelectionSpectrumAnalysis();
       this.elements.analysisStart.closest<HTMLElement>(".selectionAnalysisPane")?.setAttribute("hidden", "");
       this.setAnalysisValue(this.elements.analysisStart, "--");
@@ -5660,9 +5691,11 @@ export class AudioLensApp {
       return;
     }
     this.elements.analysisStart.closest<HTMLElement>(".selectionAnalysisPane")?.removeAttribute("hidden");
+    // 流式样本尚在读取时，也不能让上一选区的 Worker 结果回填。
+    this.cancelSelectionSpectrumAnalysis();
 
     if (!this.audioBuffer && this.streamedAudio) {
-      void this.updateStreamedSelectionAnalysis(this.selection, this.settings.channel);
+      this.updateStreamedSelectionAnalysis(this.selection);
       return;
     }
 
@@ -5675,24 +5708,19 @@ export class AudioLensApp {
     const analysisRate = this.analysisSampleRate();
     const startSample = Math.floor(this.selection.start * analysisRate);
     const endSample = Math.min(samples.length, Math.ceil(this.selection.end * analysisRate));
-    const timeMetrics = computeTimeSelectionMetrics(samples, startSample, endSample, analysisRate);
     this.setAnalysisValue(this.elements.analysisStart, `${this.selection.start.toFixed(3)}s`);
     this.setAnalysisValue(this.elements.analysisEnd, `${this.selection.end.toFixed(3)}s`);
     this.setAnalysisValue(this.elements.analysisDuration, `${(this.selection.end - this.selection.start).toFixed(3)}s`);
-    this.setAnalysisValue(this.elements.analysisRms, formatDb(amplitudeToDb(timeMetrics.rms)));
-    this.setAnalysisValue(this.elements.analysisPeak, formatDb(amplitudeToDb(timeMetrics.peak)));
-    this.setAnalysisValue(this.elements.analysisDominant, this.selectionAnalysisCalculatingText(), true);
-    this.setAnalysisValue(this.elements.analysisCrest, Number.isFinite(timeMetrics.crestDb) ? `${timeMetrics.crestDb.toFixed(1)} dB` : "--");
-    this.setAnalysisValue(this.elements.analysisClipping, `${timeMetrics.clippingPercent.toFixed(3)}%`);
-    this.setAnalysisValue(this.elements.analysisNoiseFloor, formatDb(timeMetrics.noiseFloorDb));
-    this.setAnalysisValue(this.elements.analysisCentroid, this.selectionAnalysisCalculatingText(), true);
-    this.setAnalysisValue(this.elements.analysisZcr, `${timeMetrics.zeroCrossingRate.toFixed(1)}/s`);
+    for (const element of [this.elements.analysisRms, this.elements.analysisPeak, this.elements.analysisDominant,
+      this.elements.analysisCrest, this.elements.analysisClipping, this.elements.analysisNoiseFloor,
+      this.elements.analysisCentroid, this.elements.analysisZcr]) {
+      this.setAnalysisValue(element, this.selectionAnalysisCalculatingText(), true);
+    }
     this.renderFrequencyRows(BAND_LIMITS.map((band) => ({ label: this.messages[band.labelKey], percent: Number.NaN })), true);
     this.scheduleSelectionSpectrumAnalysis(samples, startSample, endSample);
   }
 
-  private async updateStreamedSelectionAnalysis(selection: TimeSelectionState, channel: number): Promise<void> {
-    const sequence = ++this.selectionDataRequestSeq;
+  private updateStreamedSelectionAnalysis(selection: TimeSelectionState): void {
     const sampleRate = this.audioSampleRate();
     const startSample = Math.floor(selection.start * sampleRate);
     const endSample = Math.min(this.audioLength(), Math.ceil(selection.end * sampleRate));
@@ -5705,31 +5733,32 @@ export class AudioLensApp {
       this.setAnalysisValue(element, this.selectionAnalysisCalculatingText(), true);
     }
     this.renderFrequencyRows(BAND_LIMITS.map((band) => ({ label: this.messages[band.labelKey], percent: Number.NaN })), true);
+    this.scheduleSelectionSpectrumAnalysis(undefined, startSample, endSample);
+  }
+
+  private async sendStreamedSelectionSamples(request: Extract<AnalysisWorkerResult, { type: "selectionSamplesNeeded" }>): Promise<void> {
+    const source = this.streamedSelectionSource;
+    const worker = this.selectionWorker;
+    if (!source || source.requestId !== request.requestId || this.currentSelectionSpectrumRequestId !== request.requestId) return;
+    const isCurrent = () => this.selectionWorker === worker && this.currentSelectionSpectrumRequestId === request.requestId;
     try {
+      if (!Number.isSafeInteger(request.startSample) || !Number.isSafeInteger(request.endSample)
+        || request.startSample < 0 || request.endSample <= request.startSample
+        || request.endSample > source.endSample - source.startSample || request.endSample - request.startSample > 262144) {
+        throw new Error("Invalid selection sample range.");
+      }
       const response = await this.requestStreamedAudio<Extract<ExtensionMessage, { type: "streamedAudioSamples" }>>(
-        { type: "readStreamedAudioSamples", requestId: 0, channel, startSample, endSample },
+        { type: "readStreamedAudioSamples", requestId: 0, channel: source.channel,
+          startSample: source.startSample + request.startSample, endSample: source.startSample + request.endSample },
         "streamedAudioSamples"
       );
-      if (sequence !== this.selectionDataRequestSeq || this.selection?.start !== selection.start || this.selection?.end !== selection.end) return;
-      const samples = new Float32Array(response.samples);
-      const metrics = computeTimeSelectionMetrics(samples, 0, samples.length, sampleRate);
-      this.setAnalysisValue(this.elements.analysisRms, formatDb(amplitudeToDb(metrics.rms)));
-      this.setAnalysisValue(this.elements.analysisPeak, formatDb(amplitudeToDb(metrics.peak)));
-      this.setAnalysisValue(this.elements.analysisCrest, Number.isFinite(metrics.crestDb) ? `${metrics.crestDb.toFixed(1)} dB` : "--");
-      this.setAnalysisValue(this.elements.analysisClipping, `${metrics.clippingPercent.toFixed(3)}%`);
-      this.setAnalysisValue(this.elements.analysisNoiseFloor, formatDb(metrics.noiseFloorDb));
-      this.setAnalysisValue(this.elements.analysisZcr, `${metrics.zeroCrossingRate.toFixed(1)}/s`);
-      this.scheduleSelectionSpectrumAnalysis(samples, 0, samples.length);
+      if (!isCurrent()) return;
+      worker.postMessage({ type: "selectionSamples", requestId: request.requestId,
+        startSample: request.startSample, samples: response.samples }, [response.samples]);
     } catch (error) {
-      if (sequence !== this.selectionDataRequestSeq) return;
-      this.cancelSelectionSpectrumAnalysis();
-      this.setStatus(error instanceof Error ? error.message : String(error), "warning");
-      for (const element of [this.elements.analysisRms, this.elements.analysisPeak, this.elements.analysisDominant,
-        this.elements.analysisCrest, this.elements.analysisClipping, this.elements.analysisNoiseFloor,
-        this.elements.analysisCentroid, this.elements.analysisZcr]) {
-        this.setAnalysisValue(element, "--");
-      }
-      this.renderFrequencyRows([]);
+      if (!isCurrent()) return;
+      worker.postMessage({ type: "selectionSamplesError", requestId: request.requestId,
+        startSample: request.startSample, message: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -5742,7 +5771,7 @@ export class AudioLensApp {
     return this.messages.selectionAnalysisCalculating ?? this.messages.analyzingSpectrogram;
   }
 
-  private scheduleSelectionSpectrumAnalysis(samples: Float32Array, startSample: number, endSample: number): void {
+  private scheduleSelectionSpectrumAnalysis(samples: Float32Array | undefined, startSample: number, endSample: number): void {
     if (this.selectionSpectrumTimer !== undefined) {
       window.clearTimeout(this.selectionSpectrumTimer);
       this.selectionSpectrumTimer = undefined;
@@ -5754,12 +5783,13 @@ export class AudioLensApp {
     this.selectionSpectrumRequestSeq += 1;
     const requestId = `selection-spectrum-${this.selectionSpectrumRequestSeq}`;
     this.currentSelectionSpectrumRequestId = requestId;
+    this.streamedSelectionSource = samples ? undefined : { requestId, channel: this.settings.channel, startSample, endSample };
     this.selectionSpectrumTimer = window.setTimeout(() => {
       this.selectionSpectrumTimer = undefined;
       if (!this.selection || this.currentSelectionSpectrumRequestId !== requestId) {
         return;
       }
-      const selectedSamples = samples.slice(startSample, endSample);
+      const selectedSamples = samples?.slice(startSample, endSample);
       if (this.currentSelectionSpectrumRequestId !== requestId) {
         return;
       }
@@ -5768,15 +5798,26 @@ export class AudioLensApp {
         {
           type: "selectionSpectrum",
           requestId,
-          samples: selectedSamples.buffer,
+          samples: selectedSamples?.buffer,
+          length: endSample - startSample,
           sampleRate: this.analysisSampleRate(),
           fftSize: this.settings.fftSize,
           windowFunction: this.settings.windowFunction,
           bandLimits: BAND_LIMITS.map((band) => ({ min: band.min, max: band.max }))
         },
-        [selectedSamples.buffer]
+        selectedSamples ? [selectedSamples.buffer] : []
       );
     }, SELECTION_SPECTRUM_DELAY_MS);
+  }
+
+  private applySelectionTimeMetricsResult(result: SelectionTimeMetricsResult): void {
+    if (!this.selection || this.currentSelectionSpectrumRequestId !== result.requestId) return;
+    this.setAnalysisValue(this.elements.analysisRms, formatDb(amplitudeToDb(result.rms)));
+    this.setAnalysisValue(this.elements.analysisPeak, formatDb(amplitudeToDb(result.peak)));
+    this.setAnalysisValue(this.elements.analysisCrest, Number.isFinite(result.crestDb) ? `${result.crestDb.toFixed(1)} dB` : "--");
+    this.setAnalysisValue(this.elements.analysisClipping, `${result.clippingPercent.toFixed(3)}%`);
+    this.setAnalysisValue(this.elements.analysisNoiseFloor, formatDb(result.noiseFloorDb));
+    this.setAnalysisValue(this.elements.analysisZcr, `${result.zeroCrossingRate.toFixed(1)}/s`);
   }
 
   private applySelectionSpectrumResult(result: SelectionSpectrumResult): void {
@@ -5785,6 +5826,7 @@ export class AudioLensApp {
     }
     this.selectionSpectrumRunning = false;
     this.currentSelectionSpectrumRequestId = undefined;
+    this.streamedSelectionSource = undefined;
     this.setAnalysisValue(this.elements.analysisDominant, formatHz(result.dominantHz));
     this.setAnalysisValue(this.elements.analysisCentroid, formatHz(result.centroidHz));
     this.renderFrequencyRows(BAND_LIMITS.map((band, index) => ({
@@ -6696,107 +6738,6 @@ function hzToErb(hz: number): number {
 
 function erbToHz(erb: number): number {
   return (Math.pow(10, erb / 21.4) - 1) / 0.00437;
-}
-
-function computeTimeSelectionMetrics(
-  samples: Float32Array,
-  startSample: number,
-  endSample: number,
-  sampleRate: number
-): {
-  rms: number;
-  peak: number;
-  crestDb: number;
-  clippingPercent: number;
-  noiseFloorDb: number;
-  zeroCrossingRate: number;
-} {
-  const count = Math.max(0, endSample - startSample);
-  if (count <= 0) {
-    return { rms: 0, peak: 0, crestDb: Number.NaN, clippingPercent: 0, noiseFloorDb: amplitudeToDb(0), zeroCrossingRate: 0 };
-  }
-
-  const stride = Math.max(1, Math.ceil(count / 2_000_000));
-  let sumSquares = 0;
-  let peak = 0;
-  let clipped = 0;
-  let zeroCrossings = 0;
-  let measured = 0;
-  let previousSign = 0;
-
-  for (let index = startSample; index < endSample; index += stride) {
-    const value = samples[index] ?? 0;
-    const abs = Math.abs(value);
-    const sign = value > 0 ? 1 : value < 0 ? -1 : previousSign;
-    sumSquares += value * value;
-    peak = Math.max(peak, abs);
-    if (abs >= 0.999) {
-      clipped += 1;
-    }
-    if (previousSign !== 0 && sign !== 0 && sign !== previousSign) {
-      zeroCrossings += 1;
-    }
-    if (sign !== 0) {
-      previousSign = sign;
-    }
-    measured += 1;
-  }
-
-  const rms = Math.sqrt(sumSquares / Math.max(1, measured));
-  const peakDb = amplitudeToDb(peak);
-  const rmsDb = amplitudeToDb(rms);
-  const durationSeconds = count / Math.max(1, sampleRate);
-
-  return {
-    rms,
-    peak,
-    crestDb: rms <= 0 ? Number.NaN : peakDb - rmsDb,
-    clippingPercent: (clipped / Math.max(1, measured)) * 100,
-    noiseFloorDb: computeNoiseFloorDb(samples, startSample, endSample, sampleRate),
-    zeroCrossingRate: zeroCrossings / Math.max(1e-9, durationSeconds)
-  };
-}
-
-function computeNoiseFloorDb(samples: Float32Array, startSample: number, endSample: number, sampleRate: number): number {
-  const count = Math.max(0, endSample - startSample);
-  if (count <= 0) {
-    return amplitudeToDb(0);
-  }
-
-  const windowSize = Math.max(32, Math.floor(sampleRate * 0.02));
-  const hopSize = Math.max(1, Math.floor(windowSize / 2));
-  if (count < windowSize) {
-    let sumSquares = 0;
-    for (let index = startSample; index < endSample; index += 1) {
-      const value = samples[index] ?? 0;
-      sumSquares += value * value;
-    }
-    return amplitudeToDb(Math.sqrt(sumSquares / Math.max(1, count)));
-  }
-
-  const lastFrameStart = count - windowSize;
-  const maxFrames = 4096;
-  const frameStride = Math.max(hopSize, Math.ceil((lastFrameStart + 1) / maxFrames));
-  const rmsValues: number[] = [];
-  let relativeStart = 0;
-
-  while (relativeStart <= lastFrameStart) {
-    const offset = startSample + relativeStart;
-    let sumSquares = 0;
-    for (let index = 0; index < windowSize; index += 1) {
-      const value = samples[offset + index] ?? 0;
-      sumSquares += value * value;
-    }
-    rmsValues.push(Math.sqrt(sumSquares / windowSize));
-    if (relativeStart === lastFrameStart) {
-      break;
-    }
-    relativeStart = Math.min(relativeStart + frameStride, lastFrameStart);
-  }
-
-  rmsValues.sort((a, b) => a - b);
-  const percentileIndex = Math.min(rmsValues.length - 1, Math.max(0, Math.floor((rmsValues.length - 1) * 0.1)));
-  return amplitudeToDb(rmsValues[percentileIndex] ?? 0);
 }
 
 function formatProfileMs(value: number | undefined): string {

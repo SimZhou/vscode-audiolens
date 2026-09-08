@@ -87,6 +87,9 @@ export type ExtensionMessage =
   | { type: "streamedAudioSamples"; requestId: number; samples: ArrayBuffer }
   | { type: "streamedAudioWindows"; requestId: number; samples: ArrayBuffer; frameCount: number; windowSize: number }
   | { type: "streamedAudioError"; requestId: number; message: string }
+  | { type: "streamedSelectionWavSaved"; requestId: number }
+  | { type: "streamedSelectionWavCanceled"; requestId: number }
+  | { type: "streamedSelectionWavError"; requestId: number; message: string }
   | { type: "selectionWavSaveReady"; requestId: number }
   | { type: "selectionWavSaveCanceled"; requestId: number }
   | { type: "error"; message: string };

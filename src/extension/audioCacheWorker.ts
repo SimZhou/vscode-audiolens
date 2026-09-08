@@ -1,8 +1,9 @@
-import { closeSync, openSync, readSync } from "node:fs";
+import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { parentPort, workerData } from "node:worker_threads";
 
 const BASE_BLOCK_SIZE = 512;
 const READ_CHUNK_BYTES = 4 * 1024 * 1024;
+const PCM_SUBFORMAT_GUID = Buffer.from("0100000000001000800000aa00389b71", "hex");
 
 interface WorkerInput {
   wavPath: string;
@@ -100,6 +101,7 @@ function buildIndex(wavPath: string) {
 }
 
 function parsePcm16Wave(fd: number): { dataOffset: number; dataSize: number; sampleRate: number; numberOfChannels: number } {
+  const fileSize = fstatSync(fd).size;
   const header = Buffer.alloc(1024 * 1024);
   const bytesRead = readSync(fd, header, 0, header.byteLength, 0);
   if (bytesRead < 12 || header.toString("ascii", 0, 4) !== "RIFF" || header.toString("ascii", 8, 12) !== "WAVE") {
@@ -110,6 +112,7 @@ function parsePcm16Wave(fd: number): { dataOffset: number; dataSize: number; sam
   let numberOfChannels = 0;
   let bitsPerSample = 0;
   let audioFormat = 0;
+  let blockAlign = 0;
   while (offset + 8 <= bytesRead) {
     const id = header.toString("ascii", offset, offset + 4);
     const size = header.readUInt32LE(offset + 4);
@@ -118,10 +121,29 @@ function parsePcm16Wave(fd: number): { dataOffset: number; dataSize: number; sam
       audioFormat = header.readUInt16LE(payload);
       numberOfChannels = header.readUInt16LE(payload + 2);
       sampleRate = header.readUInt32LE(payload + 4);
+      blockAlign = header.readUInt16LE(payload + 12);
       bitsPerSample = header.readUInt16LE(payload + 14);
+      if (audioFormat === 0xfffe) {
+        // FFmpeg 对多通道和高采样率使用 extensible；必须校验完整 PCM GUID。
+        if (
+          size < 40 || payload + 40 > bytesRead ||
+          header.readUInt16LE(payload + 16) < 22 || header.readUInt16LE(payload + 16) > size - 18 ||
+          header.readUInt16LE(payload + 18) !== 16 ||
+          !header.subarray(payload + 24, payload + 40).equals(PCM_SUBFORMAT_GUID)
+        ) {
+          throw new Error("FFmpeg PCM cache has an invalid extensible PCM format.");
+        }
+        audioFormat = 1;
+      }
     } else if (id === "data") {
-      if (audioFormat !== 1 || bitsPerSample !== 16 || numberOfChannels < 1 || sampleRate < 1) {
+      if (
+        audioFormat !== 1 || bitsPerSample !== 16 || numberOfChannels < 1 || numberOfChannels > 32 ||
+        sampleRate < 1 || blockAlign !== numberOfChannels * 2
+      ) {
         throw new Error("FFmpeg PCM cache must be 16-bit little-endian PCM WAV.");
+      }
+      if (size === 0 || size % blockAlign !== 0 || payload + size > fileSize) {
+        throw new Error("FFmpeg PCM cache has an empty, truncated or unaligned data chunk.");
       }
       return { dataOffset: payload, dataSize: size, sampleRate, numberOfChannels };
     }

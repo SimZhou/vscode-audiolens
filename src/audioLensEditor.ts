@@ -459,7 +459,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       throw new Error("Workspace is not trusted; AudioLens will not transfer audio content.");
     }
 
-    const safeFileName = sanitizeSuggestedFileName(fileName) || "audiolens_selection.wav";
+    const safeFileName = sanitizeSelectionWavFileName(fileName);
     const destination = await vscode.window.showSaveDialog({
       defaultUri: resolveDefaultDownloadUri(document, safeFileName),
       filters: { "WAV audio": ["wav"] },
@@ -505,7 +505,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       }
       pending = {
         destination,
-        fileName: sanitizeSuggestedFileName(message.fileName) || "audiolens_selection.wav",
+        fileName: sanitizeSelectionWavFileName(message.fileName),
         chunks: [],
         nextChunkIndex: 0,
         totalBytes: 0
@@ -537,7 +537,6 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
 
   private async prepareStreamedAudio(requestId: number, document: AudioLensDocument, webview: vscode.Webview): Promise<void> {
     try {
-      this.assertTransferAllowed(document);
       const cache = await this.getStreamedAudioCache(document);
       this.postMessage(webview, {
         type: "streamedAudioReady",
@@ -628,34 +627,47 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       if (endTime <= startTime) {
         throw new Error("The selected audio range is empty.");
       }
-      const safeFileName = sanitizeSuggestedFileName(message.fileName) || "audiolens_selection.wav";
+      const safeFileName = sanitizeSelectionWavFileName(message.fileName);
       const destination = await vscode.window.showSaveDialog({
         defaultUri: resolveDefaultDownloadUri(document, safeFileName),
         filters: { "WAV audio": ["wav"] },
         saveLabel: message.saveLabel || "Download Selection",
         title: message.title || "Download Selection as WAV"
       });
-      if (!destination) return;
+      if (!destination) {
+        this.postMessage(webview, { type: "streamedSelectionWavCanceled", requestId: message.requestId });
+        return;
+      }
 
       if (destination.scheme === "file") {
         await runFfmpegSelection(cache.wavPath, destination.fsPath, startTime, endTime - startTime);
       } else {
         const outputPath = path.join(cache.tempDir, `selection-${message.requestId}.wav`);
-        await runFfmpegSelection(cache.wavPath, outputPath, startTime, endTime - startTime);
-        const outputStat = await stat(outputPath);
-        if (outputStat.size > this.maxTransferBytes()) {
-          throw new Error(`Selection WAV is too large: ${formatBytes(outputStat.size)} / ${formatBytes(this.maxTransferBytes())}.`);
+        try {
+          await runFfmpegSelection(cache.wavPath, outputPath, startTime, endTime - startTime);
+          const outputStat = await stat(outputPath);
+          if (outputStat.size > this.maxTransferBytes()) {
+            throw new Error(`Selection WAV is too large: ${formatBytes(outputStat.size)} / ${formatBytes(this.maxTransferBytes())}.`);
+          }
+          await vscode.workspace.fs.writeFile(destination, await readFile(outputPath));
+        } finally {
+          await rm(outputPath, { force: true }).catch(() => undefined);
         }
-        await vscode.workspace.fs.writeFile(destination, await readFile(outputPath));
-        await rm(outputPath, { force: true });
       }
+      this.postMessage(webview, { type: "streamedSelectionWavSaved", requestId: message.requestId });
       vscode.window.showInformationMessage(`AudioLens saved ${path.basename(destination.fsPath || safeFileName)}.`);
     } catch (error) {
-      this.postStreamedAudioError(webview, message.requestId, error);
+      this.postMessage(webview, {
+        type: "streamedSelectionWavError",
+        requestId: message.requestId,
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
   private getStreamedAudioCache(document: AudioLensDocument): Promise<StreamedAudioCache> {
+    // 按需读取和导出也能直接创建缓存，复用缓存前同样需要校验。
+    this.assertTransferAllowed(document);
     const existing = this.streamedAudioCaches.get(document);
     if (existing) return existing;
     const pending = this.createDocumentStreamedAudioCache(document);
@@ -671,8 +683,9 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       throw new Error("AudioLens is already preparing another PCM cache.");
     }
     this.activeTranscodeCount += 1;
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), "audiolens-cache-"));
+    let tempDir: string | undefined;
     try {
+      tempDir = await mkdtemp(path.join(os.tmpdir(), "audiolens-cache-"));
       let inputPath = document.sourceUri.fsPath;
       if (document.sourceUri.scheme !== "file" || document.isFileSlice) {
         const extension = document.extension ? `.${document.extension}` : ".audio";
@@ -688,7 +701,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
         timeoutMs: FFMPEG_CACHE_TIMEOUT_MS
       });
     } catch (error) {
-      await rm(tempDir, { recursive: true, force: true });
+      if (tempDir) await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
       throw error;
     } finally {
       this.activeTranscodeCount = Math.max(0, this.activeTranscodeCount - 1);
@@ -1459,9 +1472,10 @@ function decodedBase64Size(value: string): number {
 }
 
 function sanitizeSuggestedFileName(fileName: string): string {
-  const normalized = path.basename(fileName || "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").trim();
-  if (!normalized) {
-    return "";
-  }
+  return path.basename(fileName || "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").trim();
+}
+
+function sanitizeSelectionWavFileName(fileName: string): string {
+  const normalized = sanitizeSuggestedFileName(fileName) || "audiolens_selection.wav";
   return normalized.toLowerCase().endsWith(".wav") ? normalized : `${normalized}.wav`;
 }

@@ -30,7 +30,20 @@ export interface SelectionSpectrumResult {
   frames: number;
 }
 
-export type AnalysisWorkerResult = SpectrogramResult | SelectionSpectrumResult;
+export interface SelectionTimeMetricsResult {
+  type: "selectionTimeMetrics";
+  requestId: string;
+  rms: number;
+  peak: number;
+  crestDb: number;
+  clippingPercent: number;
+  noiseFloorDb: number;
+  zeroCrossingRate: number;
+}
+
+export type AnalysisWorkerResult = SpectrogramResult | SelectionSpectrumResult | SelectionTimeMetricsResult
+  | { type: "selectionSamplesNeeded"; requestId: string; startSample: number; endSample: number }
+  | { type: "selectionAnalysisError"; requestId: string; message: string };
 
 // Worker 内核以源码字符串形式内联（Webview CSP 下用 Blob URL 加载），导出以便本地测试直接执行。
 export const analysisWorkerSource = `
@@ -38,6 +51,7 @@ export const analysisWorkerSource = `
     const channelSamples = new Map();
     // 每通道最新请求代际：旧代际任务在分块让步点自行放弃，取代 Worker 销毁重建。
     const latestGenerationByChannel = new Map();
+    let sourceVersion = 0;
     const windowCache = new Map();
     const fftTableCache = new Map();
     const recombTableCache = new Map();
@@ -50,14 +64,25 @@ export const analysisWorkerSource = `
     const MAG_TILE_BYTE_CAP = 64 * 1024 * 1024;
     const MAG_TILE_COUNT_CAP = 12;
     const MAX_PADDED_FFT_SIZE = 131072;
+    const SELECTION_SAMPLE_BLOCK_SIZE = 262144;
+    let pendingSelectionSamples;
 
     self.onmessage = (event) => {
       const message = event.data;
+      if (message.type === "selectionSamples" || message.type === "selectionSamplesError") {
+        const pending = pendingSelectionSamples;
+        if (!pending || pending.requestId !== message.requestId || pending.startSample !== message.startSample) return;
+        pendingSelectionSamples = undefined;
+        if (message.type === "selectionSamplesError") pending.reject(new Error(message.message));
+        else pending.resolve(new Float32Array(message.samples));
+        return;
+      }
       if (message.type === "loadSamples") {
         channelSamples.set(message.channel, new Float32Array(message.samples));
         return;
       }
       if (message.type === "clearSamples") {
+        sourceVersion += 1;
         channelSamples.clear();
         latestGenerationByChannel.clear();
         magTiles.length = 0;
@@ -65,7 +90,10 @@ export const analysisWorkerSource = `
         return;
       }
       if (message.type === "selectionSpectrum") {
-        analyzeSelectionSpectrum(message);
+        void analyzeSelectionSpectrum(message).catch((error) => {
+          self.postMessage({ type: "selectionAnalysisError", requestId: message.requestId,
+            message: error instanceof Error ? error.message : String(error) });
+        });
         return;
       }
       if (message.type !== "analyze") return;
@@ -78,10 +106,12 @@ export const analysisWorkerSource = `
     };
 
     async function renderSpectrogram(message, channel, generation) {
+      const version = sourceVersion;
+      const isStale = () => version !== sourceVersion || generation < (latestGenerationByChannel.get(channel) || 0);
       // 突发合并：先让出一次事件循环，让同一突发中排队的更高代际请求先注册，
       // 过期请求在这里直接退出，一列 FFT 都不算。
       await yieldToQueue();
-      if (generation < (latestGenerationByChannel.get(channel) || 0)) {
+      if (isStale()) {
         return;
       }
       const stored = channelSamples.get(channel);
@@ -122,7 +152,7 @@ export const analysisWorkerSource = `
       const CHUNK_FRAMES = 256;
 
       // ---- 第一级：幅度平方矩阵（与显示参数无关，可跨请求按列复用） ----
-      const groupKey = [channel, sampleRate, windowSize, zeroPaddingFactor, settings.windowFunction, hopSize].join("|");
+      const groupKey = [version, channel, sampleRate, windowSize, zeroPaddingFactor, settings.windowFunction, hopSize].join("|");
       const fftStart = profile ? performance.now() : 0;
       const mag = new Float32Array(frames * half);
       const covered = new Uint8Array(frames);
@@ -185,10 +215,11 @@ export const analysisWorkerSource = `
           if (sinceYield >= CHUNK_FRAMES) {
             sinceYield = 0;
             await yieldToQueue();
-            if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+            if (isStale()) return;
           }
         }
       }
+      if (isStale()) return;
       if (!message.disableMagCache) {
         storeMagTile(groupKey, start, frames, half, mag);
       }
@@ -230,7 +261,7 @@ export const analysisWorkerSource = `
         if (sinceYield >= CHUNK_FRAMES * 2 && frame + 1 < frames) {
           sinceYield = 0;
           await yieldToQueue();
-          if (generation < (latestGenerationByChannel.get(channel) || 0)) return;
+          if (isStale()) return;
         }
       }
       const rasterizeEnd = profile ? performance.now() : 0;
@@ -253,7 +284,7 @@ export const analysisWorkerSource = `
           sampleCount
         };
       }
-      self.postMessage(result, [pixels.buffer]);
+      if (!isStale()) self.postMessage(result, [pixels.buffer]);
     }
 
     function storeMagTile(groupKey, baseSample, frames, half, data) {
@@ -290,10 +321,113 @@ export const analysisWorkerSource = `
       });
     }
 
-    function analyzeSelectionSpectrum(message) {
-      const samples = new Float32Array(message.samples);
+    function createSelectionSampleReader(message) {
+      if (message.samples) {
+        const samples = new Float32Array(message.samples);
+        return { length: samples.length, read: async (start, end) => samples.subarray(start, end) };
+      }
+      const length = message.length;
+      if (!Number.isSafeInteger(length) || length < 0) throw new Error("Invalid selection length.");
+      let block = new Float32Array(0);
+      let blockStart = 0;
+      return {
+        length,
+        async read(start, end) {
+          if (start < blockStart || end > blockStart + block.length) {
+            const blockEnd = Math.min(length, Math.max(end, start + SELECTION_SAMPLE_BLOCK_SIZE));
+            // 一次只请求一个小块；统计和 FFT 共用读取器，不拼接整个长选区。
+            block = await new Promise((resolve, reject) => {
+              pendingSelectionSamples = { requestId: message.requestId, startSample: start, resolve, reject };
+              self.postMessage({ type: "selectionSamplesNeeded", requestId: message.requestId,
+                startSample: start, endSample: blockEnd });
+            });
+            if (block.length !== blockEnd - start) throw new Error("Incomplete selection samples.");
+            blockStart = start;
+          }
+          return block.subarray(start - blockStart, end - blockStart);
+        }
+      };
+    }
+
+    async function computeTimeSelectionMetrics(reader, sampleRate) {
+      const count = reader.length;
+      let sumSquares = 0;
+      let peak = 0;
+      let clipped = 0;
+      let zeroCrossings = 0;
+      let previousSign = 0;
+      // 逐样本累计，跨块保留符号；固定间隔抽样会漏掉峰值并引入混叠。
+      const chunkSize = 65536;
+      for (let start = 0; start < count; start += chunkSize) {
+        const end = Math.min(count, start + chunkSize);
+        const samples = await reader.read(start, end);
+        for (let index = 0; index < samples.length; index += 1) {
+          const value = samples[index];
+          const absolute = Math.abs(value);
+          const sign = value > 0 ? 1 : value < 0 ? -1 : previousSign;
+          sumSquares += value * value;
+          peak = Math.max(peak, absolute);
+          if (absolute >= 0.999) clipped += 1;
+          if (previousSign !== 0 && sign !== 0 && sign !== previousSign) zeroCrossings += 1;
+          if (sign !== 0) previousSign = sign;
+        }
+        if (end < count) await yieldToQueue();
+      }
+      const rms = Math.sqrt(sumSquares / Math.max(1, count));
+      return {
+        rms,
+        peak,
+        crestDb: rms <= 0 ? Number.NaN : amplitudeToDb(peak) - amplitudeToDb(rms),
+        clippingPercent: (clipped / Math.max(1, count)) * 100,
+        noiseFloorDb: await computeNoiseFloorDb(reader, sampleRate),
+        zeroCrossingRate: zeroCrossings / Math.max(1e-9, count / sampleRate)
+      };
+    }
+
+    async function computeNoiseFloorDb(reader, sampleRate) {
+      const count = reader.length;
+      if (count === 0) return amplitudeToDb(0);
+      const windowSize = Math.max(32, Math.floor(sampleRate * 0.02));
+      const hopSize = Math.max(1, Math.floor(windowSize / 2));
+      if (count < windowSize) {
+        let sumSquares = 0;
+        const samples = await reader.read(0, count);
+        for (const value of samples) sumSquares += value * value;
+        return amplitudeToDb(Math.sqrt(sumSquares / count));
+      }
+      // 噪声底继续使用最多 4096 个完整窗口的 RMS 第 10 百分位。
+      const lastFrameStart = count - windowSize;
+      const frameStride = Math.max(hopSize, Math.ceil((lastFrameStart + 1) / 4096));
+      const rmsValues = [];
+      let start = 0;
+      while (start <= lastFrameStart) {
+        let sumSquares = 0;
+        const samples = await reader.read(start, start + windowSize);
+        for (let index = 0; index < windowSize; index += 1) {
+          const value = samples[index];
+          sumSquares += value * value;
+        }
+        rmsValues.push(Math.sqrt(sumSquares / windowSize));
+        if (start === lastFrameStart) break;
+        start = Math.min(start + frameStride, lastFrameStart);
+        if (rmsValues.length % 128 === 0) await yieldToQueue();
+      }
+      rmsValues.sort((a, b) => a - b);
+      return amplitudeToDb(rmsValues[Math.floor((rmsValues.length - 1) * 0.1)]);
+    }
+
+    function amplitudeToDb(value) {
+      return 20 * Math.log10(Math.max(value, 1e-12));
+    }
+
+    async function analyzeSelectionSpectrum(message) {
+      const reader = createSelectionSampleReader(message);
       const sampleRate = Math.max(1, message.sampleRate || 1);
-      const available = samples.length;
+      const metrics = await computeTimeSelectionMetrics(reader, sampleRate);
+      self.postMessage({ type: "selectionTimeMetrics", requestId: message.requestId, ...metrics });
+      // 先交付完整时域指标，频域计算继续沿用当前选区 Worker 的取消机制。
+      await yieldToQueue();
+      const available = reader.length;
       const requestedSize = Math.max(1, Math.floor(message.fftSize || 512));
       const fftSize = largestPowerOfTwo(Math.min(requestedSize, available));
       const bandLimits = Array.isArray(message.bandLimits) ? message.bandLimits : [];
@@ -325,9 +459,10 @@ export const analysisWorkerSource = `
       let relativeStart = 0;
 
       while (relativeStart <= lastFrameStart) {
+        const samples = await reader.read(relativeStart, relativeStart + fftSize);
         im.fill(0);
         for (let index = 0; index < fftSize; index += 1) {
-          re[index] = (samples[relativeStart + index] ?? 0) * window[index];
+          re[index] = (samples[index] ?? 0) * window[index];
         }
         fft(re, im, tables);
         frames += 1;
