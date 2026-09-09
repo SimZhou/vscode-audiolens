@@ -51,7 +51,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 </p>
 
 <p align="center">
-  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens for PyCharm</strong></a> · maintained by <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a>
+  Other platforms: <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens for PyCharm</strong></a> · maintained by <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a>
 </p>
 
 ## Preview

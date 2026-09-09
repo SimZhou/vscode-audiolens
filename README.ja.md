@@ -51,7 +51,7 @@ AudioLens は汎用プレイヤーでは足りない日常的なエンジニア�
 </p>
 
 <p align="center">
-  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>PyCharm 版 AudioLens</strong></a> · <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> がメンテナンス
+  他のプラットフォーム：<a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>PyCharm 版 AudioLens</strong></a> · <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> がメンテナンス
 </p>
 
 ## プレビュー
