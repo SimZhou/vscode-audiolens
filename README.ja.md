@@ -9,10 +9,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>PyCharm 版 AudioLens</strong></a> · <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> がメンテナンス
-</p>
-
-<p align="center">
   <a href="#user-content-feature-multichannel">波形</a> ·
   <a href="#user-content-feature-multichannel">スペクトログラム</a> ·
   <a href="#user-content-feature-multichannel">マルチチャンネル</a> ·
@@ -52,6 +48,10 @@ AudioLens は汎用プレイヤーでは足りない日常的なエンジニア�
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><strong>Open VSX からインストール</strong></a>
   ·
   <a href="https://github.com/SimZhou/vscode-audiolens/releases"><strong>VSIX をダウンロード</strong></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>PyCharm 版 AudioLens</strong></a> · <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> がメンテナンス
 </p>
 
 ## プレビュー

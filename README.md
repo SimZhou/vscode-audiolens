@@ -9,10 +9,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens for PyCharm</strong></a> · maintained by <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a>
-</p>
-
-<p align="center">
   <a href="#user-content-feature-multichannel">Waveform</a> ·
   <a href="#user-content-feature-multichannel">Spectrogram</a> ·
   <a href="#user-content-feature-multichannel">Multi-channel tracks</a> ·
@@ -52,6 +48,10 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><strong>Install from Open VSX</strong></a>
   ·
   <a href="https://github.com/SimZhou/vscode-audiolens/releases"><strong>Download VSIX</strong></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens for PyCharm</strong></a> · maintained by <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a>
 </p>
 
 ## Preview

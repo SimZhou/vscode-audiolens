@@ -9,10 +9,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens 的 PyCharm 版本</strong></a> · 由 <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> 维护
-</p>
-
-<p align="center">
   <a href="#user-content-feature-multichannel">波形图</a> ·
   <a href="#user-content-feature-multichannel">语谱图</a> ·
   <a href="#user-content-feature-multichannel">多通道音轨</a> ·
@@ -52,6 +48,10 @@ AudioLens 可以把 VS Code 变成实用的音频查看器，适合音频工程�
   <a href="https://open-vsx.org/extension/simzhou/audiolens"><strong>从 Open VSX 安装</strong></a>
   ·
   <a href="https://github.com/SimZhou/vscode-audiolens/releases"><strong>下载 VSIX</strong></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens 的 PyCharm 版本</strong></a> · 由 <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> 维护
 </p>
 
 ## 预览
