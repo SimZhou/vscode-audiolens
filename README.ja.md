@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>PyCharm 版 AudioLens</strong></a> · <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> がメンテナンス
+</p>
+
+<p align="center">
   <a href="#user-content-feature-multichannel">波形</a> ·
   <a href="#user-content-feature-multichannel">スペクトログラム</a> ·
   <a href="#user-content-feature-multichannel">マルチチャンネル</a> ·

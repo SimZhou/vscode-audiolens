@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens for PyCharm</strong></a> · maintained by <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a>
+</p>
+
+<p align="center">
   <a href="#user-content-feature-multichannel">Waveform</a> ·
   <a href="#user-content-feature-multichannel">Spectrogram</a> ·
   <a href="#user-content-feature-multichannel">Multi-channel tracks</a> ·

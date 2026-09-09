@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens 的 PyCharm 版本</strong></a> · 由 <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> 维护
+</p>
+
+<p align="center">
   <a href="#user-content-feature-multichannel">波形图</a> ·
   <a href="#user-content-feature-multichannel">语谱图</a> ·
   <a href="#user-content-feature-multichannel">多通道音轨</a> ·
