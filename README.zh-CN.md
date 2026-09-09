@@ -51,7 +51,7 @@ AudioLens 可以把 VS Code 变成实用的音频查看器，适合音频工程�
 </p>
 
 <p align="center">
-  其他平台：<a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><strong>AudioLens 的 PyCharm 版本</strong></a> · 由 <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> 维护
+  其他平台：<a href="https://github.com/CinderellaQAQ/pycharm-audiolens"><img src="https://img.shields.io/badge/AudioLens-PyCharm-21D789?logo=pycharm&amp;logoColor=white" alt="AudioLens 的 PyCharm 版本"></a> · 由 <a href="https://github.com/CinderellaQAQ">@CinderellaQAQ</a> 维护
 </p>
 
 ## 预览
