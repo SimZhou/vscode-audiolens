@@ -218,6 +218,8 @@ For WAV files, the inspector highlights whether the file uses the standard 44-by
 
 Drag across any waveform or spectrogram to create a time selection. AudioLens can play the selected range and calculate metrics for the active channel.
 
+The yellow timeline label shows the playback position to three decimal places. Drag it to seek; an existing selection is preserved and limits the drag range. During playback, dragging pauses the audio and releasing resumes from the new position unless it is at the end of the range.
+
 Current analysis includes:
 
 - start time, end time, and duration

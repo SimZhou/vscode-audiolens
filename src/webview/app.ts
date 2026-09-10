@@ -4323,15 +4323,15 @@ export class AudioLensApp {
 
     const ratio = window.devicePixelRatio || 1;
     const rect = this.getTimelinePlotRect(canvas);
+    context.save();
+    context.font = axisFont();
     const playheadTime = this.dragPlayheadTime ?? this.playheadTime;
     const playheadLabel = playheadTime === undefined || playheadTime < range.startTime || playheadTime > range.endTime
       ? undefined
       : layoutTimelinePlayhead(context, playheadTime, this.timeToX(playheadTime, rect, range), rect, ratio);
     this.timelinePlayheadLabel = playheadLabel;
 
-    context.save();
     context.fillStyle = axisTextColor();
-    context.font = axisFont();
     context.textBaseline = "middle";
     const timelineVerticalPadding = 3 * ratio;
     const majorTickHeight = 7 * ratio;

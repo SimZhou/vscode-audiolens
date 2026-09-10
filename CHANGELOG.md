@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.2
+
+- Refine the yellow playhead label: move the bubble to the top of the timeline while preserving its height and pointer tip position, and use the same font, size, and weight as the fixed tick labels.
+- Keep each digit in a compact fixed-width cell so the label stays the same width as its digits change; suppress the timeline canvas focus outline after clicking or dragging the label and using playback shortcuts.
+
 ## 1.9.1
 
 - Read multichannel integer PCM WAV files whose frame size and byte rate were mistakenly written as mono values, using complete interleaved frames to avoid decoder-dependent truncation or waveform errors without changing the source file.

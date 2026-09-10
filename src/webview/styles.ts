@@ -651,6 +651,7 @@ export function injectStyles(): void {
       user-select: none;
       cursor: ns-resize;
     }
+    .timelineCanvas:focus,
     .trackWaveform:focus,
     .trackSpectrogram:focus {
       outline: none;
