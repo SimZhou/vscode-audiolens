@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.1
+
+- Read multichannel integer PCM WAV files whose frame size and byte rate were mistakenly written as mono values, using complete interleaved frames to avoid decoder-dependent truncation or waveform errors without changing the source file.
+- Show the playhead time to three decimal places in a yellow timeline label that follows playback and supports dragging to seek. Dragging preserves and stays within an existing selection; playback pauses while dragging and resumes from the new position on release if it was playing.
+- Keep the time label within the timeline edges and cover only the pixels beneath its shape, preserving visible portions of overlapping fixed tick labels.
+- Keep the playhead at the requested start while cached audio waits for its scheduled playback time, preventing a brief jump before the selection when restarting playback in a zoomed view.
+- Add a prominent link to the independently maintained PyCharm version and clarify its support channel; correct the description of saved playback preferences.
+
 ## 1.9.0
 
 - Enforce workspace trust and source-file size limits before every disk PCM cache access, including cache reuse, on-demand reads, and selection export.

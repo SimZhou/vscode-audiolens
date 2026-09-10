@@ -427,7 +427,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           <div class="figureHeader timelineHeader">
             <span id="viewRange" class="muted timelineRange" data-i18n="timeLabel">Time</span>
             <div class="timelineCanvasWrap">
-              <canvas id="timeline" class="timelineCanvas"></canvas>
+              <canvas id="timeline" class="timelineCanvas" tabindex="0"></canvas>
             </div>
           </div>
           <div id="waveformPane" class="plotPane waveformPane legacyPlot" hidden>

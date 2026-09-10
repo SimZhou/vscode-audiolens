@@ -392,6 +392,7 @@ export function injectStyles(): void {
       display: block;
       width: 100%;
       height: 100%;
+      touch-action: none;
     }
     .plotPane {
       position: relative;

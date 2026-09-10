@@ -4,6 +4,8 @@ Please use GitHub Issues for bug reports, feature requests, and compatibility re
 
 https://github.com/SimZhou/vscode-audiolens/issues
 
+For the independently maintained PyCharm port, please report issues to [CinderellaQAQ/pycharm-audiolens](https://github.com/CinderellaQAQ/pycharm-audiolens/issues).
+
 When reporting a problem, include:
 
 - AudioLens version.

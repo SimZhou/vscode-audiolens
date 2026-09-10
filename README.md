@@ -80,7 +80,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 | Spectrogram analysis | Frequency-domain STFT analysis; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, and auto brightness. |
 | File inspection | Structured header inspector for WAV/RIFF, FLAC, Ogg, MP4/M4A, AAC/ADTS, and MP3/MPEG frames. |
 | Dataset navigation | Hover/status-bar/command entry points for audio paths in ordinary text files without generating thousands of inline links. |
-| Persistence | Saves default track view, spectrogram settings, playback gain, PCM defaults, and language preference. |
+| Persistence | Saves default track view, spectrogram settings, PCM defaults, and language preference. |
 
 ## Install
 

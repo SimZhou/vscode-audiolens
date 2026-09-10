@@ -44,6 +44,8 @@ import {
   validatePcmFormat
 } from "./pcm";
 import { defaultChannelPan } from "./playback";
+import { drawTimelinePlayheadLabel, layoutTimelinePlayhead, TimelinePlayheadLabel } from "./timelinePlayhead";
+import { bindTimelinePlayheadDrag, TimelineDragController } from "./timelineInteraction";
 import { applyLocale, ViewElements } from "./view";
 
 interface VsCodeApi {
@@ -1455,6 +1457,8 @@ export class AudioLensApp {
   private prefetchTimer: number | undefined;
   private playheadTime: number | undefined;
   private dragPlayheadTime: number | undefined;
+  private timelinePlayheadLabel: TimelinePlayheadLabel | undefined;
+  private timelineDrag: TimelineDragController | undefined;
   private sourceSampleRate: number | undefined;
   // 几何/分析的唯一样本真值（原生采样率）。audioBuffer 仅作播放载体，低采样率时会升采样。
   private track: DecodedTrack | undefined;
@@ -1744,6 +1748,8 @@ export class AudioLensApp {
   }
 
   private clearDecodedAudio(): void {
+    this.timelineDrag?.cancel();
+    this.timelinePlayheadLabel = undefined;
     this.cancelSelectionSpectrumAnalysis();
     this.pendingSelectionWavDownloads.clear();
     for (const pending of this.pendingStreamedAudioRequests.values()) {
@@ -2198,6 +2204,7 @@ export class AudioLensApp {
     this.elements.analyze.addEventListener("click", () => this.analyze());
     this.elements.resetView.addEventListener("click", () => this.resetView());
     this.elements.trackList.addEventListener("scroll", () => this.updateTimelineBoundaryState());
+    this.bindTimelineInteraction();
     this.bindFigureInteraction(this.elements.waveform);
     this.bindFigureInteraction(this.elements.spectrogram);
     this.bindPlotResizer(this.elements.waveformResize, this.elements.waveformPane, "--waveform-height", PLOT_HEIGHT_LIMITS.waveformMin, PLOT_HEIGHT_LIMITS.waveformMax);
@@ -2217,6 +2224,7 @@ export class AudioLensApp {
   }
 
   private async togglePlayback(): Promise<void> {
+    if (this.timelineDrag?.isDragging()) return;
     if (this.audioBuffer) {
       await this.toggleBufferPlayback();
       return;
@@ -2288,9 +2296,9 @@ export class AudioLensApp {
   private prepareStreamedPlaybackStart(): void {
     if (!this.streamedAudio) return;
     if (this.selection) {
-      this.playheadTime = this.selection.start;
+      this.playheadTime = this.selectionPlaybackStartTime();
       this.selectionPlaybackEnd = this.selection.end;
-      this.bufferPlaybackOffset = this.selection.start;
+      this.bufferPlaybackOffset = this.playheadTime;
       this.redrawVisuals();
       return;
     }
@@ -2459,9 +2467,9 @@ export class AudioLensApp {
       return;
     }
     if (this.selection) {
-      this.playheadTime = this.selection.start;
+      this.playheadTime = this.selectionPlaybackStartTime();
       this.selectionPlaybackEnd = this.selection.end;
-      this.bufferPlaybackOffset = this.selection.start;
+      this.bufferPlaybackOffset = this.playheadTime;
       this.redrawVisuals();
       return;
     }
@@ -2678,6 +2686,10 @@ export class AudioLensApp {
   }
 
   private handleEscape(): void {
+    if (this.timelineDrag?.isDragging()) {
+      this.timelineDrag.cancel();
+      return;
+    }
     if (!this.elements.freqScaleMenu.hidden) {
       this.hideFreqScaleMenu();
       return;
@@ -4298,6 +4310,7 @@ export class AudioLensApp {
   }
 
   private drawTimeline(): void {
+    this.timelinePlayheadLabel = undefined;
     const canvas = this.elements.timeline;
     const context = resizeCanvas(canvas);
     const range = this.visibleRange();
@@ -4310,6 +4323,11 @@ export class AudioLensApp {
 
     const ratio = window.devicePixelRatio || 1;
     const rect = this.getTimelinePlotRect(canvas);
+    const playheadTime = this.dragPlayheadTime ?? this.playheadTime;
+    const playheadLabel = playheadTime === undefined || playheadTime < range.startTime || playheadTime > range.endTime
+      ? undefined
+      : layoutTimelinePlayhead(context, playheadTime, this.timeToX(playheadTime, rect, range), rect, ratio);
+    this.timelinePlayheadLabel = playheadLabel;
 
     context.save();
     context.fillStyle = axisTextColor();
@@ -4354,6 +4372,8 @@ export class AudioLensApp {
       context.fillText(formatTimelineTick(time, majorStep), x, textY);
     }
     this.drawTimelinePlayhead(context, rect, range);
+    // 保留全部固定刻度文字，最后按黄色标签的实际轮廓逐像素遮挡。
+    if (playheadLabel) drawTimelinePlayheadLabel(context, playheadLabel, ratio);
     context.restore();
   }
 
@@ -5002,9 +5022,12 @@ export class AudioLensApp {
   private currentPlaybackTime(): number {
     if (this.audioBuffer || this.streamedAudio) {
       if (!this.bufferPlaybackPaused && this.playbackAudioContext) {
+        // 流式播放会预约稍后的启动时刻，等待期间不能把负的经过时间加到起点。
+        const elapsed = Math.max(0, this.playbackAudioContext.currentTime - this.bufferPlaybackStartedAt);
         return clamp(
-          this.bufferPlaybackOffset + this.playbackAudioContext.currentTime - this.bufferPlaybackStartedAt,
-          0,
+          this.bufferPlaybackOffset + elapsed,
+          // 磁盘 PCM 起点可能向下对齐了一个采样，显示仍须留在选区内。
+          this.selectionPlaybackEnd !== undefined ? this.selection?.start ?? 0 : 0,
           this.audioDuration()
         );
       }
@@ -5213,6 +5236,61 @@ export class AudioLensApp {
       }
       this.waveformCache.delete(oldestKey);
     }
+  }
+
+  private selectionPlaybackStartTime(): number {
+    const selection = this.selection!;
+    const time = this.playheadTime ?? selection.start;
+    // 选区内定位或暂停后从当前位置继续；到达终点后再次播放则重播整段选区。
+    return time >= selection.start && time < selection.end ? time : selection.start;
+  }
+
+  private bindTimelineInteraction(): void {
+    const canvas = this.elements.timeline;
+    let resumePlayback = false;
+    this.timelineDrag = bindTimelinePlayheadDrag(canvas, {
+      hitTest: (clientX, clientY) => {
+        const label = this.timelinePlayheadLabel;
+        if (!label || !this.hasAudio()) return undefined;
+        const bounds = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / Math.max(1, bounds.width);
+        const x = (clientX - bounds.left) * scaleX;
+        const y = (clientY - bounds.top) * canvas.height / Math.max(1, bounds.height);
+        if (x < label.left || x > label.right || y < label.top || y > label.bottom) return undefined;
+        const range = this.visibleRange();
+        return {
+          time: this.dragPlayheadTime ?? this.playheadTime ?? 0,
+          secondsPerPixel: (range.endTime - range.startTime) / this.getTimelinePlotRect(canvas).width * scaleX
+        };
+      },
+      start: () => {
+        resumePlayback = !this.isPlaybackPaused() || this.streamedPlaybackStarting;
+        if (resumePlayback) {
+          if (this.audioBuffer) this.pauseBufferPlayback();
+          else if (this.streamedAudio) this.pauseStreamedPlayback();
+          else this.elements.audio.pause();
+        }
+        this.dragPlayheadTime = undefined;
+      },
+      seek: (time) => {
+        const range = this.visibleRange();
+        const start = Math.max(range.startTime, this.selection?.start ?? 0);
+        const end = Math.min(range.endTime, this.selection?.end ?? this.audioDuration());
+        if (end < start) return;
+        this.selectionPlaybackEnd = undefined;
+        this.setPlaybackPosition(clamp(time, start, end));
+        this.updateClock();
+        this.elements.seek.value = String(this.currentPlaybackTime() / Math.max(this.audioDuration(), 0.001) * 1000);
+        this.redrawVisuals();
+      },
+      end: (canceled) => {
+        const resume = resumePlayback;
+        resumePlayback = false;
+        if (!canceled && resume && this.currentPlaybackTime() < (this.selection?.end ?? this.audioDuration())) {
+          void this.togglePlayback();
+        }
+      }
+    });
   }
 
   private bindFigureInteraction(canvas: HTMLCanvasElement): void {
@@ -6556,9 +6634,11 @@ function parseWavePcmFormat(bytes: Uint8Array): { bytes: Uint8Array; format: Pcm
     return undefined;
   }
 
-  let audioFormat = readUint16Le(bytes, fmtOffset);
+  const formatTag = readUint16Le(bytes, fmtOffset);
+  let audioFormat = formatTag;
   const channels = readUint16Le(bytes, fmtOffset + 2);
   const sampleRate = readUint32Le(bytes, fmtOffset + 4);
+  const byteRate = readUint32Le(bytes, fmtOffset + 8);
   const blockAlign = readUint16Le(bytes, fmtOffset + 12);
   const bitsPerSample = readUint16Le(bytes, fmtOffset + 14);
   if (audioFormat === 0xfffe) {
@@ -6575,9 +6655,19 @@ function parseWavePcmFormat(bytes: Uint8Array): { bytes: Uint8Array; format: Pcm
     (sampleFormat === "float" && bitsPerSample !== 32 && bitsPerSample !== 64) ||
     (sampleFormat === "unsigned-int" && bitsPerSample !== 8) ||
     channels <= 0 ||
-    sampleRate <= 0 ||
-    blockAlign !== channels * (bitsPerSample / 8)
+    sampleRate <= 0
   ) {
+    return undefined;
+  }
+
+  const bytesPerSample = bitsPerSample / 8;
+  const frameSize = channels * bytesPerSample;
+  // 部分录音程序只更新了声道数，仍把帧大小和字节率写成单声道值。
+  // 仅兼容普通整数 PCM 的这一明确模式；按完整交错帧读取，避免浏览器
+  // 对同一异常 WAV 解码出不同的时长/样本。源文件头和原始下载保持原样。
+  const hasMonoFrameHeader = formatTag === 1 && channels > 1 &&
+    blockAlign === bytesPerSample && byteRate === sampleRate * bytesPerSample;
+  if ((blockAlign !== frameSize && !hasMonoFrameHeader) || dataSize % frameSize !== 0) {
     return undefined;
   }
 
