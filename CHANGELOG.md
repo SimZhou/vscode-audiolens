@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.4
+
+- Refine the extension icon with a more compact AudioLens logo, removing the side accents so the main design appears larger in marketplace thumbnails.
+
 ## 1.9.3
 
 - Update the extension icon to the new AudioLens logo and use the version with lettering in the README header, removing the duplicate text heading.

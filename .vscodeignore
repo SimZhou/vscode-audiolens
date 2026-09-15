@@ -20,9 +20,8 @@ docs/roadmap.md
 docs/**
 Cargo.toml
 Cargo.lock
-logo/AudioLens_logo*.png
-logo/ChatGPT Image*.png
-logo/wechat_support.jpeg
+logo/**
+!logo/icon.png
 dist/*.map
 *.vsix
 *.aac
