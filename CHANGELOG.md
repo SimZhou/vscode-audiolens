@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.3
+
+- Update the extension icon to the new AudioLens logo and use the version with lettering in the README header, removing the duplicate text heading.
+
 ## 1.9.2
 
 - Refine the yellow playhead label: move the bubble to the top of the timeline while preserving its height and pointer tip position, and use the same font, size, and weight as the fixed tick labels.

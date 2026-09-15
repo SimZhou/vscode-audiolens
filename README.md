@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="180">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v3.withText.png" alt="AudioLens" width="240">
 </p>
-
-<h1 align="center">AudioLens</h1>
 
 <p align="center">
   <strong>Audio inspection for speech, ML, and signal engineering workflows inside VS Code.</strong>

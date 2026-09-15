@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="180">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v3.withText.png" alt="AudioLens" width="240">
 </p>
-
-<h1 align="center">AudioLens</h1>
 
 <p align="center">
   <strong>在 VS Code 中面向语音、机器学习和信号工程工作流的音频查看与分析工具。</strong>
@@ -287,7 +285,7 @@ AudioLens 默认跟随 VS Code 显示语言。也可以通过 `audiolens.languag
 
 AudioLens 是 workspace extension。在 Remote SSH 窗口中，扩展宿主运行在远端工作区，直接读取远端音频文件，并把数据传给本地 Webview 播放和可视化。
 
-如果需要保存当前远端音频，可以使用顶部工具栏的下载按钮。VS Code 的保存对话框可能会先显示远端位置；要保存到本机时，在对话框里切换到本地位置即可。
+如果需要保存当前远端音频，可以使用顶部工具栏的下载按钮。保存对话框默认打开音频文件所在目录，不再默认远端根目录；要保存到本机时，在对话框里切换到本地位置即可。
 
 ## 隐私
 

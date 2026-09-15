@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v2.png" alt="AudioLens" width="180">
+  <img src="https://raw.githubusercontent.com/SimZhou/vscode-audiolens/main/logo/AudioLens_logo_v3.withText.png" alt="AudioLens" width="240">
 </p>
-
-<h1 align="center">AudioLens</h1>
 
 <p align="center">
   <strong>VS Code の中で、音声・ML・信号エンジニアリング向けに音声を確認・解析するためのツールです。</strong>
@@ -287,7 +285,7 @@ AudioLens は既定で VS Code の表示言語に従います。`audiolens.langu
 
 AudioLens は workspace extension として動作します。Remote SSH ウィンドウでは、拡張ホストがリモートワークスペース側で動き、リモートの音声ファイルを読み取ってローカルの Webview に渡します。
 
-現在のリモート音声を保存したい場合は、上部バーのダウンロードボタンを使えます。VS Code の保存ダイアログは最初にリモート側を表示することがあるため、ローカルに保存する場合はダイアログ内でローカルの保存先へ切り替えてください。
+現在のリモート音声を保存したい場合は、上部バーのダウンロードボタンを使えます。保存ダイアログは音声ファイルのあるフォルダーを初期表示し、リモートのルートには移動しません。ローカルに保存する場合は、ダイアログ内でローカルの保存先へ切り替えてください。
 
 ## プライバシー
 
