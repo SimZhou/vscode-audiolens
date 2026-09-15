@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "색상 (classic)",
   paletteGrayscale: "그레이스케일",
   paletteInverseGrayscale: "반전 그레이스케일",
-  minDb: "최소 dB (밝기)",
-  maxDb: "최대 dB (밝기)",
   autoBrightness: "자동 밝기",
   amplitudeRange: "진폭 범위(파형)",
   minAmplitude: "최소 진폭",

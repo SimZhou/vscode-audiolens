@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "Klasik",
   paletteGrayscale: "Grayscale",
   paletteInverseGrayscale: "Grayscale terbalik",
-  minDb: "Min dB (kecerahan)",
-  maxDb: "Maks dB (kecerahan)",
   autoBrightness: "Kecerahan otomatis",
   amplitudeRange: "Rentang amplitudo (gelombang)",
   minAmplitude: "Amplitudo min",

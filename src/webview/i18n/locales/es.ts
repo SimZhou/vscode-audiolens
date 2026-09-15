@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "Clásica",
   paletteGrayscale: "Escala de grises",
   paletteInverseGrayscale: "Grises invertidos",
-  minDb: "dB mín. (brillo)",
-  maxDb: "dB máx. (brillo)",
   autoBrightness: "Brillo automático",
   amplitudeRange: "Rango de amplitud (onda)",
   minAmplitude: "Amplitud mín",

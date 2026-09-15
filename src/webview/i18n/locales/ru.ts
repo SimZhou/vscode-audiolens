@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "Классическая",
   paletteGrayscale: "Серая шкала",
   paletteInverseGrayscale: "Инверт. серая",
-  minDb: "Мин. dB (яркость)",
-  maxDb: "Макс. dB (яркость)",
   autoBrightness: "Авто-яркость",
   amplitudeRange: "Диапазон амплитуды (волна)",
   minAmplitude: "Мин. амплитуда",

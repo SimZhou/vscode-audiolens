@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "Klassiek",
   paletteGrayscale: "Grijswaarden",
   paletteInverseGrayscale: "Omgekeerde grijswaarden",
-  minDb: "Min dB (helderheid)",
-  maxDb: "Max dB (helderheid)",
   autoBrightness: "Auto-helderheid",
   amplitudeRange: "Amplitudebereik (golf)",
   minAmplitude: "Min amplitude",

@@ -31,6 +31,10 @@ export interface AudioLensPreferences {
   zeroPaddingFactor?: number;
   frequencyScale?: string;
   palette?: string;
+  brightnessVersion?: number;
+  gainDb?: number;
+  rangeDb?: number;
+  highBoostDb?: number;
   minDb?: number;
   maxDb?: number;
   spectrogramMinHz?: number;

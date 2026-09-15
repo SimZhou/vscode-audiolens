@@ -7,6 +7,7 @@ import {
   WebviewMessage,
   WindowFunction
 } from "../shared/protocol";
+import { DEFAULT_SPECTROGRAM_BRIGHTNESS, normalizeSpectrogramBrightness, restoreSpectrogramBrightness } from "../shared/spectrogramAppearance";
 import { resolveWaveDataSize } from "../ffmpegWav";
 import {
   createAnalysisCacheKey,
@@ -16,6 +17,7 @@ import {
   computeWaveformPeaks,
   formatAxisFrequency,
   FrequencyScale,
+  getMaxTimeZoom,
   getVisibleRange,
   normalizeDbRange,
   panRange,
@@ -62,10 +64,13 @@ interface AnalysisSettings {
   channel: number;
   minDb: number;
   maxDb: number;
+  highBoostDb: number;
   spectrogramMinHz: number;
   spectrogramMaxHz: number;
   spectrogramMaxFollowsNyquist: boolean;
   autoBrightness: boolean;
+  gainDb: number;
+  rangeDb: number;
   amplitudeAuto: boolean;
   amplitudeMin: number;
   amplitudeMax: number;
@@ -111,6 +116,7 @@ interface SpectrogramRangeState {
   palette: SpectrogramPalette;
   minDb: number;
   maxDb: number;
+  highBoostDb: number;
 }
 
 // 频谱请求规划：量化后的采样范围与 hop，保证相邻缩放/平移步进落在同一缓存 key 上。
@@ -1527,12 +1533,13 @@ export class AudioLensApp {
     fftSize: 512,
     zeroPaddingFactor: 2,
     channel: 0,
-    minDb: -96,
-    maxDb: 0,
+    ...DEFAULT_SPECTROGRAM_BRIGHTNESS,
+    minDb: -100,
+    maxDb: -20,
     spectrogramMinHz: 0,
     spectrogramMaxHz: 8000,
     spectrogramMaxFollowsNyquist: true,
-    autoBrightness: true,
+    autoBrightness: false,
     amplitudeAuto: true,
     amplitudeMin: -1,
     amplitudeMax: 1,
@@ -1864,6 +1871,7 @@ export class AudioLensApp {
     this.populateChannels();
     this.renderTrackList();
     this.applyAutoBrightness();
+    this.syncControls();
     this.redrawVisuals();
     this.focusDefaultPlot();
     if (this.config.autoAnalyze) {
@@ -2145,7 +2153,7 @@ export class AudioLensApp {
     this.elements.pcmStatus.addEventListener("focusin", () => {
       this.positionPcmStatusTooltip();
     });
-    this.bindAnalysisTooltips();
+    this.bindFloatingTooltips();
     this.elements.frequencyScale.addEventListener("change", () => {
       this.settings.frequencyScale = this.elements.frequencyScale.value as FrequencyScale;
       this.savePreferencesSoon();
@@ -2174,9 +2182,24 @@ export class AudioLensApp {
       this.settings.autoBrightness = this.elements.autoBrightness.checked;
       if (this.settings.autoBrightness) {
         this.applyAutoBrightness();
+      } else {
+        this.applyFixedBrightness();
+        this.analyze();
       }
+      this.syncControls();
       this.savePreferencesSoon();
     });
+    this.elements.resetBrightness.addEventListener("click", () => {
+      Object.assign(this.settings, DEFAULT_SPECTROGRAM_BRIGHTNESS, { autoBrightness: false });
+      this.applyFixedBrightness();
+      this.syncControls();
+      this.savePreferencesSoon();
+      this.analyze();
+    });
+    for (const input of [this.elements.gainDb, this.elements.rangeDb, this.elements.highBoostDb]) {
+      input.addEventListener("input", () => this.updateBrightnessSettings());
+      input.addEventListener("blur", () => this.syncControls());
+    }
     this.elements.amplitudeAuto.addEventListener("change", () => {
       this.settings.amplitudeAuto = this.elements.amplitudeAuto.checked;
       this.savePreferencesSoon();
@@ -2971,13 +2994,14 @@ export class AudioLensApp {
     panel.style.top = `${anchor.bottom + 8}px`;
   }
 
-  private bindAnalysisTooltips(): void {
-    document.querySelectorAll<HTMLElement>(".analysisHelp, .metricHelp").forEach((trigger) => {
+  private bindFloatingTooltips(): void {
+    document.querySelectorAll<HTMLElement>(".analysisHelp, .metricHelp, #resetBrightness").forEach((trigger) => {
       trigger.addEventListener("mouseenter", () => this.showFloatingTooltip(trigger));
       trigger.addEventListener("focusin", () => this.showFloatingTooltip(trigger));
       trigger.addEventListener("mouseleave", () => this.hideFloatingTooltip());
       trigger.addEventListener("focusout", () => this.hideFloatingTooltip());
     });
+    this.elements.settingsPanel.addEventListener("scroll", () => this.hideFloatingTooltip());
   }
 
   private showFloatingTooltip(trigger: HTMLElement): void {
@@ -3114,14 +3138,21 @@ export class AudioLensApp {
   }
 
   private syncControls(): void {
+    const maxTimeZoom = getMaxTimeZoom(this.audioDuration(), this.audioSampleRate());
+    this.settings.timeZoom = clamp(this.settings.timeZoom, 1, maxTimeZoom);
+    this.elements.timeZoom.max = String(maxTimeZoom);
     this.elements.defaultTrackMode.value = this.settings.defaultTrackMode;
     this.elements.windowFunction.value = this.settings.windowFunction;
     this.elements.fftSize.value = String(this.settings.fftSize);
     this.elements.zeroPaddingFactor.value = String(this.settings.zeroPaddingFactor);
     this.elements.timeZoom.value = String(this.settings.timeZoom);
     this.elements.timeOffset.value = String(this.settings.timeOffset);
-    this.elements.minDb.value = String(this.settings.minDb);
-    this.elements.maxDb.value = String(this.settings.maxDb);
+    this.elements.gainDb.value = String(this.settings.autoBrightness ? -this.settings.maxDb : this.settings.gainDb);
+    this.elements.rangeDb.value = String(this.settings.autoBrightness
+      ? Math.round((this.settings.maxDb - this.settings.minDb) * 100) / 100 : this.settings.rangeDb);
+    this.elements.highBoostDb.value = String(this.settings.highBoostDb);
+    this.elements.gainDb.disabled = this.settings.autoBrightness;
+    this.elements.rangeDb.disabled = this.settings.autoBrightness;
     const frequencyRange = this.spectrogramFrequencyRange();
     this.elements.spectrogramMinHz.value = String(Math.round(frequencyRange.minHz));
     this.elements.spectrogramMaxHz.value = String(Math.round(frequencyRange.maxHz));
@@ -3138,31 +3169,35 @@ export class AudioLensApp {
   private analysisInputs(): HTMLInputElement[] {
     return [
       this.elements.timeZoom,
-      this.elements.timeOffset,
-      this.elements.minDb,
-      this.elements.maxDb
+      this.elements.timeOffset
     ];
   }
 
   private updateAnalysisSettings(): void {
-    this.settings.timeZoom = clamp(Number(this.elements.timeZoom.value), 1, 64);
+    this.settings.timeZoom = clamp(Number(this.elements.timeZoom.value), 1, getMaxTimeZoom(this.audioDuration(), this.audioSampleRate()));
     this.settings.timeOffset = clamp(Number(this.elements.timeOffset.value), 0, 1);
-    const minDbStr = this.elements.minDb.value;
-    const maxDbStr = this.elements.maxDb.value;
-    if (!minDbStr || !maxDbStr) {
-      return;
+    this.redrawVisuals();
+    this.scheduleAnalyze();
+  }
+
+  private applyFixedBrightness(): void {
+    this.settings.maxDb = -this.settings.gainDb;
+    this.settings.minDb = this.settings.maxDb - this.settings.rangeDb;
+  }
+
+  private updateBrightnessSettings(): void {
+    const inputs = [this.elements.gainDb, this.elements.rangeDb, this.elements.highBoostDb];
+    if (inputs.some((input) => input.value.trim() === "" || !Number.isFinite(Number(input.value)))) return;
+    const [gainDb, rangeDb, highBoostDb] = inputs.map((input) => Number(input.value));
+    const brightness = normalizeSpectrogramBrightness(gainDb, rangeDb, highBoostDb);
+    this.settings.highBoostDb = brightness.highBoostDb;
+    if (!this.settings.autoBrightness) {
+      this.settings.gainDb = brightness.gainDb;
+      this.settings.rangeDb = brightness.rangeDb;
+      this.applyFixedBrightness();
     }
-    const minDbRaw = Number(minDbStr);
-    const maxDbRaw = Number(maxDbStr);
-    if (!Number.isFinite(minDbRaw) || !Number.isFinite(maxDbRaw)) {
-      return;
-    }
-    const range = normalizeDbRange(minDbRaw, maxDbRaw);
-    this.settings.minDb = range.minDb;
-    this.settings.maxDb = range.maxDb;
-    this.settings.autoBrightness = false;
-    this.elements.autoBrightness.checked = false;
-    this.updateSpectrogramFrequencySettings();
+    this.savePreferencesSoon();
+    this.scheduleAnalyze();
   }
 
   private updateSpectrogramFrequencySettings(options: { source?: "min" | "max"; syncDisplay?: boolean } = {}): void {
@@ -3223,11 +3258,8 @@ export class AudioLensApp {
     if (preferences.palette) {
       this.settings.palette = preferences.palette as SpectrogramPalette;
     }
-    if (preferences.minDb !== undefined && preferences.maxDb !== undefined) {
-      const range = normalizeDbRange(preferences.minDb, preferences.maxDb);
-      this.settings.minDb = range.minDb;
-      this.settings.maxDb = range.maxDb;
-    }
+    Object.assign(this.settings, restoreSpectrogramBrightness(preferences));
+    this.applyFixedBrightness();
     if (preferences.spectrogramMaxFollowsNyquist !== undefined) {
       this.settings.spectrogramMaxFollowsNyquist = preferences.spectrogramMaxFollowsNyquist;
     }
@@ -3236,9 +3268,6 @@ export class AudioLensApp {
     }
     if (preferences.spectrogramMaxHz !== undefined) {
       this.settings.spectrogramMaxHz = preferences.spectrogramMaxHz;
-    }
-    if (preferences.autoBrightness !== undefined) {
-      this.settings.autoBrightness = preferences.autoBrightness;
     }
     if (preferences.amplitudeAuto !== undefined) {
       this.settings.amplitudeAuto = preferences.amplitudeAuto;
@@ -3291,8 +3320,10 @@ export class AudioLensApp {
       zeroPaddingFactor: this.settings.zeroPaddingFactor,
       frequencyScale: this.settings.frequencyScale,
       palette: this.settings.palette,
-      minDb: this.settings.minDb,
-      maxDb: this.settings.maxDb,
+      brightnessVersion: 1,
+      gainDb: this.settings.gainDb,
+      rangeDb: this.settings.rangeDb,
+      highBoostDb: this.settings.highBoostDb,
       spectrogramMinHz: this.settings.spectrogramMinHz,
       spectrogramMaxHz: this.settings.spectrogramMaxHz,
       spectrogramMaxFollowsNyquist: this.settings.spectrogramMaxFollowsNyquist,
@@ -3329,7 +3360,7 @@ export class AudioLensApp {
       if (active.length === 0) return { minDb: -96, maxDb: 0 };
       const rms = Math.sqrt(active.reduce((sum, item) => sum + item.rms * item.rms, 0) / active.length);
       const peak = Math.max(...active.map((item) => item.peak));
-      return normalizeDbRange(amplitudeToDb(rms) - 72, amplitudeToDb(peak) - 27);
+      return normalizeDbRange(amplitudeToDb(rms) - 60, amplitudeToDb(peak) - 15);
     }
     if (!this.track) {
       return { minDb: -96, maxDb: 0 };
@@ -3362,7 +3393,7 @@ export class AudioLensApp {
     }
     const rmsDb = amplitudeToDb(Math.sqrt(sumSquares / Math.max(1, measured)));
     const peakDb = amplitudeToDb(peak);
-    return normalizeDbRange(rmsDb - 72, peakDb - 27);
+    return normalizeDbRange(rmsDb - 60, peakDb - 15);
   }
 
   private resetView(): void {
@@ -3547,6 +3578,7 @@ export class AudioLensApp {
     this.populateChannels();
     this.renderTrackList();
     this.applyAutoBrightness();
+    this.syncControls();
     this.redrawVisuals();
     if (this.config?.autoAnalyze) {
       this.scheduleAnalyze(0);
@@ -4435,7 +4467,8 @@ export class AudioLensApp {
       if (!meta || meta.channel !== channel) {
         continue;
       }
-      if (meta.palette !== this.settings.palette || meta.minDb !== this.settings.minDb || meta.maxDb !== this.settings.maxDb) {
+      if (meta.palette !== this.settings.palette || meta.minDb !== this.settings.minDb || meta.maxDb !== this.settings.maxDb
+        || meta.highBoostDb !== this.settings.highBoostDb) {
         continue;
       }
       if (meta.frequencyScale !== scale) {
@@ -4642,7 +4675,8 @@ export class AudioLensApp {
       frequencyScale,
       palette: this.settings.palette,
       minDb: this.settings.minDb,
-      maxDb: this.settings.maxDb
+      maxDb: this.settings.maxDb,
+      highBoostDb: this.settings.highBoostDb
     });
     const workerMessage = {
       type: "analyze",
@@ -4661,6 +4695,7 @@ export class AudioLensApp {
         hopSize: plan.hopSize,
         minDb: this.settings.minDb,
         maxDb: this.settings.maxDb,
+        highBoostDb: this.settings.highBoostDb,
         minFrequencyHz: frequencyRange.minHz,
         maxFrequencyHz: frequencyRange.maxHz,
         frequencyScale,
@@ -4772,6 +4807,7 @@ export class AudioLensApp {
       hopSize: requestPlan.hopSize,
       minDb: this.settings.minDb,
       maxDb: this.settings.maxDb,
+      highBoostDb: this.settings.highBoostDb,
       spectrogramMinHz: frequencyRange.minHz,
       spectrogramMaxHz: frequencyRange.maxHz,
       frequencyScale: this.effectiveFrequencyScale(channel),
@@ -4946,7 +4982,8 @@ export class AudioLensApp {
       return;
     }
     const sourceX = ((overlapStart - meta.startSample) / sourceDuration) * bitmap.width;
-    const sourceWidth = Math.max(1, ((overlapEnd - overlapStart) / sourceDuration) * bitmap.width);
+    // 深度缩放时可见范围可能小于一列；保留小数宽度，避免越过位图右边界后被裁成空白。
+    const sourceWidth = ((overlapEnd - overlapStart) / sourceDuration) * bitmap.width;
     const targetX = rect.left + ((overlapStart - currentRange.startSample) / currentDuration) * rect.width;
     const targetWidth = Math.max(1, ((overlapEnd - overlapStart) / currentDuration) * rect.width);
 
@@ -6256,7 +6293,7 @@ export class AudioLensApp {
       return;
     }
     const duration = this.audioDuration();
-    this.settings.timeZoom = clamp(nextZoom, 1, 64);
+    this.settings.timeZoom = clamp(nextZoom, 1, getMaxTimeZoom(duration, this.audioSampleRate()));
     const viewDuration = duration / this.settings.timeZoom;
     const maxStart = Math.max(0, duration - viewDuration);
     const startTime = clamp(anchorTime - anchorRatio * viewDuration, 0, maxStart);

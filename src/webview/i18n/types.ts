@@ -81,8 +81,11 @@ export interface LocaleMessages {
   paletteClassic: string;
   paletteGrayscale: string;
   paletteInverseGrayscale: string;
-  minDb: string;
-  maxDb: string;
+  gainDb: string;
+  rangeDb: string;
+  highBoostDb: string;
+  resetBrightness: string;
+  brightnessHelp: string;
   autoBrightness: string;
   amplitudeRange: string;
   minAmplitude: string;

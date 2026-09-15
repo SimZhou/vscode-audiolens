@@ -134,7 +134,7 @@ export const analysisWorkerSource = `
       const fftSize = nextPowerOfTwo(windowSize * zeroPaddingFactor);
       const sampleRate = Math.max(1, message.sampleRate || 1);
       let hopSize = Math.max(1, Math.floor(settings.hopSize || 1));
-      const bins = Math.max(1, Math.min(Math.floor(settings.outputBins || 384), fftSize / 2));
+      const bins = Math.max(1, Math.min(Math.floor(settings.outputBins || 384), 900));
       const half = fftSize / 2;
       const maxFrames = Math.max(1, Math.floor(MAG_TILE_BYTE_CAP / Math.max(1, half * Float32Array.BYTES_PER_ELEMENT)));
       const analyzableSamples = Math.max(0, sampleCount - windowSize);
@@ -226,16 +226,28 @@ export const analysisWorkerSource = `
       const fftEnd = profile ? performance.now() : 0;
 
       // ---- 第二级：光栅化（行 -> bin 查找表 + 调色板 LUT，显示参数只影响这一级） ----
-      const binForRow = new Int32Array(bins);
+      // 每行覆盖一段频率，缩小时取峰值，避免跳过窄谱峰；按实际显示高度输出。
+      const firstBinForRow = new Int32Array(bins);
+      const endBinForRow = new Int32Array(bins);
       for (let y = 0; y < bins; y += 1) {
-        const ratio = bins <= 1 ? 0 : (bins - 1 - y) / (bins - 1);
-        const freq = frequencyFromRatio(ratio, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
-        binForRow[y] = Math.max(0, Math.min(half - 1, Math.round((freq / sampleRate) * fftSize)));
+        const lowHz = frequencyFromRatio((bins - 1 - y) / bins, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
+        const highHz = frequencyFromRatio((bins - y) / bins, settings.frequencyScale, minFrequencyHz, maxFrequencyHz);
+        const first = Math.max(0, Math.min(half - 1, Math.round(lowHz * fftSize / sampleRate)));
+        firstBinForRow[y] = first;
+        endBinForRow[y] = Math.max(first + 1, Math.min(half, Math.round(highHz * fftSize / sampleRate)));
       }
       const paletteLut = getPaletteLut(settings.palette);
-      // db = 20*log10(max(sqrt(m2)/windowSize, 1e-12)) + 算法偏移，等价改写为 m2 域一次 log10。
-      const dbAdjust = -20 * Math.log10(windowSize);
-      const m2Floor = 1e-24 * windowSize * windowSize;
+      // 单边幅值以窗函数系数和校准：整 bin 的满幅正弦波为 0 dB，零填充不改变亮度。
+      const windowSum = getWindow(settings.windowFunction, windowSize).reduce((sum, value) => sum + value, 0);
+      const dbAdjust = 20 * Math.log10(2 / Math.max(windowSum, 1e-12));
+      // 高频提升以 1 kHz 为 0 dB，低频相应衰减；DC 沿用首个非零频率点。
+      const highBoostDb = Math.max(0, Math.min(60, Number(settings.highBoostDb) || 0));
+      const boostForBin = highBoostDb > 0 ? new Float64Array(half) : undefined;
+      if (boostForBin) {
+        for (let k = 0; k < half; k += 1) {
+          boostForBin[k] = Math.pow(Math.max(1, k) * sampleRate / fftSize / 1000, highBoostDb / 10);
+        }
+      }
       const dbSpan = Math.max(1e-6, settings.maxDb - settings.minDb);
       const minDb = settings.minDb;
       const lutScale = 255 / dbSpan;
@@ -244,8 +256,11 @@ export const analysisWorkerSource = `
       for (let frame = 0; frame < frames; frame += 1) {
         const base = frame * half;
         for (let y = 0; y < bins; y += 1) {
-          const m2 = mag[base + binForRow[y]];
-          const db = 10 * Math.log10(m2 > m2Floor ? m2 : m2Floor) + dbAdjust;
+          let m2 = 0;
+          for (let k = firstBinForRow[y]; k < endBinForRow[y]; k += 1) {
+            m2 = Math.max(m2, mag[base + k] * (boostForBin ? boostForBin[k] : 1));
+          }
+          const db = m2 > 0 ? 10 * Math.log10(m2) + dbAdjust : -Infinity;
           let level = (db - minDb) * lutScale;
           if (level < 0) level = 0;
           else if (level > 255) level = 255;
@@ -662,24 +677,19 @@ export const analysisWorkerSource = `
 
     function colorize(value, palette) {
       const t = Math.max(0, Math.min(1, value));
-      if (palette === "grayscale") {
-        const v = Math.round(t * 255);
+      // 灰度沿用 Audacity 的方向：浅底深色谱线；反转灰度为黑底亮线。
+      if (palette === "grayscale" || palette === "inverseGrayscale") {
+        const v = Math.round(palette === "grayscale" ? 214 * (1 - t) : 255 * t);
         return [v, v, v];
       }
-      if (palette === "inverseGrayscale") {
-        const v = Math.round((1 - t) * 255);
-        return [v, v, v];
-      }
-      if (palette === "rose") {
-        if (t < 0.25) return lerp([12, 10, 24], [52, 25, 82], t / 0.25);
-        if (t < 0.5) return lerp([52, 25, 82], [165, 43, 108], (t - 0.25) / 0.25);
-        if (t < 0.75) return lerp([165, 43, 108], [241, 118, 92], (t - 0.5) / 0.25);
-        return lerp([241, 118, 92], [255, 224, 140], (t - 0.75) / 0.25);
-      }
-      if (t < 0.25) return lerp([12, 18, 28], [25, 86, 134], t / 0.25);
-      if (t < 0.5) return lerp([25, 86, 134], [40, 160, 115], (t - 0.25) / 0.25);
-      if (t < 0.75) return lerp([40, 160, 115], [230, 174, 55], (t - 0.5) / 0.25);
-      return lerp([230, 174, 55], [235, 77, 75], (t - 0.75) / 0.25);
+      // 独立设计的分段色阶，近似 Roseus 的黑、蓝紫、玫红、橙黄和亮白层次。
+      const stops = palette === "rose"
+        ? [[0, 0, 0], [0, 30, 60], [56, 36, 136], [132, 24, 160], [196, 40, 132],
+           [236, 88, 88], [252, 148, 72], [240, 212, 148], [255, 252, 250]]
+        : [[240, 244, 255], [76, 152, 255], [228, 24, 228], [255, 0, 0], [255, 255, 255]];
+      const position = t * (stops.length - 1);
+      const left = Math.min(stops.length - 2, Math.floor(position));
+      return lerp(stops[left], stops[left + 1], position - left);
     }
 
     function lerp(a, b, t) {

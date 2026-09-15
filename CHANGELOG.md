@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.10.0
+
+### Spectrogram display improvements
+
+- **Compare energy levels across recordings:** fixed brightness is now the default, with Audacity-style gain `20 dB`, range `80 dB`, and high boost `0`. Quiet recordings keep their lower intensity instead of being automatically brightened. Auto brightness is off by default and remembers your choice when enabled.
+- **Clearer colors and spectral detail:** refine the Rose, Classic, Grayscale, and Inverse Grayscale palettes; calibrate levels for window gain and zero padding; preserve narrow spectral peaks when multiple frequency bins share a display row.
+- **More control over brightness:** adjust gain, range, and high-frequency boost, or choose **Restore default brightness**. Switching auto brightness on and off preserves manual settings. Hover over the restore button for a brief explanation; all brightness adjustments affect display only.
+
+### Fine zoom for long recordings
+
+- Remove the fixed `64×` time-zoom limit. Long and short recordings can both reach a `1 ms` view (or one sample at low sample rates), with stable zoom anchoring and precise panning.
+- Fix incomplete spectrogram drawing at deep zoom levels when the visible range is narrower than one cached image column.
+
 ## 1.9.4
 
 - Refine the extension icon with a more compact AudioLens logo, removing the side accents so the main design appears larger in marketplace thumbnails.

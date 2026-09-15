@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "Klasik",
   paletteGrayscale: "Gri tonlama",
   paletteInverseGrayscale: "Ters gri tonlama",
-  minDb: "Min dB (parlaklık)",
-  maxDb: "Maks dB (parlaklık)",
   autoBrightness: "Otomatik parlaklık",
   amplitudeRange: "Genlik aralığı (dalga)",
   minAmplitude: "Min genlik",

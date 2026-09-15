@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "Klassisk",
   paletteGrayscale: "Gråtoner",
   paletteInverseGrayscale: "Inverterte gråtoner",
-  minDb: "Min dB (lysstyrke)",
-  maxDb: "Maks dB (lysstyrke)",
   autoBrightness: "Auto-lysstyrke",
   amplitudeRange: "Amplitudeområde (bølge)",
   minAmplitude: "Min amplitude",

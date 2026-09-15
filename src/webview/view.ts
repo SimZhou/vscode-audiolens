@@ -45,8 +45,10 @@ export interface ViewElements {
   wavPcmStatus: HTMLSpanElement;
   timeZoom: HTMLInputElement;
   timeOffset: HTMLInputElement;
-  minDb: HTMLInputElement;
-  maxDb: HTMLInputElement;
+  gainDb: HTMLInputElement;
+  rangeDb: HTMLInputElement;
+  highBoostDb: HTMLInputElement;
+  resetBrightness: HTMLButtonElement;
   spectrogramMinHz: HTMLInputElement;
   spectrogramMaxHz: HTMLInputElement;
   spectrogramMaxFollowsNyquist: HTMLInputElement;
@@ -385,17 +387,22 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             </select>
           </label>
           <label class="checkboxLabel">
-            <input id="autoBrightness" type="checkbox" checked />
+            <input id="autoBrightness" type="checkbox" />
             <span data-i18n="autoBrightness">Auto brightness</span>
           </label>
           <label>
-            <span data-i18n="minDb">Min dB (brightness)</span>
-            <input id="minDb" type="number" min="-160" max="-1" step="1" value="-96" />
+            <span data-i18n="gainDb">Gain (dB)</span>
+            <input id="gainDb" type="number" min="-60" max="100" step="1" value="20" />
           </label>
           <label>
-            <span data-i18n="maxDb">Max dB (brightness)</span>
-            <input id="maxDb" type="number" min="-80" max="24" step="1" value="0" />
+            <span data-i18n="rangeDb">Range (dB)</span>
+            <input id="rangeDb" type="number" min="1" max="160" step="1" value="80" />
           </label>
+          <label>
+            <span data-i18n="highBoostDb">High boost (dB/dec)</span>
+            <input id="highBoostDb" type="number" min="0" max="60" step="1" value="0" />
+          </label>
+          <button id="resetBrightness" data-i18n="resetBrightness" data-i18n-tooltip="brightnessHelp" aria-describedby="floatingTooltip" data-tooltip="Fixed brightness can preserve level differences between audio files. Defaults: gain 20 dB, range 80 dB, high boost 0. High boost is relative to 1 kHz and only changes the display, not the audio.">Restore default brightness</button>
         </div>
         </section>
       </aside>
@@ -409,12 +416,12 @@ export function renderShell(root: HTMLDivElement): ViewElements {
           </label>
           <label>
             <span data-i18n="timeZoom">Time zoom</span>
-            <input id="timeZoom" type="range" min="1" max="64" step="0.25" value="1" />
+            <input id="timeZoom" type="range" min="1" max="1" step="any" value="1" />
             <small class="wheelHint"><kbd data-time-zoom-modifier>Ctrl</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
           </label>
           <label>
             <span data-i18n="timePosition">Time position</span>
-            <input id="timeOffset" type="range" min="0" max="1" step="0.001" value="0" />
+            <input id="timeOffset" type="range" min="0" max="1" step="any" value="0" />
             <small class="wheelHint"><kbd>Shift</kbd> + <span data-i18n="mouseWheel">mouse wheel</span></small>
           </label>
           <button id="resetView" class="secondary" data-i18n="resetView">Reset view</button>
@@ -597,7 +604,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <button type="button" role="menuitem" data-action="clear-selection" data-i18n="clearSelection">Clear selection</button>
           </div>
           <div id="freqScaleMenu" class="contextMenu freqScaleMenu" role="menu" hidden></div>
-          <div id="floatingTooltip" class="floatingTooltip" hidden></div>
+          <div id="floatingTooltip" class="floatingTooltip" role="tooltip" hidden></div>
         </section>
       </section>
 
@@ -648,8 +655,10 @@ export function renderShell(root: HTMLDivElement): ViewElements {
     wavPcmStatus: query("#wavPcmStatus", HTMLSpanElement),
     timeZoom: query("#timeZoom", HTMLInputElement),
     timeOffset: query("#timeOffset", HTMLInputElement),
-    minDb: query("#minDb", HTMLInputElement),
-    maxDb: query("#maxDb", HTMLInputElement),
+    gainDb: query("#gainDb", HTMLInputElement),
+    rangeDb: query("#rangeDb", HTMLInputElement),
+    highBoostDb: query("#highBoostDb", HTMLInputElement),
+    resetBrightness: query("#resetBrightness", HTMLButtonElement),
     spectrogramMinHz: query("#spectrogramMinHz", HTMLInputElement),
     spectrogramMaxHz: query("#spectrogramMaxHz", HTMLInputElement),
     spectrogramMaxFollowsNyquist: query("#spectrogramMaxFollowsNyquist", HTMLInputElement),

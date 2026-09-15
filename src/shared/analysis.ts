@@ -33,10 +33,16 @@ export type FrequencyScale = "linear" | "log" | "mel" | "bark" | "erb";
 
 export type SpectrogramPalette = "rose" | "classic" | "grayscale" | "inverseGrayscale";
 
+// 按可见时间而非整段音频的倍率限制缩放；至少显示 1 ms 或一个原生采样。
+export function getMaxTimeZoom(duration: number, sampleRate = 1000): number {
+  const minViewDuration = Math.max(0.001, 1 / Math.max(1, sampleRate));
+  return Math.max(1, duration / minViewDuration);
+}
+
 export function getVisibleRange(input: VisibleRangeInput): VisibleRange {
   const duration = Math.max(0, input.duration);
   const sampleRate = Math.max(1, input.sampleRate);
-  const timeZoom = Math.max(1, input.timeZoom);
+  const timeZoom = clamp(input.timeZoom, 1, getMaxTimeZoom(duration, sampleRate));
   const timeOffset = clamp(input.timeOffset, 0, 1);
   const viewDuration = duration / timeZoom;
   const maxStart = Math.max(0, duration - viewDuration);
@@ -51,14 +57,14 @@ export function getVisibleRange(input: VisibleRangeInput): VisibleRange {
   };
 }
 
-export function selectTimeRange(duration: number, fromRatio: number, toRatio: number): TimeSelection {
+export function selectTimeRange(duration: number, fromRatio: number, toRatio: number, sampleRate = 1000): TimeSelection {
   const safeDuration = Math.max(0, duration);
   const startRatio = clamp(Math.min(fromRatio, toRatio), 0, 1);
   const endRatio = clamp(Math.max(fromRatio, toRatio), 0, 1);
   const startTime = startRatio * safeDuration;
   const endTime = endRatio * safeDuration;
   const selectedDuration = Math.max(0.001, endTime - startTime);
-  const timeZoom = clamp(safeDuration / selectedDuration, 1, 64);
+  const timeZoom = clamp(safeDuration / selectedDuration, 1, getMaxTimeZoom(safeDuration, sampleRate));
   const maxStart = Math.max(0, safeDuration - safeDuration / timeZoom);
   const timeOffset = maxStart === 0 ? 0 : clamp(startTime / maxStart, 0, 1);
 
@@ -91,6 +97,7 @@ export function createAnalysisCacheKey(parts: {
   hopSize?: number;
   minDb: number;
   maxDb: number;
+  highBoostDb?: number;
   spectrogramMinHz?: number;
   spectrogramMaxHz?: number;
   frequencyScale?: FrequencyScale;
@@ -108,6 +115,7 @@ export function createAnalysisCacheKey(parts: {
     parts.hopSize ?? 0,
     parts.minDb,
     parts.maxDb,
+    parts.highBoostDb ?? 0,
     parts.spectrogramMinHz ?? 0,
     parts.spectrogramMaxHz ?? 0,
     parts.frequencyScale ?? "linear",

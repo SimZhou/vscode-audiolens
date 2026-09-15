@@ -33,8 +33,6 @@ export const messages = {
   paletteClassic: "Cổ điển",
   paletteGrayscale: "Thang xám",
   paletteInverseGrayscale: "Thang xám đảo",
-  minDb: "dB tối thiểu (độ sáng)",
-  maxDb: "dB tối đa (độ sáng)",
   autoBrightness: "Độ sáng tự động",
   amplitudeRange: "Dải biên độ (sóng)",
   minAmplitude: "Biên độ tối thiểu",

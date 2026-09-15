@@ -75,7 +75,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 | --- | --- |
 | Playback | Keyboard-ready `Space` play/pause, seek, selection playback, playback gain, per-channel mute and solo. |
 | Visualization | Waveform, spectrogram, combined view, shared timeline, draggable per-track height and waveform/spectrogram split, zoom, pan, and reset. |
-| Spectrogram analysis | Frequency-domain STFT analysis; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, and auto brightness. |
+| Spectrogram analysis | Frequency-domain STFT analysis; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, fixed brightness, and optional auto brightness. |
 | File inspection | Structured header inspector for WAV/RIFF, FLAC, Ogg, MP4/M4A, AAC/ADTS, and MP3/MPEG frames. |
 | Dataset navigation | Hover/status-bar/command entry points for audio paths in ordinary text files without generating thousands of inline links. |
 | Persistence | Saves default track view, spectrogram settings, PCM defaults, and language preference. |
@@ -243,7 +243,7 @@ AudioLens includes practical spectrogram controls for speech and signal inspecti
 - frequency scales: Linear, Log, Mel, Bark, ERB
 - configurable display-only frequency range, with an optional Nyquist-following maximum
 - palettes: Rose, Classic, Grayscale, Inverse Grayscale
-- configurable dB brightness range and auto brightness
+- Audacity-style fixed brightness defaults: gain `20 dB`, range `80 dB` (−100 to −20 dB), high boost `0`, preserving level differences between files. Auto brightness is off by default and remembered when enabled. Adjust these controls or use **Restore default brightness**.
 
 The settings menu in the top-right corner keeps these controls close to the spectrogram view, including display-only frequency range limits and Nyquist-following maximum frequency.
 
@@ -252,6 +252,8 @@ The settings menu in the top-right corner keeps these controls close to the spec
 </p>
 
 Spectrogram analysis runs in a worker with a magnitude cache, so zoom and pan stay real time — horizontal pan reuses computed FFT columns, and frequency-axis, palette, and dB changes re-rasterize instantly without recomputing the FFT.
+
+Time zoom supports a `1 ms` visible range for both long and short recordings (or one sample at low sample rates). Spectrogram detail still depends on the FFT window: zooming further does not create additional frequency resolution.
 
 ## Controls
 
