@@ -305,6 +305,10 @@ npm run package
 
 VS Code で `F5` を押し、AudioLens の拡張デバッグ設定を選択します。その後、Extension Development Host で対応する音声ファイルを開きます。
 
+## メディア掲載
+
+- [Speech Technology：VS Code で音声再生・波形・スペクトログラムを利用できる AudioLens](https://www.speechtechmag.com/Articles/News/Speech-Technology-News/AudioLens-Brings-Audio-Playback-Waveforms-and-Spectrograms-to-VS-Code-177318.aspx) — 2026 年 11 月 2 日、英語ニュース。
+
 ## 作者
 
 SimZhou: https://simzhou.com/ja/about/
