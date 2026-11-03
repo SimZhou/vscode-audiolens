@@ -305,6 +305,10 @@ npm run package
 
 在 VS Code 中按 `F5`，选择 AudioLens 扩展调试配置，然后在 Extension Development Host 中打开支持的音频文件。
 
+## 媒体报道
+
+- [Speech Technology：AudioLens 在 VS Code 中提供音频播放、波形和频谱功能](https://www.speechtechmag.com/Articles/News/Speech-Technology-News/AudioLens-Brings-Audio-Playback-Waveforms-and-Spectrograms-to-VS-Code-177318.aspx) — 2026 年 11 月 2 日，英文新闻。
+
 ## 作者
 
 SimZhou: https://simzhou.com/about/

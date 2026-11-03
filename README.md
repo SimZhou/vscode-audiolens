@@ -305,6 +305,10 @@ npm run package
 
 Press `F5` in VS Code and choose the AudioLens extension launch configuration. Then open a supported audio file in the Extension Development Host.
 
+## In the news
+
+- [Speech Technology: AudioLens Brings Audio Playback, Waveforms, and Spectrograms to VS Code](https://www.speechtechmag.com/Articles/News/Speech-Technology-News/AudioLens-Brings-Audio-Playback-Waveforms-and-Spectrograms-to-VS-Code-177318.aspx) — November 2, 2026.
+
 ## Author
 
 SimZhou: https://simzhou.com/en/about/
