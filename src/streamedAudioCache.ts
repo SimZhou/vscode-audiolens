@@ -225,10 +225,14 @@ export async function readPackedWindows(
   const start = clampInteger(options.startSample, 0, cache.length);
   const end = clampInteger(options.endSample, start, cache.length);
   const windowSize = clampInteger(options.windowSize, 8, 32768);
-  const hopSize = clampInteger(options.hopSize, 1, Math.max(1, cache.length));
+  let hopSize = clampInteger(options.hopSize, 1, Math.max(1, cache.length));
   const available = Math.max(0, end - start);
   const naturalFrames = available <= windowSize ? 1 : Math.floor((available - windowSize) / hopSize) + 1;
   const frameCount = Math.min(clampInteger(options.maxFrames, 1, 8192), Math.max(1, naturalFrames));
+  // When the frame budget truncates the request, widen the hop so the kept frames span the whole requested range instead of only its start.
+  if (naturalFrames > frameCount && frameCount > 1) {
+    hopSize = Math.max(hopSize, Math.floor((available - windowSize) / (frameCount - 1)));
+  }
   const outputBytes = frameCount * windowSize * Float32Array.BYTES_PER_ELEMENT;
   if (outputBytes > options.maxOutputBytes) {
     throw new Error(`Requested FFT windows are too large: ${formatBytes(outputBytes)} / ${formatBytes(options.maxOutputBytes)}.`);
