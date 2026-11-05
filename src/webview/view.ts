@@ -313,7 +313,7 @@ export function renderShell(root: HTMLDivElement): ViewElements {
             <option value="rectangular" data-i18n="windowRectangular">Rectangular</option>
             <option value="bartlett" data-i18n="windowBartlett">Bartlett</option>
             <option value="hamming" data-i18n="windowHamming">Hamming</option>
-            <option value="hann" data-i18n="windowHann">Hann</option>
+            <option value="hann" selected data-i18n="windowHann">Hann</option>
             <option value="blackman" data-i18n="windowBlackman">Blackman</option>
             <option value="blackmanHarris" data-i18n="windowBlackmanHarris">Blackman-Harris</option>
             <option value="welch" data-i18n="windowWelch">Welch</option>

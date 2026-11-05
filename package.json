@@ -201,7 +201,7 @@
             "gaussian35",
             "gaussian45"
           ],
-          "default": "hamming",
+          "default": "hann",
           "description": "默认频谱窗函数。"
         },
         "audiolens.analysis.fftSize": {

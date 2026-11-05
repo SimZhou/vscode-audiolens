@@ -765,7 +765,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
       vscodeLanguage: vscode.env.language,
       profileSpectrogram: config.get("profileSpectrogram", false),
       analysis: {
-        windowFunction: config.get("analysis.windowFunction", "hamming"),
+        windowFunction: config.get("analysis.windowFunction", "hann"),
         fftSize: config.get("analysis.fftSize", 512),
         zeroPaddingFactor: config.get("analysis.zeroPaddingFactor", 2)
       }

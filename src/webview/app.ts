@@ -1529,7 +1529,7 @@ export class AudioLensApp {
   private messages = getMessages("en");
   private readonly settings: AnalysisSettings = {
     defaultTrackMode: "both",
-    windowFunction: "hamming",
+    windowFunction: "hann",
     fftSize: 512,
     zeroPaddingFactor: 2,
     channel: 0,
