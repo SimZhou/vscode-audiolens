@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { AudioLensEditorProvider } from "./audioLensEditor";
 import { registerAudioPathLinks } from "./audioPathLinks";
+import { cleanupStaleRemoteAudio } from "./remoteAudio";
 
 const LANGUAGE_OPTIONS = [
   { value: "auto", label: "跟随 VS Code / Auto", detail: "使用 VS Code 当前显示语言" },
@@ -24,6 +25,8 @@ const LANGUAGE_OPTIONS = [
 ] as const;
 
 export function activate(context: vscode.ExtensionContext): void {
+  // 崩溃或被杀的会话留下的下载不会被 dispose，启动时在后台清理。
+  void cleanupStaleRemoteAudio();
   context.subscriptions.push(
     AudioLensEditorProvider.register(context),
     registerAudioPathLinks(),

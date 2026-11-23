@@ -77,7 +77,7 @@ It focuses on the daily workflow that generic audio players miss: inspect wavefo
 | Visualization | Waveform, spectrogram, combined view, shared timeline, draggable per-track height and waveform/spectrogram split, zoom, pan, and reset. |
 | Spectrogram analysis | Frequency-domain STFT analysis; FFT sizes up to `32768`; multiple window functions, frequency scales, palettes, fixed brightness, and optional auto brightness. |
 | File inspection | Structured header inspector for WAV/RIFF, FLAC, Ogg, MP4/M4A, AAC/ADTS, and MP3/MPEG frames. |
-| Dataset navigation | Hover/status-bar/command entry points for audio paths in ordinary text files without generating thousands of inline links. |
+| Dataset navigation | Hover/status-bar/command entry points for audio paths and HTTP/HTTPS audio URLs in ordinary text files, including CSV, without generating thousands of inline links. |
 | Persistence | Saves default track view, spectrogram settings, PCM defaults, and language preference. |
 
 ## Install
@@ -202,6 +202,8 @@ AudioLens only supports ark entries whose audio payload starts with a WAV `RIFF/
 
 AudioLens can detect audio paths in ordinary text files and open them directly with the AudioLens editor. Hover an audio path and click **Open in AudioLens**, or place the cursor on a path and use the status-bar action or `AudioLens: Open Audio Path at Cursor`. It supports absolute paths and relative paths resolved from the current text file, workspace folders, and optional configured base directories.
 
+CSV detection respects field boundaries and quoted fields. HTTP/HTTPS audio URLs, including query parameters, open through the same waveform, spectrogram, and playback workflow. The extension host downloads the audio to a temporary file; with Remote SSH, the remote machine must be able to reach the URL. Downloads require a trusted workspace, respect `audiolens.maxFileSizeMB`, can be canceled, stop if the server sends no data for 30 seconds, and are removed when the editor closes. URLs requiring authentication still need valid access.
+
 Run `AudioLens: Toggle "Open in AudioLens"` from the Command Palette to turn this feature on or off. It is enabled by default and avoids generating inline links for the whole document, so large JSON, log, and dataset files stay responsive.
 
 Kaldi `*.ark:offset` links are intentionally left to Kaldi Reader.
@@ -291,7 +293,7 @@ Use the top-bar download button when you want to save the current remote audio f
 
 ## Privacy
 
-AudioLens does not upload audio files to any third-party service. Audio content is read by the VS Code extension host and analyzed inside the VS Code Webview and worker runtime.
+AudioLens does not upload audio files to any third-party service. Audio content is read by the VS Code extension host and analyzed inside the VS Code Webview and worker runtime. When you open an HTTP/HTTPS audio URL, the extension host downloads it directly from that server.
 
 ## Development
 

@@ -77,7 +77,7 @@ AudioLens 可以把 VS Code 变成实用的音频查看器，适合音频工程�
 | 可视化 | 波形图、语谱图、组合视图、共享时间轴、可拖动的逐轨高度和波形图/语谱图比例、缩放、平移和重置。 |
 | 语谱图分析 | 频域 STFT 分析；FFT 最大 `32768`；多种窗函数、频率刻度、配色、固定亮度和可选自动亮度。 |
 | 文件检查 | 结构化查看 WAV/RIFF、FLAC、Ogg、MP4/M4A、AAC/ADTS 和 MP3/MPEG 帧头信息。 |
-| 数据集导航 | 在普通文本文件里通过 hover、状态栏和命令打开音频路径，不为大文件生成成千上万个正文链接。 |
+| 数据集导航 | 在普通文本文件（包括 CSV）里通过 hover、状态栏和命令打开音频路径和 HTTP/HTTPS 音频 URL，不为大文件生成成千上万个正文链接。 |
 | 偏好保存 | 保存默认音轨视图、语谱图设置、PCM 默认参数和界面语言。 |
 
 ## 安装
@@ -202,6 +202,8 @@ AudioLens 只支持音频内容以 WAV `RIFF/WAVE` 头开始的 ark 条目。它
 
 AudioLens 可以识别普通文本文件中的音频地址，并直接用 AudioLens 编辑器打开。将鼠标悬停在音频路径上后点击 **在 AudioLens 中打开**，或把光标放到路径上使用状态栏入口 / `AudioLens: 打开光标处音频路径`。它支持绝对路径，也支持基于当前文本文件目录、workspace 目录和可选 base directory 解析的相对路径。
 
+CSV 中只识别音频所在字段，支持带引号的字段及 HTTP/HTTPS 音频 URL（包括查询参数）。网络音频由扩展所在机器下载到临时文件，再使用相同的波形、语谱图和播放功能；Remote SSH 下需要远端机器能访问该 URL。下载需要受信任工作区，受 `audiolens.maxFileSizeMB` 限制，可以取消；服务器连续 30 秒没有返回数据时停止下载；关闭编辑器后清理临时文件。需登录或授权的 URL 仍需要有效访问权限。
+
 可以从 Command Palette 运行 `AudioLens: 开启/关闭“在 AudioLens 中打开”` 开启或关闭这个功能。该功能默认开启，不再为整份文档批量生成正文超链，因此大 JSON、日志和数据集文件也能保持流畅。
 
 Kaldi `*.ark:offset` 链接会刻意留给 Kaldi Reader 处理。
@@ -291,7 +293,7 @@ AudioLens 是 workspace extension。在 Remote SSH 窗口中，扩展宿主运�
 
 ## 隐私
 
-AudioLens 不会把音频上传到任何第三方服务。音频内容由 VS Code 扩展宿主读取，并在 VS Code Webview 和 Worker 运行时中完成分析。
+AudioLens 不会把音频上传到任何第三方服务。音频内容由 VS Code 扩展宿主读取，并在 VS Code Webview 和 Worker 运行时中完成分析。打开 HTTP/HTTPS 音频 URL 时，扩展宿主直接从该服务器下载音频。
 
 ## 开发
 

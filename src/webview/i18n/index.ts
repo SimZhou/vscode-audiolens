@@ -63,10 +63,11 @@ export function getMessages(locale: LocaleCode): LocaleMessages {
 
 export function normalizeLocale(language: string | undefined): LocaleCode {
   const value = (language || "en").toLowerCase();
-  if (value === "zh-tw" || value === "zh-hk" || value === "zh-hant" || value.startsWith("zh-hant")) {
+  // 与扩展端保持一致：zh-TW/HK/MO/Hant 用繁体，其他 zh 用简体。
+  if (/^zh-(tw|hk|mo|hant)/.test(value)) {
     return "zh-TW";
   }
-  if (value === "zh-cn" || value === "zh-sg" || value === "zh-hans" || value.startsWith("zh")) {
+  if (value.startsWith("zh")) {
     return "zh-CN";
   }
   if (value.startsWith("ja")) return "ja";

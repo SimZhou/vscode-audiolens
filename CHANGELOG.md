@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.11.0
+
+### Open audio URLs
+
+- **Open HTTP/HTTPS audio URLs:** hover an audio URL in any text file, including CSV, and open it with the same waveform, spectrogram, and playback tools. Query parameters and signed URLs are preserved exactly.
+- **Reliable downloads:** large files on servers that support byte ranges download over up to 4 connections. Downloads show progress, can be canceled, require a trusted workspace, respect `audiolens.maxFileSizeMB`, and stop only after 30 seconds without data. Temporary files are removed when the editor closes, and files left by a crashed session are cleaned up on the next start.
+- Download progress and error messages follow the AudioLens language setting.
+
+### Audio path detection
+
+- **CSV-aware:** fields and quoted fields are respected, so a path no longer includes preceding columns and the hover covers only the path.
+- **More reliable in logs, code, and Markdown:** paths are detected next to apostrophes, trailing punctuation, and parentheses, in `key=/path.wav` and `load(/path.wav)`, in Markdown links, and inside quoted messages. The status-bar action also works when the cursor is right after a path.
+
 ## 1.10.0
 
 ### Spectrogram display improvements

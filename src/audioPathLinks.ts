@@ -1,5 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { findAudioPathCandidateAt, isHttpAudioUrl, normalizeAudioPathText, shouldLinkAudioPath } from "./audioPathParser";
+import { createRemoteAudioUri } from "./remoteAudioUri";
 
 const AUDIO_LENS_VIEW_TYPE = "audiolens.audioPreview";
 const OPEN_AUDIO_PATH_COMMAND = "audiolens.openAudioPathLink";
@@ -11,13 +13,7 @@ const MAX_LINE_LENGTH_CONFIG = "audioPathLinks.maxLineLength";
 const DEFAULT_MAX_LINE_LENGTH = 20_000;
 const AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "opus", "m4a", "aac", "pcm", "raw"] as const;
 const EXT_PATTERN = AUDIO_EXTENSIONS.join("|");
-const QUOTED_AUDIO_PATH_RE = new RegExp(`(["'\`])([^"'\`\\r\\n]*?\\.(${EXT_PATTERN}))\\1`, "gi");
-const UNQUOTED_AUDIO_PATH_RE = new RegExp(`([^\\s"'\\\`<>{}|]+?\\.(${EXT_PATTERN}))(?=$|[\\s"',;:)\\]}|])`, "gi");
 const AUDIO_PATH_HINT_RE = new RegExp(`\\.(${EXT_PATTERN})`, "i");
-const AUDIO_EXTENSION_RE = new RegExp(`\\.(${EXT_PATTERN})$`, "i");
-const FIELD_DELIMITER_RE = /[|]/;
-const TRAILING_PUNCTUATION_RE = /[,;:)\]}]+$/;
-const GLOB_WILDCARD_RE = /[*?[\]]/;
 
 interface AudioPathLinkArgs {
   text: string;
@@ -264,7 +260,7 @@ class AudioPathHoverProvider implements vscode.HoverProvider {
       return undefined;
     }
 
-    const candidate = findAudioPathCandidateAt(line, position.character);
+    const candidate = findAudioPathCandidateAt(line, position.character, { csv: isCsvDocument(document) });
     if (!candidate) {
       return undefined;
     }
@@ -286,59 +282,13 @@ class AudioPathHoverProvider implements vscode.HoverProvider {
   }
 }
 
+function isCsvDocument(document: vscode.TextDocument): boolean {
+  // Rainbow CSV 等扩展使用 csv、csv_semicolon 这类 languageId。
+  return /^csv/i.test(document.languageId) || /\.csv$/i.test(document.uri.path);
+}
+
 function lineMayContainAudioPath(line: string): boolean {
   return AUDIO_PATH_HINT_RE.test(line);
-}
-
-function trimAudioPathCandidate(value: string): string {
-  return value.trim().replace(TRAILING_PUNCTUATION_RE, "");
-}
-
-function shouldLinkAudioPath(value: string): boolean {
-  if (!value || /^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
-    return false;
-  }
-  if (GLOB_WILDCARD_RE.test(value)) {
-    return false;
-  }
-  if (FIELD_DELIMITER_RE.test(value)) {
-    return false;
-  }
-  return AUDIO_EXTENSION_RE.test(value);
-}
-
-function findAudioPathCandidateAt(
-  line: string,
-  character: number
-): { text: string; start: number; end: number } | undefined {
-  return collectAudioPathCandidatesFromLine(line)
-    .find((candidate) => character >= candidate.start && character <= candidate.end);
-}
-
-function collectAudioPathCandidatesFromLine(line: string): Array<{ text: string; start: number; end: number }> {
-  const candidates: Array<{ text: string; start: number; end: number }> = [];
-
-  QUOTED_AUDIO_PATH_RE.lastIndex = 0;
-  for (let match = QUOTED_AUDIO_PATH_RE.exec(line); match; match = QUOTED_AUDIO_PATH_RE.exec(line)) {
-    const text = trimAudioPathCandidate(match[2]);
-    if (!shouldLinkAudioPath(text)) {
-      continue;
-    }
-    const start = (match.index ?? 0) + 1;
-    candidates.push({ text, start, end: start + text.length });
-  }
-
-  UNQUOTED_AUDIO_PATH_RE.lastIndex = 0;
-  for (let match = UNQUOTED_AUDIO_PATH_RE.exec(line); match; match = UNQUOTED_AUDIO_PATH_RE.exec(line)) {
-    const text = trimAudioPathCandidate(match[1]);
-    if (!shouldLinkAudioPath(text)) {
-      continue;
-    }
-    const start = match.index ?? 0;
-    candidates.push({ text, start, end: start + text.length });
-  }
-
-  return candidates;
 }
 
 function createOpenAudioPathCommandUri(args: AudioPathLinkArgs): vscode.Uri {
@@ -351,7 +301,7 @@ function findAudioPathCandidateInEditor(
   editor: vscode.TextEditor,
   maxLineLength: number
 ): { text: string; start?: number; end?: number } | undefined {
-  const selected = trimAudioPathCandidate(editor.document.getText(editor.selection));
+  const selected = normalizeAudioPathText(editor.document.getText(editor.selection));
   if (shouldLinkAudioPath(selected)) {
     return { text: selected };
   }
@@ -361,7 +311,10 @@ function findAudioPathCandidateInEditor(
     return undefined;
   }
 
-  return findAudioPathCandidateAt(line, editor.selection.active.character);
+  return findAudioPathCandidateAt(line, editor.selection.active.character, {
+    csv: isCsvDocument(editor.document),
+    includeEnd: true
+  });
 }
 
 async function openAudioPathLink(args?: AudioPathLinkArgs): Promise<void> {
@@ -407,6 +360,7 @@ async function toggleAudioPathLinks(): Promise<void> {
 }
 
 async function resolveAudioPath(value: string, sourceUri: vscode.Uri): Promise<vscode.Uri | undefined> {
+  if (isHttpAudioUrl(value)) return createRemoteAudioUri(value);
   const candidates = buildAudioPathCandidates(value, sourceUri);
   for (const candidate of candidates) {
     try {
@@ -485,12 +439,13 @@ function getPositiveIntegerConfig(
 }
 
 function resolveAudioPathMessages(locale = resolveAudioPathLanguage()): AudioPathMessages {
+  // 与编辑器一致：zh-TW/HK/MO/Hant 用繁体，其他 zh 用简体。
   const normalized = locale.toLowerCase();
-  if (normalized === "zh-cn" || normalized.startsWith("zh-hans")) {
-    return AUDIO_PATH_MESSAGES["zh-cn"];
-  }
-  if (normalized === "zh-tw" || normalized.startsWith("zh-hant")) {
+  if (/^zh-(tw|hk|mo|hant)/.test(normalized)) {
     return AUDIO_PATH_MESSAGES["zh-tw"];
+  }
+  if (normalized.startsWith("zh")) {
+    return AUDIO_PATH_MESSAGES["zh-cn"];
   }
   return AUDIO_PATH_MESSAGES[normalized.split("-")[0]] ?? AUDIO_PATH_MESSAGES.en;
 }

@@ -19,6 +19,8 @@ import {
   StreamedAudioCache
 } from "./streamedAudioCache";
 import { formatBytes, getNonce } from "./util";
+import { downloadRemoteAudio, RemoteAudioError } from "./remoteAudio";
+import { getRemoteAudioUrl } from "./remoteAudioUri";
 
 const PREFERENCES_KEY = "audiolens.preferences.v1";
 const ARK_OFFSET_QUERY_KEY = "arkOffset";
@@ -49,6 +51,20 @@ interface ExtensionMessages {
   arkOffsetOutOfRange: (offset: number) => string;
   arkOffsetNotWave: (offset: number) => string;
   arkEntrySizeInvalid: (offset: number) => string;
+  remoteDownloadTitle: string;
+  remoteWaitingForServer: string;
+  remoteDownloaded: (progress: string) => string;
+  remoteRequiresTrust: string;
+  remoteDownloadFailed: (reason: string) => string;
+  remoteErrorCanceled: string;
+  remoteErrorTimedOut: (seconds: string) => string;
+  remoteErrorTooLarge: (limit: string) => string;
+  remoteErrorHttpStatus: (status: string) => string;
+  remoteErrorRedirects: string;
+  remoteErrorScheme: string;
+  remoteErrorEmpty: string;
+  remoteErrorIncomplete: string;
+  remoteErrorInvalidResponse: string;
 }
 
 interface AudioLensDocumentSource {
@@ -70,9 +86,73 @@ interface PendingSelectionWavWrite {
 }
 
 class AudioLensDocument implements vscode.CustomDocument {
-  public static async create(uri: vscode.Uri): Promise<AudioLensDocument> {
+  public static async create(
+    uri: vscode.Uri,
+    options: { maxBytes: number; token: vscode.CancellationToken; messages: ExtensionMessages }
+  ): Promise<AudioLensDocument> {
+    const remoteUrl = getRemoteAudioUrl(uri);
+    if (remoteUrl) {
+      return AudioLensDocument.createRemote(uri, remoteUrl, options);
+    }
     const source = await AudioLensDocument.resolveSource(uri);
     return new AudioLensDocument(uri, source);
+  }
+
+  private static async createRemote(
+    uri: vscode.Uri,
+    remoteUrl: string,
+    { maxBytes, token, messages }: { maxBytes: number; token: vscode.CancellationToken; messages: ExtensionMessages }
+  ): Promise<AudioLensDocument> {
+    if (!vscode.workspace.isTrusted) {
+      throw new Error(messages.remoteRequiresTrust);
+    }
+    const controller = new AbortController();
+    const subscription = token.onCancellationRequested(() => controller.abort());
+    if (token.isCancellationRequested) controller.abort();
+    try {
+      return await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: messages.remoteDownloadTitle,
+        cancellable: true
+      }, async (progress, progressToken) => {
+        const cancel = progressToken.onCancellationRequested(() => controller.abort());
+        try {
+          progress.report({ message: messages.remoteWaitingForServer });
+          // 通知进度条不能后退。并发下载回退为单个 GET 时，进度条停在原位，等字节数追上再前进。
+          let reportedPercent = 0;
+          const downloaded = await downloadRemoteAudio(remoteUrl, maxBytes, {
+            signal: controller.signal,
+            onProgress: ({ receivedBytes, totalBytes }) => {
+              const percent = totalBytes ? Math.min(100, receivedBytes / totalBytes * 100) : undefined;
+              const size = totalBytes ? `${formatBytes(receivedBytes)} / ${formatBytes(totalBytes)}` : formatBytes(receivedBytes);
+              const increment = percent !== undefined && percent > reportedPercent ? percent - reportedPercent : undefined;
+              progress.report({
+                message: messages.remoteDownloaded(`${size}${percent === undefined ? "" : ` (${Math.floor(percent)}%)`}`),
+                increment
+              });
+              if (increment !== undefined) reportedPercent = percent!;
+            }
+          }).catch((error: unknown) => {
+            throw new Error(describeRemoteAudioError(error, messages, maxBytes));
+          });
+          try {
+            return new AudioLensDocument(uri, {
+              uri: vscode.Uri.file(downloaded.filePath),
+              offset: 0,
+              size: downloaded.size,
+              displayName: path.posix.basename(uri.path)
+            }, downloaded.tempDir);
+          } catch (error) {
+            await rm(downloaded.tempDir, { recursive: true, force: true });
+            throw error;
+          }
+        } finally {
+          cancel.dispose();
+        }
+      });
+    } finally {
+      subscription.dispose();
+    }
   }
 
   private readonly changeEmitter = new vscode.EventEmitter<vscode.Uri>();
@@ -86,7 +166,8 @@ class AudioLensDocument implements vscode.CustomDocument {
 
   private constructor(
     public readonly uri: vscode.Uri,
-    private source: AudioLensDocumentSource
+    private source: AudioLensDocumentSource,
+    private readonly remoteTempDir?: string
   ) {
     const parentUri = this.source.uri.with({
       path: path.posix.dirname(this.source.uri.path),
@@ -123,8 +204,13 @@ class AudioLensDocument implements vscode.CustomDocument {
     return this.source.arkOffset;
   }
 
+  /** 网络音频：实际数据在临时下载目录里，源文件目录对用户没有意义。 */
+  public get isRemote(): boolean {
+    return this.remoteTempDir !== undefined;
+  }
+
   public get isFileSlice(): boolean {
-    return this.source.offset > 0 || this.source.uri.toString() !== this.uri.with({ query: "", fragment: "" }).toString();
+    return this.source.offset > 0 || (!this.remoteTempDir && this.source.uri.toString() !== this.uri.with({ query: "", fragment: "" }).toString());
   }
 
   public async setArkOffset(offset: number): Promise<void> {
@@ -171,6 +257,7 @@ class AudioLensDocument implements vscode.CustomDocument {
     this.changeEmitter.dispose();
     this.disposeEmitter.fire();
     this.disposeEmitter.dispose();
+    if (this.remoteTempDir) void rm(this.remoteTempDir, { recursive: true, force: true }).catch(() => undefined);
   }
 
   private scheduleRefresh(uri: vscode.Uri): void {
@@ -280,7 +367,11 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     _openContext: vscode.CustomDocumentOpenContext,
     _token: vscode.CancellationToken
   ): Promise<AudioLensDocument> {
-    const document = await AudioLensDocument.create(uri);
+    const document = await AudioLensDocument.create(uri, {
+      maxBytes: this.maxTransferBytes(),
+      token: _token,
+      messages: this.extensionMessages()
+    });
     document.onDidDispose(() => {
       this.invalidateStreamedAudioCache(document);
     });
@@ -426,7 +517,7 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
     const extension = document.extension;
     return {
       fileName,
-      uri: document.uri.toString(),
+      uri: getRemoteAudioUrl(document.uri) ?? document.uri.toString(),
       size: document.size,
       trusted: vscode.workspace.isTrusted,
       extension,
@@ -853,6 +944,24 @@ export class AudioLensEditorProvider implements vscode.CustomReadonlyEditorProvi
   }
 }
 
+function describeRemoteAudioError(error: unknown, messages: ExtensionMessages, maxBytes: number): string {
+  if (!(error instanceof RemoteAudioError)) {
+    return messages.remoteDownloadFailed(error instanceof Error ? error.message : String(error));
+  }
+  const reasons: Record<RemoteAudioError["code"], () => string> = {
+    unsupportedScheme: () => messages.remoteErrorScheme,
+    tooManyRedirects: () => messages.remoteErrorRedirects,
+    httpStatus: () => messages.remoteErrorHttpStatus(error.detail ?? ""),
+    tooLarge: () => messages.remoteErrorTooLarge(formatBytes(maxBytes)),
+    empty: () => messages.remoteErrorEmpty,
+    incomplete: () => messages.remoteErrorIncomplete,
+    invalidResponse: () => messages.remoteErrorInvalidResponse,
+    canceled: () => messages.remoteErrorCanceled,
+    timedOut: () => messages.remoteErrorTimedOut(error.detail ?? "")
+  };
+  return messages.remoteDownloadFailed(reasons[error.code]());
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
     const entities: Record<string, string> = {
@@ -881,7 +990,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
     arkOffsetInvalid: (offset) => `Kaldi wav ark offset ${offset} is invalid. Offset must be a non-negative integer.`,
     arkOffsetOutOfRange: (offset) => `Kaldi wav ark offset ${offset} is outside the file range, so the WAV header cannot be read.`,
     arkOffsetNotWave: (offset) => `Kaldi wav ark offset ${offset} does not point to RIFF/WAVE data.`,
-    arkEntrySizeInvalid: (offset) => `The entry at Kaldi wav ark offset ${offset} has an invalid size or exceeds the file range.`
+    arkEntrySizeInvalid: (offset) => `The entry at Kaldi wav ark offset ${offset} has an invalid size or exceeds the file range.`,
+    remoteDownloadTitle: "AudioLens: Downloading audio",
+    remoteWaitingForServer: "Connecting, waiting for the server…",
+    remoteDownloaded: (progress) => `Downloaded ${progress}`,
+    remoteRequiresTrust: "AudioLens requires a trusted workspace to download remote audio.",
+    remoteDownloadFailed: (reason) => `AudioLens cannot download the audio: ${reason}`,
+    remoteErrorCanceled: "the download was canceled.",
+    remoteErrorTimedOut: (seconds) => `the server sent no data for ${seconds} seconds.`,
+    remoteErrorTooLarge: (limit) => `the file exceeds the audiolens.maxFileSizeMB limit (${limit}).`,
+    remoteErrorHttpStatus: (status) => `the server returned HTTP ${status}.`,
+    remoteErrorRedirects: "too many redirects.",
+    remoteErrorScheme: "only HTTP and HTTPS URLs are supported.",
+    remoteErrorEmpty: "the server returned an empty file.",
+    remoteErrorIncomplete: "the connection ended before the download finished.",
+    remoteErrorInvalidResponse: "the server returned an invalid response."
   };
   const overrides: Partial<Record<string, Partial<ExtensionMessages>>> = {
     "zh-CN": {
@@ -894,7 +1017,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark offset ${offset} 无效，offset 必须是非负整数。`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark offset ${offset} 超出文件范围，无法读取 WAV 头。`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark offset ${offset} 处不是 RIFF/WAVE 数据。`,
-      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset} 对应的 entry 长度无效或超出文件范围。`
+      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset} 对应的 entry 长度无效或超出文件范围。`,
+      remoteDownloadTitle: "AudioLens：正在下载音频",
+      remoteWaitingForServer: "正在连接服务器，等待响应…",
+      remoteDownloaded: (progress) => `已下载 ${progress}`,
+      remoteRequiresTrust: "AudioLens 需要受信任的工作区才能下载网络音频。",
+      remoteDownloadFailed: (reason) => `AudioLens 无法下载音频：${reason}`,
+      remoteErrorCanceled: "下载已取消。",
+      remoteErrorTimedOut: (seconds) => `服务器 ${seconds} 秒内没有返回数据。`,
+      remoteErrorTooLarge: (limit) => `文件超过 audiolens.maxFileSizeMB 限制（${limit}）。`,
+      remoteErrorHttpStatus: (status) => `服务器返回 HTTP ${status}。`,
+      remoteErrorRedirects: "重定向次数过多。",
+      remoteErrorScheme: "仅支持 HTTP 和 HTTPS 地址。",
+      remoteErrorEmpty: "服务器返回了空文件。",
+      remoteErrorIncomplete: "下载完成前连接已中断。",
+      remoteErrorInvalidResponse: "服务器响应无效。"
     },
     "zh-TW": {
       arkOffsetPlaceholder: "請輸入 offset",
@@ -906,7 +1043,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark offset ${offset} 無效，offset 必須是非負整數。`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark offset ${offset} 超出檔案範圍，無法讀取 WAV header。`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark offset ${offset} 處不是 RIFF/WAVE 資料。`,
-      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset} 對應的 entry 長度無效或超出檔案範圍。`
+      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset} 對應的 entry 長度無效或超出檔案範圍。`,
+      remoteDownloadTitle: "AudioLens：正在下載音訊",
+      remoteWaitingForServer: "正在連線伺服器，等待回應…",
+      remoteDownloaded: (progress) => `已下載 ${progress}`,
+      remoteRequiresTrust: "AudioLens 需要受信任的工作區才能下載網路音訊。",
+      remoteDownloadFailed: (reason) => `AudioLens 無法下載音訊：${reason}`,
+      remoteErrorCanceled: "下載已取消。",
+      remoteErrorTimedOut: (seconds) => `伺服器 ${seconds} 秒內沒有回傳資料。`,
+      remoteErrorTooLarge: (limit) => `檔案超過 audiolens.maxFileSizeMB 限制（${limit}）。`,
+      remoteErrorHttpStatus: (status) => `伺服器回傳 HTTP ${status}。`,
+      remoteErrorRedirects: "重新導向次數過多。",
+      remoteErrorScheme: "僅支援 HTTP 和 HTTPS 網址。",
+      remoteErrorEmpty: "伺服器回傳了空檔案。",
+      remoteErrorIncomplete: "下載完成前連線已中斷。",
+      remoteErrorInvalidResponse: "伺服器回應無效。"
     },
     ja: {
       arkOffsetPlaceholder: "offset を入力",
@@ -918,7 +1069,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark offset ${offset} は無効です。offset は 0 以上の整数である必要があります。`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark offset ${offset} はファイル範囲外のため、WAV ヘッダーを読み取れません。`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark offset ${offset} は RIFF/WAVE データを指していません。`,
-      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset} の entry サイズが無効、またはファイル範囲を超えています。`
+      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset} の entry サイズが無効、またはファイル範囲を超えています。`,
+      remoteDownloadTitle: "AudioLens: 音声をダウンロード中",
+      remoteWaitingForServer: "サーバーに接続し、応答を待っています…",
+      remoteDownloaded: (progress) => `ダウンロード済み ${progress}`,
+      remoteRequiresTrust: "リモート音声をダウンロードするには、信頼されたワークスペースが必要です。",
+      remoteDownloadFailed: (reason) => `AudioLens は音声をダウンロードできません: ${reason}`,
+      remoteErrorCanceled: "ダウンロードはキャンセルされました。",
+      remoteErrorTimedOut: (seconds) => `サーバーから ${seconds} 秒間データが届きませんでした。`,
+      remoteErrorTooLarge: (limit) => `ファイルが audiolens.maxFileSizeMB の上限 (${limit}) を超えています。`,
+      remoteErrorHttpStatus: (status) => `サーバーが HTTP ${status} を返しました。`,
+      remoteErrorRedirects: "リダイレクトが多すぎます。",
+      remoteErrorScheme: "HTTP と HTTPS の URL のみ対応しています。",
+      remoteErrorEmpty: "サーバーが空のファイルを返しました。",
+      remoteErrorIncomplete: "ダウンロード完了前に接続が切断されました。",
+      remoteErrorInvalidResponse: "サーバーの応答が無効です。"
     },
     ko: {
       arkOffsetPlaceholder: "offset 입력",
@@ -930,7 +1095,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark offset ${offset}이 올바르지 않습니다. offset은 0 이상의 정수여야 합니다.`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark offset ${offset}이 파일 범위를 벗어나 WAV 헤더를 읽을 수 없습니다.`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark offset ${offset} 위치가 RIFF/WAVE 데이터가 아닙니다.`,
-      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset}의 entry 길이가 올바르지 않거나 파일 범위를 벗어납니다.`
+      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offset ${offset}의 entry 길이가 올바르지 않거나 파일 범위를 벗어납니다.`,
+      remoteDownloadTitle: "AudioLens: 오디오 다운로드 중",
+      remoteWaitingForServer: "서버에 연결하여 응답을 기다리는 중…",
+      remoteDownloaded: (progress) => `다운로드됨 ${progress}`,
+      remoteRequiresTrust: "원격 오디오를 다운로드하려면 신뢰할 수 있는 작업 영역이 필요합니다.",
+      remoteDownloadFailed: (reason) => `AudioLens가 오디오를 다운로드할 수 없습니다: ${reason}`,
+      remoteErrorCanceled: "다운로드가 취소되었습니다.",
+      remoteErrorTimedOut: (seconds) => `서버가 ${seconds}초 동안 데이터를 보내지 않았습니다.`,
+      remoteErrorTooLarge: (limit) => `파일이 audiolens.maxFileSizeMB 제한(${limit})을 초과합니다.`,
+      remoteErrorHttpStatus: (status) => `서버가 HTTP ${status}을(를) 반환했습니다.`,
+      remoteErrorRedirects: "리디렉션이 너무 많습니다.",
+      remoteErrorScheme: "HTTP 및 HTTPS URL만 지원합니다.",
+      remoteErrorEmpty: "서버가 빈 파일을 반환했습니다.",
+      remoteErrorIncomplete: "다운로드가 끝나기 전에 연결이 끊어졌습니다.",
+      remoteErrorInvalidResponse: "서버 응답이 올바르지 않습니다."
     },
     fr: {
       arkOffsetPlaceholder: "Saisir l'offset",
@@ -942,7 +1121,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `L'offset Kaldi wav ark ${offset} est invalide. Il doit être un entier positif ou nul.`,
       arkOffsetOutOfRange: (offset) => `L'offset Kaldi wav ark ${offset} est hors du fichier ; l'en-tête WAV ne peut pas être lu.`,
       arkOffsetNotWave: (offset) => `L'offset Kaldi wav ark ${offset} ne pointe pas vers des données RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `L'entrée à l'offset Kaldi wav ark ${offset} a une taille invalide ou dépasse le fichier.`
+      arkEntrySizeInvalid: (offset) => `L'entrée à l'offset Kaldi wav ark ${offset} a une taille invalide ou dépasse le fichier.`,
+      remoteDownloadTitle: "AudioLens : téléchargement de l'audio",
+      remoteWaitingForServer: "Connexion, en attente du serveur…",
+      remoteDownloaded: (progress) => `Téléchargé ${progress}`,
+      remoteRequiresTrust: "AudioLens nécessite un espace de travail approuvé pour télécharger un audio distant.",
+      remoteDownloadFailed: (reason) => `AudioLens ne peut pas télécharger l'audio : ${reason}`,
+      remoteErrorCanceled: "le téléchargement a été annulé.",
+      remoteErrorTimedOut: (seconds) => `le serveur n'a envoyé aucune donnée pendant ${seconds} secondes.`,
+      remoteErrorTooLarge: (limit) => `le fichier dépasse la limite audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `le serveur a renvoyé HTTP ${status}.`,
+      remoteErrorRedirects: "trop de redirections.",
+      remoteErrorScheme: "seules les URL HTTP et HTTPS sont prises en charge.",
+      remoteErrorEmpty: "le serveur a renvoyé un fichier vide.",
+      remoteErrorIncomplete: "la connexion a été interrompue avant la fin du téléchargement.",
+      remoteErrorInvalidResponse: "le serveur a renvoyé une réponse invalide."
     },
     de: {
       arkOffsetPlaceholder: "Offset eingeben",
@@ -954,7 +1147,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark Offset ${offset} ist ungültig. Der Offset muss eine nicht negative Ganzzahl sein.`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark Offset ${offset} liegt außerhalb der Datei; der WAV-Header kann nicht gelesen werden.`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark Offset ${offset} zeigt nicht auf RIFF/WAVE-Daten.`,
-      arkEntrySizeInvalid: (offset) => `Der Eintrag bei Kaldi wav ark Offset ${offset} hat eine ungültige Größe oder überschreitet die Datei.`
+      arkEntrySizeInvalid: (offset) => `Der Eintrag bei Kaldi wav ark Offset ${offset} hat eine ungültige Größe oder überschreitet die Datei.`,
+      remoteDownloadTitle: "AudioLens: Audio wird heruntergeladen",
+      remoteWaitingForServer: "Verbindung wird hergestellt, warte auf den Server…",
+      remoteDownloaded: (progress) => `Heruntergeladen ${progress}`,
+      remoteRequiresTrust: "AudioLens benötigt einen vertrauenswürdigen Arbeitsbereich, um Remote-Audio herunterzuladen.",
+      remoteDownloadFailed: (reason) => `AudioLens kann das Audio nicht herunterladen: ${reason}`,
+      remoteErrorCanceled: "Der Download wurde abgebrochen.",
+      remoteErrorTimedOut: (seconds) => `Der Server hat ${seconds} Sekunden lang keine Daten gesendet.`,
+      remoteErrorTooLarge: (limit) => `Die Datei überschreitet das Limit audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `Der Server hat HTTP ${status} zurückgegeben.`,
+      remoteErrorRedirects: "Zu viele Weiterleitungen.",
+      remoteErrorScheme: "Nur HTTP- und HTTPS-URLs werden unterstützt.",
+      remoteErrorEmpty: "Der Server hat eine leere Datei zurückgegeben.",
+      remoteErrorIncomplete: "Die Verbindung wurde vor Abschluss des Downloads beendet.",
+      remoteErrorInvalidResponse: "Der Server hat eine ungültige Antwort gesendet."
     },
     ru: {
       arkOffsetPlaceholder: "Введите offset",
@@ -966,7 +1173,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark offset ${offset} недопустим. Offset должен быть неотрицательным целым числом.`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark offset ${offset} вне диапазона файла, заголовок WAV нельзя прочитать.`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark offset ${offset} не указывает на данные RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `Entry по Kaldi wav ark offset ${offset} имеет недопустимый размер или выходит за пределы файла.`
+      arkEntrySizeInvalid: (offset) => `Entry по Kaldi wav ark offset ${offset} имеет недопустимый размер или выходит за пределы файла.`,
+      remoteDownloadTitle: "AudioLens: загрузка аудио",
+      remoteWaitingForServer: "Подключение, ожидание ответа сервера…",
+      remoteDownloaded: (progress) => `Загружено ${progress}`,
+      remoteRequiresTrust: "Для загрузки удалённого аудио AudioLens требуется доверенная рабочая область.",
+      remoteDownloadFailed: (reason) => `AudioLens не удаётся загрузить аудио: ${reason}`,
+      remoteErrorCanceled: "загрузка отменена.",
+      remoteErrorTimedOut: (seconds) => `сервер не передавал данные ${seconds} с.`,
+      remoteErrorTooLarge: (limit) => `файл превышает лимит audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `сервер вернул HTTP ${status}.`,
+      remoteErrorRedirects: "слишком много перенаправлений.",
+      remoteErrorScheme: "поддерживаются только URL HTTP и HTTPS.",
+      remoteErrorEmpty: "сервер вернул пустой файл.",
+      remoteErrorIncomplete: "соединение прервалось до завершения загрузки.",
+      remoteErrorInvalidResponse: "сервер вернул некорректный ответ."
     },
     es: {
       arkOffsetPlaceholder: "Introduce el offset",
@@ -978,7 +1199,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `El offset Kaldi wav ark ${offset} no es válido. Debe ser un entero no negativo.`,
       arkOffsetOutOfRange: (offset) => `El offset Kaldi wav ark ${offset} está fuera del archivo y no se puede leer el encabezado WAV.`,
       arkOffsetNotWave: (offset) => `El offset Kaldi wav ark ${offset} no apunta a datos RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `La entrada en el offset Kaldi wav ark ${offset} tiene un tamaño no válido o excede el archivo.`
+      arkEntrySizeInvalid: (offset) => `La entrada en el offset Kaldi wav ark ${offset} tiene un tamaño no válido o excede el archivo.`,
+      remoteDownloadTitle: "AudioLens: descargando audio",
+      remoteWaitingForServer: "Conectando, esperando al servidor…",
+      remoteDownloaded: (progress) => `Descargado ${progress}`,
+      remoteRequiresTrust: "AudioLens necesita un espacio de trabajo de confianza para descargar audio remoto.",
+      remoteDownloadFailed: (reason) => `AudioLens no puede descargar el audio: ${reason}`,
+      remoteErrorCanceled: "la descarga se canceló.",
+      remoteErrorTimedOut: (seconds) => `el servidor no envió datos durante ${seconds} segundos.`,
+      remoteErrorTooLarge: (limit) => `el archivo supera el límite audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `el servidor devolvió HTTP ${status}.`,
+      remoteErrorRedirects: "demasiadas redirecciones.",
+      remoteErrorScheme: "solo se admiten URL HTTP y HTTPS.",
+      remoteErrorEmpty: "el servidor devolvió un archivo vacío.",
+      remoteErrorIncomplete: "la conexión se cerró antes de terminar la descarga.",
+      remoteErrorInvalidResponse: "el servidor devolvió una respuesta no válida."
     },
     it: {
       arkOffsetPlaceholder: "Inserisci offset",
@@ -990,7 +1225,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `L'offset Kaldi wav ark ${offset} non è valido. Deve essere un intero non negativo.`,
       arkOffsetOutOfRange: (offset) => `L'offset Kaldi wav ark ${offset} è fuori dal file e l'header WAV non può essere letto.`,
       arkOffsetNotWave: (offset) => `L'offset Kaldi wav ark ${offset} non punta a dati RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `L'entry all'offset Kaldi wav ark ${offset} ha dimensione non valida o supera il file.`
+      arkEntrySizeInvalid: (offset) => `L'entry all'offset Kaldi wav ark ${offset} ha dimensione non valida o supera il file.`,
+      remoteDownloadTitle: "AudioLens: download dell'audio",
+      remoteWaitingForServer: "Connessione, in attesa del server…",
+      remoteDownloaded: (progress) => `Scaricati ${progress}`,
+      remoteRequiresTrust: "AudioLens richiede un'area di lavoro attendibile per scaricare audio remoto.",
+      remoteDownloadFailed: (reason) => `AudioLens non riesce a scaricare l'audio: ${reason}`,
+      remoteErrorCanceled: "il download è stato annullato.",
+      remoteErrorTimedOut: (seconds) => `il server non ha inviato dati per ${seconds} secondi.`,
+      remoteErrorTooLarge: (limit) => `il file supera il limite audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `il server ha restituito HTTP ${status}.`,
+      remoteErrorRedirects: "troppi reindirizzamenti.",
+      remoteErrorScheme: "sono supportati solo URL HTTP e HTTPS.",
+      remoteErrorEmpty: "il server ha restituito un file vuoto.",
+      remoteErrorIncomplete: "la connessione si è interrotta prima del termine del download.",
+      remoteErrorInvalidResponse: "il server ha restituito una risposta non valida."
     },
     pt: {
       arkOffsetPlaceholder: "Insira o offset",
@@ -1002,7 +1251,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `O offset Kaldi wav ark ${offset} é inválido. O offset deve ser um inteiro não negativo.`,
       arkOffsetOutOfRange: (offset) => `O offset Kaldi wav ark ${offset} está fora do arquivo; não é possível ler o cabeçalho WAV.`,
       arkOffsetNotWave: (offset) => `O offset Kaldi wav ark ${offset} não aponta para dados RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `A entrada no offset Kaldi wav ark ${offset} tem tamanho inválido ou excede o arquivo.`
+      arkEntrySizeInvalid: (offset) => `A entrada no offset Kaldi wav ark ${offset} tem tamanho inválido ou excede o arquivo.`,
+      remoteDownloadTitle: "AudioLens: baixando áudio",
+      remoteWaitingForServer: "Conectando, aguardando o servidor…",
+      remoteDownloaded: (progress) => `Baixado ${progress}`,
+      remoteRequiresTrust: "O AudioLens precisa de um workspace confiável para baixar áudio remoto.",
+      remoteDownloadFailed: (reason) => `O AudioLens não consegue baixar o áudio: ${reason}`,
+      remoteErrorCanceled: "o download foi cancelado.",
+      remoteErrorTimedOut: (seconds) => `o servidor não enviou dados por ${seconds} segundos.`,
+      remoteErrorTooLarge: (limit) => `o arquivo excede o limite audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `o servidor retornou HTTP ${status}.`,
+      remoteErrorRedirects: "redirecionamentos demais.",
+      remoteErrorScheme: "somente URLs HTTP e HTTPS são compatíveis.",
+      remoteErrorEmpty: "o servidor retornou um arquivo vazio.",
+      remoteErrorIncomplete: "a conexão foi encerrada antes do fim do download.",
+      remoteErrorInvalidResponse: "o servidor retornou uma resposta inválida."
     },
     id: {
       arkOffsetPlaceholder: "Masukkan offset",
@@ -1014,7 +1277,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Offset Kaldi wav ark ${offset} tidak valid. Offset harus bilangan bulat non-negatif.`,
       arkOffsetOutOfRange: (offset) => `Offset Kaldi wav ark ${offset} berada di luar rentang file, header WAV tidak dapat dibaca.`,
       arkOffsetNotWave: (offset) => `Offset Kaldi wav ark ${offset} tidak menunjuk ke data RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `Entry pada offset Kaldi wav ark ${offset} memiliki ukuran tidak valid atau melebihi file.`
+      arkEntrySizeInvalid: (offset) => `Entry pada offset Kaldi wav ark ${offset} memiliki ukuran tidak valid atau melebihi file.`,
+      remoteDownloadTitle: "AudioLens: mengunduh audio",
+      remoteWaitingForServer: "Menghubungkan, menunggu server…",
+      remoteDownloaded: (progress) => `Terunduh ${progress}`,
+      remoteRequiresTrust: "AudioLens memerlukan workspace tepercaya untuk mengunduh audio jarak jauh.",
+      remoteDownloadFailed: (reason) => `AudioLens tidak dapat mengunduh audio: ${reason}`,
+      remoteErrorCanceled: "unduhan dibatalkan.",
+      remoteErrorTimedOut: (seconds) => `server tidak mengirim data selama ${seconds} detik.`,
+      remoteErrorTooLarge: (limit) => `file melebihi batas audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `server mengembalikan HTTP ${status}.`,
+      remoteErrorRedirects: "terlalu banyak pengalihan.",
+      remoteErrorScheme: "hanya URL HTTP dan HTTPS yang didukung.",
+      remoteErrorEmpty: "server mengembalikan file kosong.",
+      remoteErrorIncomplete: "koneksi terputus sebelum unduhan selesai.",
+      remoteErrorInvalidResponse: "server mengembalikan respons yang tidak valid."
     },
     no: {
       arkOffsetPlaceholder: "Skriv inn offset",
@@ -1026,7 +1303,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark-offset ${offset} er ugyldig. Offset må være et ikke-negativt heltall.`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark-offset ${offset} er utenfor filområdet, så WAV-headeren kan ikke leses.`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark-offset ${offset} peker ikke på RIFF/WAVE-data.`,
-      arkEntrySizeInvalid: (offset) => `Entryen ved Kaldi wav ark-offset ${offset} har ugyldig størrelse eller går utenfor filen.`
+      arkEntrySizeInvalid: (offset) => `Entryen ved Kaldi wav ark-offset ${offset} har ugyldig størrelse eller går utenfor filen.`,
+      remoteDownloadTitle: "AudioLens: laster ned lyd",
+      remoteWaitingForServer: "Kobler til, venter på serveren…",
+      remoteDownloaded: (progress) => `Lastet ned ${progress}`,
+      remoteRequiresTrust: "AudioLens krever et klarert arbeidsområde for å laste ned ekstern lyd.",
+      remoteDownloadFailed: (reason) => `AudioLens kan ikke laste ned lyden: ${reason}`,
+      remoteErrorCanceled: "nedlastingen ble avbrutt.",
+      remoteErrorTimedOut: (seconds) => `serveren sendte ingen data på ${seconds} sekunder.`,
+      remoteErrorTooLarge: (limit) => `filen overskrider grensen audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `serveren returnerte HTTP ${status}.`,
+      remoteErrorRedirects: "for mange omdirigeringer.",
+      remoteErrorScheme: "bare HTTP- og HTTPS-URL-er støttes.",
+      remoteErrorEmpty: "serveren returnerte en tom fil.",
+      remoteErrorIncomplete: "tilkoblingen ble brutt før nedlastingen var ferdig.",
+      remoteErrorInvalidResponse: "serveren returnerte et ugyldig svar."
     },
     nl: {
       arkOffsetPlaceholder: "Voer offset in",
@@ -1038,7 +1329,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark-offset ${offset} is ongeldig. Offset moet een niet-negatief geheel getal zijn.`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark-offset ${offset} valt buiten het bestand; de WAV-header kan niet worden gelezen.`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark-offset ${offset} wijst niet naar RIFF/WAVE-data.`,
-      arkEntrySizeInvalid: (offset) => `De entry bij Kaldi wav ark-offset ${offset} heeft een ongeldige grootte of valt buiten het bestand.`
+      arkEntrySizeInvalid: (offset) => `De entry bij Kaldi wav ark-offset ${offset} heeft een ongeldige grootte of valt buiten het bestand.`,
+      remoteDownloadTitle: "AudioLens: audio downloaden",
+      remoteWaitingForServer: "Verbinden, wachten op de server…",
+      remoteDownloaded: (progress) => `Gedownload ${progress}`,
+      remoteRequiresTrust: "AudioLens vereist een vertrouwde werkruimte om externe audio te downloaden.",
+      remoteDownloadFailed: (reason) => `AudioLens kan de audio niet downloaden: ${reason}`,
+      remoteErrorCanceled: "de download is geannuleerd.",
+      remoteErrorTimedOut: (seconds) => `de server heeft ${seconds} seconden geen gegevens verzonden.`,
+      remoteErrorTooLarge: (limit) => `het bestand overschrijdt de limiet audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `de server gaf HTTP ${status} terug.`,
+      remoteErrorRedirects: "te veel omleidingen.",
+      remoteErrorScheme: "alleen HTTP- en HTTPS-URL's worden ondersteund.",
+      remoteErrorEmpty: "de server gaf een leeg bestand terug.",
+      remoteErrorIncomplete: "de verbinding werd verbroken voordat de download klaar was.",
+      remoteErrorInvalidResponse: "de server gaf een ongeldig antwoord."
     },
     pl: {
       arkOffsetPlaceholder: "Wpisz offset",
@@ -1050,7 +1355,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Offset Kaldi wav ark ${offset} jest nieprawidłowy. Offset musi być nieujemną liczbą całkowitą.`,
       arkOffsetOutOfRange: (offset) => `Offset Kaldi wav ark ${offset} jest poza zakresem pliku, więc nie można odczytać nagłówka WAV.`,
       arkOffsetNotWave: (offset) => `Offset Kaldi wav ark ${offset} nie wskazuje danych RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `Wpis przy offsecie Kaldi wav ark ${offset} ma nieprawidłowy rozmiar lub wykracza poza plik.`
+      arkEntrySizeInvalid: (offset) => `Wpis przy offsecie Kaldi wav ark ${offset} ma nieprawidłowy rozmiar lub wykracza poza plik.`,
+      remoteDownloadTitle: "AudioLens: pobieranie audio",
+      remoteWaitingForServer: "Łączenie, oczekiwanie na serwer…",
+      remoteDownloaded: (progress) => `Pobrano ${progress}`,
+      remoteRequiresTrust: "AudioLens wymaga zaufanego obszaru roboczego, aby pobrać zdalne audio.",
+      remoteDownloadFailed: (reason) => `AudioLens nie może pobrać audio: ${reason}`,
+      remoteErrorCanceled: "pobieranie zostało anulowane.",
+      remoteErrorTimedOut: (seconds) => `serwer nie przesłał danych przez ${seconds} s.`,
+      remoteErrorTooLarge: (limit) => `plik przekracza limit audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `serwer zwrócił HTTP ${status}.`,
+      remoteErrorRedirects: "zbyt wiele przekierowań.",
+      remoteErrorScheme: "obsługiwane są tylko adresy URL HTTP i HTTPS.",
+      remoteErrorEmpty: "serwer zwrócił pusty plik.",
+      remoteErrorIncomplete: "połączenie zostało przerwane przed zakończeniem pobierania.",
+      remoteErrorInvalidResponse: "serwer zwrócił nieprawidłową odpowiedź."
     },
     tr: {
       arkOffsetPlaceholder: "Offset girin",
@@ -1062,7 +1381,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark offseti ${offset} geçersiz. Offset negatif olmayan bir tam sayı olmalıdır.`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark offseti ${offset} dosya aralığının dışında, WAV header okunamıyor.`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark offseti ${offset} RIFF/WAVE verisine işaret etmiyor.`,
-      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offseti ${offset} içindeki entry boyutu geçersiz veya dosya aralığını aşıyor.`
+      arkEntrySizeInvalid: (offset) => `Kaldi wav ark offseti ${offset} içindeki entry boyutu geçersiz veya dosya aralığını aşıyor.`,
+      remoteDownloadTitle: "AudioLens: ses indiriliyor",
+      remoteWaitingForServer: "Bağlanılıyor, sunucu bekleniyor…",
+      remoteDownloaded: (progress) => `İndirilen ${progress}`,
+      remoteRequiresTrust: "AudioLens'in uzak sesi indirebilmesi için güvenilir bir çalışma alanı gerekir.",
+      remoteDownloadFailed: (reason) => `AudioLens sesi indiremiyor: ${reason}`,
+      remoteErrorCanceled: "indirme iptal edildi.",
+      remoteErrorTimedOut: (seconds) => `sunucu ${seconds} saniye boyunca veri göndermedi.`,
+      remoteErrorTooLarge: (limit) => `dosya audiolens.maxFileSizeMB sınırını (${limit}) aşıyor.`,
+      remoteErrorHttpStatus: (status) => `sunucu HTTP ${status} döndürdü.`,
+      remoteErrorRedirects: "çok fazla yönlendirme.",
+      remoteErrorScheme: "yalnızca HTTP ve HTTPS URL'leri desteklenir.",
+      remoteErrorEmpty: "sunucu boş bir dosya döndürdü.",
+      remoteErrorIncomplete: "indirme bitmeden bağlantı kesildi.",
+      remoteErrorInvalidResponse: "sunucu geçersiz bir yanıt döndürdü."
     },
     vi: {
       arkOffsetPlaceholder: "Nhập offset",
@@ -1074,7 +1407,21 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
       arkOffsetInvalid: (offset) => `Kaldi wav ark offset ${offset} không hợp lệ. Offset phải là số nguyên không âm.`,
       arkOffsetOutOfRange: (offset) => `Kaldi wav ark offset ${offset} nằm ngoài phạm vi file nên không thể đọc WAV header.`,
       arkOffsetNotWave: (offset) => `Kaldi wav ark offset ${offset} không trỏ tới dữ liệu RIFF/WAVE.`,
-      arkEntrySizeInvalid: (offset) => `Entry tại Kaldi wav ark offset ${offset} có kích thước không hợp lệ hoặc vượt quá phạm vi file.`
+      arkEntrySizeInvalid: (offset) => `Entry tại Kaldi wav ark offset ${offset} có kích thước không hợp lệ hoặc vượt quá phạm vi file.`,
+      remoteDownloadTitle: "AudioLens: đang tải âm thanh",
+      remoteWaitingForServer: "Đang kết nối, chờ máy chủ phản hồi…",
+      remoteDownloaded: (progress) => `Đã tải ${progress}`,
+      remoteRequiresTrust: "AudioLens cần workspace tin cậy để tải âm thanh từ xa.",
+      remoteDownloadFailed: (reason) => `AudioLens không thể tải âm thanh: ${reason}`,
+      remoteErrorCanceled: "đã hủy tải xuống.",
+      remoteErrorTimedOut: (seconds) => `máy chủ không gửi dữ liệu trong ${seconds} giây.`,
+      remoteErrorTooLarge: (limit) => `tệp vượt quá giới hạn audiolens.maxFileSizeMB (${limit}).`,
+      remoteErrorHttpStatus: (status) => `máy chủ trả về HTTP ${status}.`,
+      remoteErrorRedirects: "quá nhiều lần chuyển hướng.",
+      remoteErrorScheme: "chỉ hỗ trợ URL HTTP và HTTPS.",
+      remoteErrorEmpty: "máy chủ trả về tệp rỗng.",
+      remoteErrorIncomplete: "kết nối bị ngắt trước khi tải xong.",
+      remoteErrorInvalidResponse: "máy chủ trả về phản hồi không hợp lệ."
     }
   };
   return { ...base, ...overrides[normalized] };
@@ -1082,7 +1429,7 @@ function resolveExtensionMessages(locale = vscode.env.language): ExtensionMessag
 
 function normalizeLocale(locale: string): string {
   const lower = locale.toLowerCase();
-  if (lower.startsWith("zh-tw") || lower.startsWith("zh-hk")) {
+  if (/^zh-(tw|hk|mo|hant)/.test(lower)) {
     return "zh-TW";
   }
   if (lower.startsWith("zh")) {
@@ -1163,14 +1510,15 @@ function resolveInputPath(filePath: string): vscode.Uri {
 
 function resolveDefaultDownloadUri(document: AudioLensDocument, fileName: string): vscode.Uri {
   const safeName = sanitizeSuggestedFileName(fileName) || fileName;
-  const sourceUri = document.sourceUri;
-  if (sourceUri.scheme === "file") {
+  // 网络音频不使用临时下载目录，直接回退到工作区目录。
+  const sourceUri = document.isRemote ? undefined : document.sourceUri;
+  if (sourceUri?.scheme === "file") {
     const dir = path.dirname(sourceUri.fsPath);
     if (path.isAbsolute(dir)) {
       return vscode.Uri.file(path.join(dir, safeName));
     }
   }
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(sourceUri)
+  const workspaceFolder = (sourceUri && vscode.workspace.getWorkspaceFolder(sourceUri))
     ?? vscode.workspace.workspaceFolders?.[0];
   if (workspaceFolder?.uri.scheme === "file") {
     return vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, safeName));
