@@ -163,6 +163,10 @@ AudioLens 会优先使用 Webview 的浏览器解码能力处理常见音频格�
 | 编码音频 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 长 MP4/M4A/AAC 音频由扩展宿主 FFmpeg 建立磁盘缓存，波形使用峰值金字塔，播放和分析按需读取有界 PCM 小段，不再传输整段解码 PCM，也不依赖 Electron 的 AAC 解复用能力；其他格式先用 Webview 解码，失败后使用同一缓存。 |
 | 原始 PCM | `.pcm`、`.raw` | 读取前需要用户显式填写 PCM 参数。 |
 
+M4A/AAC 需要 FFmpeg，其他编码格式在 Webview 解码失败时也会改用 FFmpeg。找不到 `ffmpeg` 时，AudioLens 会在右下角按当前系统推荐安装命令（macOS 用 Homebrew，Windows 用 Scoop 或 winget，Linux 用 Homebrew 或发行版包管理器），并可以直接在终端中执行。“一键安装”会把 [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) 的静态版 FFmpeg 下载到扩展的用户存储目录，校验 SHA-256，无需管理员权限。下载前会同时测试 GitHub Releases 和国内镜像 [npmmirror](https://npmmirror.com/)，从更快的源下载，国内无需配置代理；下载失败时自动换另一个源。FFmpeg 就绪后，等待中的编辑器会自动重新打开。
+
+要指定 AudioLens 使用哪个 FFmpeg，可以在命令面板运行 `AudioLens: 选择 FFmpeg`。和选择 Python 解释器类似，它会列出 `PATH`、常见安装位置（包括未链接或带版本号的 Homebrew 公式）以及 AudioLens 下载的 FFmpeg，显示版本、来源和路径，并标出当前使用的那个；在同一个列表里也可以改回自动检测、手动选择 `ffmpeg` 可执行文件或安装 FFmpeg。选择保存在用户设置 `audiolens.ffmpegPath` 中（按机器保存，工作区设置不能覆盖）；留空或路径不可用时自动检测。
+
 ## 查看多通道音频
 
 多通道音频会按真实通道显示为多条音轨。每条音轨左侧是紧凑的控制区，右侧是主要观察区域。
@@ -293,7 +297,7 @@ AudioLens 是 workspace extension。在 Remote SSH 窗口中，扩展宿主运�
 
 ## 隐私
 
-AudioLens 不会把音频上传到任何第三方服务。音频内容由 VS Code 扩展宿主读取，并在 VS Code Webview 和 Worker 运行时中完成分析。打开 HTTP/HTTPS 音频 URL 时，扩展宿主直接从该服务器下载音频。
+AudioLens 不会把音频上传到任何第三方服务。音频内容由 VS Code 扩展宿主读取，并在 VS Code Webview 和 Worker 运行时中完成分析。打开 HTTP/HTTPS 音频 URL 时，扩展宿主直接从该服务器下载音频。选择“一键安装”FFmpeg 时，扩展宿主会连接 GitHub Releases 和 npmmirror 镜像，从更快的源下载固定版本的 FFmpeg，不发送任何音频信息。
 
 ## 开发
 

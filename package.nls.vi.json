@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "Chuyển ngôn ngữ",
   "command.openKaldiWavArk.title": "Mở mục Kaldi WAV Ark",
   "command.toggleAudioPathLinks.title": "Bật/tắt \"Mở trong AudioLens\"",
-  "command.openAudioPathAtCursor.title": "Mở đường dẫn âm thanh tại con trỏ"
+  "command.openAudioPathAtCursor.title": "Mở đường dẫn âm thanh tại con trỏ",
+  "command.selectFfmpeg.title": "Chọn FFmpeg",
+  "config.ffmpegPath.description": "Đường dẫn tới tệp thực thi ffmpeg mà AudioLens sử dụng. Để trống để tự động phát hiện (ưu tiên PATH, sau đó là các vị trí cài đặt phổ biến); đường dẫn không dùng được cũng sẽ quay về tự động phát hiện. Dùng lệnh \"AudioLens: Chọn FFmpeg\" để chọn."
 }

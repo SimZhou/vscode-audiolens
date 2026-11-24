@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { open, rm, stat } from "node:fs/promises";
 import { Worker } from "node:worker_threads";
+import { FfmpegNotFoundError } from "./ffmpegRuntime";
 
 export interface PeakLevel {
   blockSize: number;
@@ -36,6 +37,8 @@ const PCM_SCALE = 1 / 32768;
 const FINE_WAVEFORM_READ_BYTES = 4 * 1024 * 1024;
 
 export async function createStreamedAudioCache(options: {
+  /** spawn 用的 ffmpeg 命令或绝对路径，默认在 PATH 中查找。 */
+  ffmpegPath?: string;
   inputPath: string;
   wavPath: string;
   tempDir: string;
@@ -44,7 +47,7 @@ export async function createStreamedAudioCache(options: {
   timeoutMs: number;
 }): Promise<StreamedAudioCache> {
   try {
-    await runFfmpegToFile(options.inputPath, options.wavPath, options.maxCacheBytes, options.timeoutMs);
+    await runFfmpegToFile(options.ffmpegPath ?? "ffmpeg", options.inputPath, options.wavPath, options.maxCacheBytes, options.timeoutMs);
     const file = await stat(options.wavPath);
     if (file.size >= options.maxCacheBytes) {
       throw new Error(`FFmpeg PCM cache reached its ${formatBytes(options.maxCacheBytes)} safety limit.`);
@@ -264,10 +267,16 @@ export async function readPackedWindows(
   return { samples, frameCount, windowSize };
 }
 
-async function runFfmpegToFile(inputPath: string, outputPath: string, maxOutputBytes: number, timeoutMs: number): Promise<void> {
+async function runFfmpegToFile(
+  ffmpegPath: string,
+  inputPath: string,
+  outputPath: string,
+  maxOutputBytes: number,
+  timeoutMs: number
+): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     let settled = false;
-    const child = spawn("ffmpeg", [
+    const child = spawn(ffmpegPath, [
       "-hide_banner", "-loglevel", "error", "-y", "-i", inputPath,
       "-vn", "-f", "wav", "-acodec", "pcm_s16le", "-fs", String(maxOutputBytes), outputPath
     ]);
@@ -288,9 +297,7 @@ async function runFfmpegToFile(inputPath: string, outputPath: string, maxOutputB
       }
     });
     child.on("error", (error: NodeJS.ErrnoException) => {
-      fail(error.code === "ENOENT"
-        ? new Error("FFmpeg is required to open this encoded audio format, but the ffmpeg command was not found.")
-        : error);
+      fail(error.code === "ENOENT" ? new FfmpegNotFoundError() : error);
     });
     child.on("close", (code) => {
       if (settled) return;

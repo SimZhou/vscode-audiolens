@@ -1,6 +1,8 @@
 import { FileHandle, mkdtemp, open, readdir, rm } from "node:fs/promises";
-import { get as httpGet, IncomingMessage } from "node:http";
-import { get as httpsGet } from "node:https";
+// 必须用裸模块名 "http"/"https"：VS Code 扩展宿主只拦截这两个名字来注入代理
+// （http.proxy、HTTPS_PROXY、系统代理），写成 "node:https" 会绕过代理直连。
+import { get as httpGet, IncomingMessage } from "http";
+import { get as httpsGet } from "https";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -26,7 +28,7 @@ type ReportProgress = (progress: RemoteAudioProgress) => void;
 
 export type RemoteAudioErrorCode =
   | "unsupportedScheme" | "tooManyRedirects" | "httpStatus" | "tooLarge" | "empty"
-  | "incomplete" | "invalidResponse" | "canceled" | "timedOut";
+  | "incomplete" | "invalidResponse" | "canceled" | "timedOut" | "network";
 
 /** 带稳定错误码的下载失败；编辑器按错误码显示本地化文案。 */
 export class RemoteAudioError extends Error {
@@ -34,6 +36,38 @@ export class RemoteAudioError extends Error {
     super(message);
     this.name = "RemoteAudioError";
   }
+}
+
+/** 下载进度与错误原因文案；网络音频和 FFmpeg 一键安装共用。 */
+export interface RemoteAudioMessages {
+  remoteDownloaded: (progress: string) => string;
+  remoteErrorCanceled: string;
+  remoteErrorTimedOut: (seconds: string) => string;
+  remoteErrorTooLarge: (limit: string) => string;
+  remoteErrorHttpStatus: (status: string) => string;
+  remoteErrorRedirects: string;
+  remoteErrorScheme: string;
+  remoteErrorEmpty: string;
+  remoteErrorIncomplete: string;
+  remoteErrorInvalidResponse: string;
+  remoteErrorNetwork: (detail: string) => string;
+}
+
+/** 把错误码映射成本地化的原因短句；`limitText` 是 tooLarge 时显示的上限。 */
+export function remoteAudioErrorReason(error: RemoteAudioError, messages: RemoteAudioMessages, limitText: string): string {
+  const reasons: Record<RemoteAudioErrorCode, () => string> = {
+    unsupportedScheme: () => messages.remoteErrorScheme,
+    tooManyRedirects: () => messages.remoteErrorRedirects,
+    httpStatus: () => messages.remoteErrorHttpStatus(error.detail ?? ""),
+    tooLarge: () => messages.remoteErrorTooLarge(limitText),
+    empty: () => messages.remoteErrorEmpty,
+    incomplete: () => messages.remoteErrorIncomplete,
+    invalidResponse: () => messages.remoteErrorInvalidResponse,
+    canceled: () => messages.remoteErrorCanceled,
+    timedOut: () => messages.remoteErrorTimedOut(error.detail ?? ""),
+    network: () => messages.remoteErrorNetwork(error.detail ?? error.message)
+  };
+  return reasons[error.code]();
 }
 
 async function requestAudio(address: string, signal: AbortSignal, headers: Record<string, string> = {}): Promise<{
@@ -72,6 +106,22 @@ async function requestAudio(address: string, signal: AbortSignal, headers: Recor
     }
     return { response, url: url.href };
   }
+}
+
+/** 读取 URL 开头至多 `bytes` 字节后断开，用来比较多个下载源的实际速度；没有收到数据时失败。 */
+export async function probeRemoteDownload(address: string, bytes: number, signal: AbortSignal): Promise<void> {
+  const { response } = await requestAudio(address, signal, { Range: `bytes=0-${bytes - 1}` });
+  let received = 0;
+  try {
+    // 服务器忽略 Range 返回完整文件时，读够 `bytes` 也会停下。
+    for await (const chunk of response) {
+      received += (chunk as Buffer).length;
+      if (received >= bytes) break;
+    }
+  } finally {
+    response.destroy();
+  }
+  if (received === 0) throw new RemoteAudioError("empty", "AudioLens: download probe received no data.");
 }
 
 function responseSize(response: IncomingMessage, maxBytes: number): number | undefined {
@@ -231,11 +281,20 @@ export async function downloadRemoteAudio(
       throw new RemoteAudioError("timedOut", "AudioLens: audio download timed out.", seconds);
     }
     if (controller.signal.aborted) throw new RemoteAudioError("canceled", "AudioLens: audio download canceled.");
+    if (isNetworkError(error)) throw new RemoteAudioError("network", `AudioLens: network error: ${error.message}`, error.message);
     throw error;
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener("abort", abort);
   }
+}
+
+// 连接、DNS、TLS 证书类错误；写临时文件的 ENOSPC/EACCES 等不算网络错误，原样抛出。
+const NETWORK_ERROR_CODE_RE = /^(?:ECONN|ETIMEDOUT|ENOTFOUND|EAI_|EHOSTUNREACH|ENETUNREACH|EPIPE|ERR_SOCKET|ERR_TLS|CERT_|UNABLE_TO_|SELF_SIGNED|DEPTH_ZERO)/;
+
+function isNetworkError(error: unknown): error is NodeJS.ErrnoException {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return error instanceof Error && typeof code === "string" && NETWORK_ERROR_CODE_RE.test(code);
 }
 
 /**

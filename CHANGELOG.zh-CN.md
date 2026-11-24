@@ -1,5 +1,20 @@
 # 更新日志
 
+## 1.12.0
+
+### FFmpeg 安装与选择
+
+- **缺少 FFmpeg 时引导安装：**除了显示解码失败，AudioLens 还会在右下角按当前系统推荐安装命令（macOS 用 Homebrew，Windows 用 Scoop 或 winget，Linux 用 Homebrew 或 apt/pacman/zypper/apk），并可以直接在终端中执行。
+- **一键安装：**把通过 SHA-256 校验的静态版 FFmpeg 安装到扩展的用户存储目录，仅当前用户可用，无需管理员权限。
+- **自动选择更快的源：**下载前同时测试 GitHub Releases 和国内镜像 npmmirror，从更快的源下载，国内无需配置代理；一个源失败时自动换另一个。
+- **选择 FFmpeg：**命令 `AudioLens: 选择 FFmpeg` 像选择 Python 解释器一样，列出找到的所有 FFmpeg 及其版本、来源和路径，并标出当前使用的那个；可以选定一个、改回自动检测、手动选择可执行文件或安装 FFmpeg。选择保存在新增的机器级设置 `audiolens.ffmpegPath` 中。
+- FFmpeg 就绪后，等待中的编辑器自动重新打开。用 Homebrew、winget 或 Scoop 安装的 FFmpeg 即使在 VS Code 启动时还不在 `PATH` 中也能找到。
+
+### 下载
+
+- **支持代理：**网络音频和 FFmpeg 下载现在使用 VS Code 的代理设置（`http.proxy`、`HTTPS_PROXY` 或系统代理），此前总是直连。
+- 网络连接失败时显示清楚的提示，并建议配置 `http.proxy`，不再直接显示 `read ETIMEDOUT` 等原始错误。
+
 ## 1.11.0
 
 ### 打开网络音频

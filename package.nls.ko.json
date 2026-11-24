@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "언어 전환",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark 항목 열기",
   "command.toggleAudioPathLinks.title": "\"AudioLens에서 열기\" 켜기/끄기",
-  "command.openAudioPathAtCursor.title": "커서 위치의 오디오 경로 열기"
+  "command.openAudioPathAtCursor.title": "커서 위치의 오디오 경로 열기",
+  "command.selectFfmpeg.title": "FFmpeg 선택",
+  "config.ffmpegPath.description": "AudioLens에서 사용할 ffmpeg 실행 파일 경로입니다. 비워 두면 자동으로 감지합니다(PATH 우선, 그다음 일반적인 설치 위치). 경로를 사용할 수 없을 때도 자동 감지로 돌아갑니다. \"AudioLens: FFmpeg 선택\" 명령으로 선택할 수 있습니다."
 }

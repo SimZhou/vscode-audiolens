@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "Taal wisselen",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark-entry openen",
   "command.toggleAudioPathLinks.title": "\"Openen in AudioLens\" in-/uitschakelen",
-  "command.openAudioPathAtCursor.title": "Audiopad bij cursor openen"
+  "command.openAudioPathAtCursor.title": "Audiopad bij cursor openen",
+  "command.selectFfmpeg.title": "FFmpeg selecteren",
+  "config.ffmpegPath.description": "Pad naar het uitvoerbare ffmpeg-bestand dat AudioLens gebruikt. Laat leeg voor automatische detectie (eerst PATH, daarna gangbare installatielocaties); een onbruikbaar pad valt ook terug op automatische detectie. Kies er een met \"AudioLens: FFmpeg selecteren\"."
 }

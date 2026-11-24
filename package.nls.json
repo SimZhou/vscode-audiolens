@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "Switch Language",
   "command.openKaldiWavArk.title": "Open Kaldi WAV Ark Entry",
   "command.openAudioPathAtCursor.title": "Open Audio Path at Cursor",
-  "command.toggleAudioPathLinks.title": "Toggle \"Open in AudioLens\""
+  "command.toggleAudioPathLinks.title": "Toggle \"Open in AudioLens\"",
+  "command.selectFfmpeg.title": "Select FFmpeg",
+  "config.ffmpegPath.description": "Path to the ffmpeg executable used by AudioLens. Leave empty to detect it automatically (PATH first, then common install locations); an unusable path also falls back to automatic detection. Use \"AudioLens: Select FFmpeg\" to choose one."
 }

@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "Bytt språk",
   "command.openKaldiWavArk.title": "Åpne Kaldi WAV Ark-oppføring",
   "command.toggleAudioPathLinks.title": "Slå «Åpne i AudioLens» av/på",
-  "command.openAudioPathAtCursor.title": "Åpne lydsti ved markør"
+  "command.openAudioPathAtCursor.title": "Åpne lydsti ved markør",
+  "command.selectFfmpeg.title": "Velg FFmpeg",
+  "config.ffmpegPath.description": "Sti til ffmpeg-filen som AudioLens bruker. La feltet stå tomt for automatisk oppdagelse (PATH først, deretter vanlige installasjonssteder); en ubrukelig sti faller også tilbake til automatisk oppdagelse. Bruk «AudioLens: Velg FFmpeg» for å velge."
 }

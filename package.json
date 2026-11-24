@@ -2,7 +2,7 @@
   "name": "audiolens",
   "displayName": "AudioLens — Audio inspection for VS Code",
   "description": "Audio viewer for speech and ML workflows with waveforms, spectrograms, raw PCM, Kaldi wav ark, and Remote SSH support.",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "publisher": "simzhou",
   "license": "Apache-2.0",
   "icon": "logo/icon.png",
@@ -69,7 +69,8 @@
     "onCommand:audiolens.openKaldiWavArk",
     "onCommand:audiolens.openAudioPathLink",
     "onCommand:audiolens.openAudioPathAtCursor",
-    "onCommand:audiolens.toggleAudioPathLinks"
+    "onCommand:audiolens.toggleAudioPathLinks",
+    "onCommand:audiolens.selectFfmpeg"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -92,6 +93,11 @@
       {
         "command": "audiolens.toggleAudioPathLinks",
         "title": "%command.toggleAudioPathLinks.title%",
+        "category": "%command.category%"
+      },
+      {
+        "command": "audiolens.selectFfmpeg",
+        "title": "%command.selectFfmpeg.title%",
         "category": "%command.category%"
       }
     ],
@@ -239,6 +245,12 @@
           "default": 2,
           "description": "默认频谱零填充因子；为控制内存占用，FFT 长度与零填充因子的乘积最多为 131072。"
         },
+        "audiolens.ffmpegPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%config.ffmpegPath.description%"
+        },
         "audiolens.maxFileSizeMB": {
           "type": "number",
           "default": 512,
@@ -284,6 +296,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test:audio-paths": "node --test tests/audio-paths/audio-paths.test.mjs",
+    "test:ffmpeg": "node --test tests/ffmpeg/ffmpeg.test.mjs",
     "rust:test": "cargo test --workspace",
     "package": "npm run clean && npm run build && npx @vscode/vsce package -o dist/",
     "vscode:prepublish": "npm run clean && npm run build"

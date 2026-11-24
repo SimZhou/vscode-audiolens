@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.12.0
+
+### FFmpeg setup
+
+- **Install FFmpeg when it is missing:** besides the decode error, AudioLens shows a notification with an install command for your system (Homebrew on macOS, Scoop or winget on Windows, Homebrew or apt/pacman/zypper/apk on Linux) and can run it in a terminal.
+- **Download FFmpeg:** installs a checksum-verified static build into the extension's storage for the current user only, without administrator rights.
+- **Faster source:** the download briefly tests GitHub Releases and the npmmirror mirror and uses the faster one, so no proxy is needed in mainland China; if one source fails, AudioLens switches to the other.
+- **Select FFmpeg:** `AudioLens: Select FFmpeg` lists every FFmpeg found, with version, source, and path, and marks the one in use, like selecting a Python interpreter. Choose one, go back to automatic detection, browse for an executable, or install FFmpeg. The choice is saved in the new machine-scoped `audiolens.ffmpegPath` setting.
+- The waiting editor reopens automatically once FFmpeg is available. FFmpeg installed with Homebrew, winget, or Scoop is found even when VS Code started before it was on `PATH`.
+
+### Downloads
+
+- **Proxy support:** audio URL and FFmpeg downloads now use VS Code's proxy settings (`http.proxy`, `HTTPS_PROXY`, or the system proxy). Previously they always connected directly.
+- Network failures show a clear message with a hint to configure `http.proxy` instead of a raw error such as `read ETIMEDOUT`.
+
 ## 1.11.0
 
 ### Open audio URLs

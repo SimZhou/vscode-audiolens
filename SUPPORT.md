@@ -15,7 +15,7 @@ When reporting a problem, include:
 - Audio format, sample rate, and approximate file size.
 - Clear reproduction steps.
 
-For Remote SSH decode failures, also include whether `ffmpeg` is available on the remote extension host and the output of:
+For decode failures, also include which FFmpeg `AudioLens: Select FFmpeg` marks as in use (or that none was found). In a Remote SSH window, run it there and include the output of these commands on the remote host:
 
 ```bash
 which ffmpeg

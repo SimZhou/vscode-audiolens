@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "Ganti Bahasa",
   "command.openKaldiWavArk.title": "Buka Entri Kaldi WAV Ark",
   "command.toggleAudioPathLinks.title": "Aktif/nonaktifkan \"Buka di AudioLens\"",
-  "command.openAudioPathAtCursor.title": "Buka jalur audio di kursor"
+  "command.openAudioPathAtCursor.title": "Buka jalur audio di kursor",
+  "command.selectFfmpeg.title": "Pilih FFmpeg",
+  "config.ffmpegPath.description": "Path file executable ffmpeg yang digunakan AudioLens. Kosongkan untuk mendeteksi otomatis (PATH lebih dulu, lalu lokasi instalasi umum); path yang tidak dapat digunakan juga kembali ke deteksi otomatis. Gunakan \"AudioLens: Pilih FFmpeg\" untuk memilih."
 }

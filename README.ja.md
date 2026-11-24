@@ -163,6 +163,10 @@ AudioLens は一般的なエンコード形式にはブラウザの音声スタ�
 | エンコード音声 | `.mp3`、`.flac`、`.ogg`、`.opus`、`.m4a`、`.aac` | 長い MP4/M4A/AAC は拡張ホスト側 FFmpeg のディスクキャッシュ、ピークピラミッド、有界 PCM 再生チャンク、オンデマンド解析窓を使い、デコード済み PCM 全体の転送と Electron の AAC デマルチプレクサ制約を回避します。その他の形式は Webview で先にデコードし、失敗時に同じキャッシュへ切り替えます。 |
 | Raw PCM | `.pcm`、`.raw` | 読み込み前に PCM パラメータを明示的に指定する必要があります。 |
 
+M4A/AAC には FFmpeg が必要です。その他のエンコード形式も、Webview でデコードできない場合は FFmpeg を使います。`ffmpeg` が見つからない場合、AudioLens は右下の通知で環境に合ったインストールコマンド（macOS は Homebrew、Windows は Scoop または winget、Linux は Homebrew またはディストリビューションのパッケージマネージャー）を提案し、ターミナルで実行できます。「FFmpeg をダウンロード」を選ぶと、[ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) の静的ビルドを現在のユーザー用の拡張機能ストレージにインストールし、SHA-256 を検証します。管理者権限は不要です。ダウンロード前に GitHub Releases と [npmmirror](https://npmmirror.com/) ミラーを短時間テストして速い方から取得し（中国本土ではプロキシ不要）、失敗するともう一方に切り替えます。FFmpeg が使えるようになると、待機中のエディターは自動で開き直します。
+
+AudioLens が使う FFmpeg を指定するには、コマンドパレットで `AudioLens: FFmpeg を選択` を実行します。Python インタープリターの選択と同様に、`PATH`、一般的なインストール先（リンクされていない、またはバージョン付きの Homebrew フォーミュラを含む）、AudioLens がダウンロードした FFmpeg を、バージョン・入手元・パス付きで一覧表示し、使用中のものに印を付けます。同じ一覧から自動検出に戻す、`ffmpeg` 実行ファイルを参照する、FFmpeg をインストールすることもできます。選択はユーザー設定 `audiolens.ffmpegPath` に保存されます（マシンごと。ワークスペース設定では上書きできません）。空欄またはパスが使えない場合は自動検出します。
+
 ## マルチチャンネル音声を見る
 
 マルチチャンネル音声は、実際の各チャンネルを個別のトラックとして表示します。各トラックには左側の小さな操作エリアと、右側の広い解析エリアがあります。
@@ -293,7 +297,7 @@ AudioLens は workspace extension として動作します。Remote SSH ウィ�
 
 ## プライバシー
 
-AudioLens は音声ファイルを第三者サービスへアップロードしません。音声データは VS Code 拡張ホストで読み取られ、VS Code Webview と Worker ランタイム内で解析されます。HTTP/HTTPS 音声 URL を開くと、拡張ホストがそのサーバーから直接ダウンロードします。
+AudioLens は音声ファイルを第三者サービスへアップロードしません。音声データは VS Code 拡張ホストで読み取られ、VS Code Webview と Worker ランタイム内で解析されます。HTTP/HTTPS 音声 URL を開くと、拡張ホストがそのサーバーから直接ダウンロードします。「FFmpeg をダウンロード」を選ぶと、拡張ホストが GitHub Releases と npmmirror ミラーに接続し、速い方から固定バージョンの FFmpeg をダウンロードします。音声に関する情報は送信しません。
 
 ## 開発
 

@@ -163,6 +163,10 @@ AudioLens uses the browser audio stack for common encoded formats and the extens
 | Encoded audio | `.mp3`, `.flac`, `.ogg`, `.opus`, `.m4a`, `.aac` | Long MP4/M4A/AAC audio uses an extension-host FFmpeg disk cache with peak pyramids, bounded PCM playback chunks, and on-demand analysis windows, avoiding whole-file decoded PCM transfers and Electron AAC demuxer limitations. Other formats use the Webview decoder first and fall back to the same cache. |
 | Raw PCM | `.pcm`, `.raw` | Requires explicit PCM parameters before reading. |
 
+M4A/AAC files need FFmpeg, and other encoded formats fall back to it when the Webview decoder fails. If AudioLens cannot find `ffmpeg`, a notification suggests an install command for your system (Homebrew on macOS, Scoop or winget on Windows, Homebrew or your distribution's package manager on Linux) and can run it in a terminal. **Download FFmpeg** installs a static build from [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) into the extension's storage for the current user only, verifies its SHA-256, and needs no administrator rights. It briefly tests GitHub Releases and the [npmmirror](https://npmmirror.com/) mirror, downloads from the faster one (no proxy needed in mainland China), and switches to the other if a download fails. Once FFmpeg is available, the waiting editor reopens automatically.
+
+To choose which FFmpeg AudioLens uses, run `AudioLens: Select FFmpeg` from the Command Palette. Like selecting a Python interpreter, it lists every FFmpeg found on `PATH`, in common install locations (including unlinked or versioned Homebrew formulae), and the copy downloaded by AudioLens, with version, source, and path, and marks the one in use. You can go back to automatic detection, browse for an `ffmpeg` executable, or install FFmpeg from the same list. The choice is saved in the `audiolens.ffmpegPath` user setting (per machine; workspace settings cannot override it). When it is empty or the path is unusable, AudioLens detects FFmpeg automatically.
+
 ## View Multi-Channel Audio
 
 Multi-channel files are shown as separate channel tracks. Each track has a compact left control strip and a full-width analysis area.
@@ -293,7 +297,7 @@ Use the top-bar download button when you want to save the current remote audio f
 
 ## Privacy
 
-AudioLens does not upload audio files to any third-party service. Audio content is read by the VS Code extension host and analyzed inside the VS Code Webview and worker runtime. When you open an HTTP/HTTPS audio URL, the extension host downloads it directly from that server.
+AudioLens does not upload audio files to any third-party service. Audio content is read by the VS Code extension host and analyzed inside the VS Code Webview and worker runtime. When you open an HTTP/HTTPS audio URL, the extension host downloads it directly from that server. If you choose **Download FFmpeg**, the extension host contacts GitHub Releases and its npmmirror mirror and downloads a fixed FFmpeg build from the faster one; no audio information is sent.
 
 ## Development
 

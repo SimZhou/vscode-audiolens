@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "Dili Değiştir",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark Girdisini Aç",
   "command.toggleAudioPathLinks.title": "\"AudioLens’te aç\" özelliğini aç/kapat",
-  "command.openAudioPathAtCursor.title": "İmleçteki ses yolunu aç"
+  "command.openAudioPathAtCursor.title": "İmleçteki ses yolunu aç",
+  "command.selectFfmpeg.title": "FFmpeg'i Seç",
+  "config.ffmpegPath.description": "AudioLens'in kullandığı ffmpeg yürütülebilir dosyasının yolu. Otomatik algılama için boş bırakın (önce PATH, ardından yaygın kurulum konumları); kullanılamayan bir yol da otomatik algılamaya döner. Seçmek için \"AudioLens: FFmpeg'i Seç\" komutunu kullanın."
 }

@@ -3,5 +3,7 @@
   "command.selectLanguage.title": "言語を切り替え",
   "command.openKaldiWavArk.title": "Kaldi WAV Ark エントリを開く",
   "command.toggleAudioPathLinks.title": "「AudioLens で開く」をオン/オフ",
-  "command.openAudioPathAtCursor.title": "カーソル位置の音声パスを開く"
+  "command.openAudioPathAtCursor.title": "カーソル位置の音声パスを開く",
+  "command.selectFfmpeg.title": "FFmpeg を選択",
+  "config.ffmpegPath.description": "AudioLens が使う ffmpeg 実行ファイルのパス。空欄の場合は自動検出します（PATH を優先し、次に一般的なインストール先）。パスが使えない場合も自動検出に戻ります。コマンド「AudioLens: FFmpeg を選択」で選べます。"
 }
